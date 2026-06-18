@@ -1,10 +1,10 @@
 <script setup>
 import { ref, onMounted, computed } from "vue";
 import { useRouter } from "vue-router";
-
+import ask from "../components/ask.vue";
 const router = useRouter();
 const API = "https://itline-django.onrender.com/api";
-
+const ask = ref(false);
 // ─────────────────────────────
 // AUTH
 // ─────────────────────────────
@@ -370,8 +370,7 @@ function formatMoney(value) {
       </div>
       <button
         @click="logout"
-        class="px-4 py-2 rounded-full text-sm hover:bg-gray-50"
-      >
+        class="px-4 py-2 rounded-full text-sm hover:bg-gray-50">
         Chiqish
       </button>
     </div>
@@ -380,14 +379,12 @@ function formatMoney(value) {
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
       <div
         @click="$router.push('/students')"
-        class="p-5 border rounded-2xl cursor-pointer hover:bg-gray-50"
-      >
+        class="p-5 border rounded-2xl cursor-pointer hover:bg-gray-50">
         👥 O'quvchilar
       </div>
       <div
         @click="$router.push('/attendance')"
-        class="p-5 border rounded-2xl cursor-pointer hover:bg-gray-50"
-      >
+        class="p-5 border rounded-2xl cursor-pointer hover:bg-gray-50">
         📋 Davomat
       </div>
     </div>
@@ -399,14 +396,12 @@ function formatMoney(value) {
         <div class="flex gap-2">
           <button
             @click="showReassign = !showReassign"
-            class="px-3 py-1 rounded-full text-sm"
-          >
+            class="px-3 py-1 rounded-full text-sm">
             O'tkazish
           </button>
           <button
             @click="showForm = !showForm"
-            class="bg-black text-white px-3 py-1 rounded-full text-sm"
-          >
+            class="bg-black text-white px-3 py-1 rounded-full text-sm">
             + Qo'shish
           </button>
         </div>
@@ -417,17 +412,14 @@ function formatMoney(value) {
         <input
           v-model="newTeacher.name"
           placeholder="Ism"
-          class="w-full p-2 rounded mb-2"
-        />
+          class="w-full p-2 rounded mb-2" />
         <input
           v-model="newTeacher.phone"
           placeholder="Telefon"
-          class="w-full p-2 rounded mb-2"
-        />
+          class="w-full p-2 rounded mb-2" />
         <button
           @click="createTeacher"
-          class="w-full bg-black text-white py-2 rounded"
-        >
+          class="w-full bg-black text-white py-2 rounded">
           Saqlash
         </button>
       </div>
@@ -448,8 +440,7 @@ function formatMoney(value) {
         </select>
         <button
           @click="reassignStudents"
-          class="w-full bg-yellow-500 text-white py-2 rounded"
-        >
+          class="w-full bg-yellow-500 text-white py-2 rounded">
           O'tkazish
         </button>
       </div>
@@ -458,8 +449,7 @@ function formatMoney(value) {
       <div
         v-for="t in teachers"
         :key="t.id"
-        class="flex flex-wrap gap-2 justify-between items-center p-3 rounded-xl mb-2"
-      >
+        class="flex flex-wrap gap-2 justify-between items-center p-3 rounded-xl mb-2">
         <div>
           <p class="font-medium">{{ t.name }}</p>
           <p class="text-xs text-gray-400">{{ t.phone }}</p>
@@ -467,14 +457,12 @@ function formatMoney(value) {
         <div class="flex gap-2">
           <button
             @click="selectTeacher(t.id)"
-            class="text-blue-500 text-sm border px-2 rounded cursor-pointer"
-          >
+            class="text-blue-500 text-sm border px-2 rounded cursor-pointer">
             O'quvchilar
           </button>
           <button
             @click="deleteTeacher(t.id)"
-            class="text-red-400 text-sm border px-2 rounded cursor-pointer"
-          >
+            class="text-red-400 text-sm border px-2 rounded cursor-pointer">
             O'chirish
           </button>
         </div>
@@ -491,8 +479,7 @@ function formatMoney(value) {
         v-else
         v-for="s in students"
         :key="s.id"
-        class="flex flex-wrap gap-2 justify-between items-center p-3 rounded mb-2"
-      >
+        class="flex flex-wrap gap-2 justify-between items-center p-3 rounded mb-2">
         <div>
           <p class="font-medium">{{ s.name }} {{ s.surname }}</p>
 
@@ -502,16 +489,14 @@ function formatMoney(value) {
 
           <div
             v-if="getStudentPayment(s.id)"
-            class="mt-2 flex flex-wrap items-center gap-2"
-          >
+            class="mt-2 flex flex-wrap items-center gap-2">
             <span
               :class="
                 getStudentPayment(s.id).is_paid
                   ? 'bg-green-100 text-green-700'
                   : 'bg-red-100 text-red-600'
               "
-              class="text-xs px-2 py-1 rounded-full"
-            >
+              class="text-xs px-2 py-1 rounded-full">
               {{
                 getStudentPayment(s.id).is_paid ? "To‘langan" : "To‘lanmagan"
               }}
@@ -528,8 +513,7 @@ function formatMoney(value) {
             :key="st"
             @click="updateStage(s, st)"
             class="w-7 h-7 text-xs rounded-full"
-            :class="s.stage === st ? 'bg-black text-white' : ''"
-          >
+            :class="s.stage === st ? 'bg-black text-white' : ''">
             {{ st }}
           </button>
         </div>
@@ -541,8 +525,7 @@ function formatMoney(value) {
               s.schedule === 'odd'
                 ? 'bg-gray-900 text-white border-gray-900'
                 : 'border-gray-200 text-gray-500 hover:bg-gray-50',
-            ]"
-          >
+            ]">
             Du/Chor/Juma
           </button>
           <button
@@ -552,8 +535,7 @@ function formatMoney(value) {
               s.schedule === 'even'
                 ? 'bg-gray-900 text-white border-gray-900'
                 : 'border-gray-200 text-gray-500 hover:bg-gray-50',
-            ]"
-          >
+            ]">
             Se/Pay/Shan
           </button>
         </div>
