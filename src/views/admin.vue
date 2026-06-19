@@ -1,10 +1,12 @@
 <script setup>
 import { ref, onMounted, computed } from "vue";
 import { useRouter } from "vue-router";
-import ask from "../components/ask.vue";
+
 const router = useRouter();
-const API = "https://itline-django.onrender.com/api";
-const ask = ref(false);
+import Ask from "../components/ask.vue";
+
+const showAsk = ref(false);
+const teacherToDelete = ref(null);
 // ─────────────────────────────
 // AUTH
 // ─────────────────────────────
@@ -194,9 +196,8 @@ async function createTeacher() {
 // ─────────────────────────────
 
 async function deleteTeacher(id) {
-  if (!confirm("Rostdan ham o'chirmoqchimisiz?")) {
-    return;
-  }
+  teacherToDelete.value = id;
+  showAsk.value = true;
 
   try {
     const res = await fetch(`${API}/teachers/${id}/delete/`, {
@@ -465,6 +466,12 @@ function formatMoney(value) {
             class="text-red-400 text-sm border px-2 rounded cursor-pointer">
             O'chirish
           </button>
+          <Ask
+            v-if="showAsk"
+            title="Teacherni o'chirish"
+            message="Rostdan ham o'chirmoqchimisiz?"
+            @confirm="confirmDelete"
+            @cancel="showAsk = false" />
         </div>
       </div>
     </div>

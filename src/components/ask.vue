@@ -24,7 +24,7 @@
               d="M10 11h2v5m-2 0h4m-2.592-8.5h.01M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
           </svg>
           <span class="sr-only">Info</span>
-          <h3 class="font-medium">This is a danger alert</h3>
+          <h3 class="font-medium">{{ title }}</h3>
         </div>
         <button
           type="button"
@@ -50,9 +50,7 @@
         </button>
       </div>
       <div class="mt-2 mb-4">
-        More info about this info alert goes here. This example text is going to
-        run a bit longer so that you can see how spacing within an alert works
-        with this kind of content.
+        {{ message }}
       </div>
       <button
         type="button"

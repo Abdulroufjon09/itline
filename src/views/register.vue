@@ -253,16 +253,13 @@ function triggerError() {
 
 <template>
   <div
-    class="w-full max-w-[360px] bg-white border border-gray-100 rounded-2xl overflow-hidden mx-4"
-  >
+    class="w-full max-w-[360px] bg-white border border-gray-100 rounded-2xl overflow-hidden mx-4">
     <div
-      class="w-[360px] bg-white border border-gray-100 rounded-2xl overflow-hidden"
-    >
+      class="w-[360px] bg-white border border-gray-100 rounded-2xl overflow-hidden">
       <!-- HEADER -->
       <div class="p-8 pb-6">
         <div
-          class="w-10 h-10 bg-gray-900 rounded-xl flex items-center justify-center mb-5"
-        >
+          class="w-10 h-10 bg-gray-900 rounded-xl flex items-center justify-center mb-5">
           <span class="text-white text-sm font-medium">E</span>
         </div>
 
@@ -296,8 +293,7 @@ function triggerError() {
               errorStyle && !formData.phone
                 ? 'border-red-300 bg-red-50'
                 : 'border-gray-200 focus:border-gray-400',
-            ]"
-          />
+            ]" />
         </div>
 
         <!-- LOGIN -->
@@ -313,8 +309,7 @@ function triggerError() {
                 wrongPassword || (errorStyle && !formData.password)
                   ? 'border-red-300 bg-red-50'
                   : 'border-gray-200 focus:border-gray-400',
-              ]"
-            />
+              ]" />
             <p v-if="wrongPassword" class="text-xs text-red-400 mt-1.5">
               Parol noto'g'ri
             </p>
@@ -323,8 +318,7 @@ function triggerError() {
           <button
             @click="submitLogin"
             :disabled="loading"
-            class="w-full py-2.5 rounded-xl bg-gray-900 text-white text-sm hover:bg-gray-700 transition disabled:opacity-50"
-          >
+            class="w-full py-2.5 rounded-xl bg-gray-900 text-white text-sm hover:bg-gray-700 transition disabled:opacity-50">
             {{ loading ? "Kirilmoqda..." : "Kirish" }}
           </button>
         </template>
@@ -339,8 +333,7 @@ function triggerError() {
                 type="text"
                 v-model="formData.name"
                 placeholder="Ismingiz"
-                class="w-full px-3 py-2.5 rounded-xl border border-gray-200 outline-none focus:border-gray-400 text-sm"
-              />
+                class="w-full px-3 py-2.5 rounded-xl border border-gray-200 outline-none focus:border-gray-400 text-sm" />
             </div>
 
             <!-- SURNAME + TEACHER — faqat student uchun -->
@@ -353,8 +346,7 @@ function triggerError() {
                   type="text"
                   v-model="formData.surname"
                   placeholder="Familiyangiz"
-                  class="w-full px-3 py-2.5 rounded-xl border border-gray-200 outline-none focus:border-gray-400 text-sm"
-                />
+                  class="w-full px-3 py-2.5 rounded-xl border border-gray-200 outline-none focus:border-gray-400 text-sm" />
               </div>
               <div>
                 <label class="block text-xs text-gray-400 mb-1.5"
@@ -362,14 +354,12 @@ function triggerError() {
                 >
                 <select
                   v-model="formData.teacher_id"
-                  class="w-full px-3 py-2.5 rounded-xl border border-gray-200 outline-none focus:border-gray-400 text-sm"
-                >
+                  class="w-full px-3 py-2.5 rounded-xl border border-gray-200 outline-none focus:border-gray-400 text-sm">
                   <option value="">Tanlang</option>
                   <option
                     v-for="teacher in teachers"
                     :key="teacher.id"
-                    :value="teacher.id"
-                  >
+                    :value="teacher.id">
                     {{ teacher.name }}
                   </option>
                 </select>
@@ -387,8 +377,7 @@ function triggerError() {
                       formData.schedule === 'odd'
                         ? 'bg-gray-900 text-white border-gray-900'
                         : 'border-gray-200 text-gray-600 hover:bg-gray-50',
-                    ]"
-                  >
+                    ]">
                     Du / Chor / Juma
                   </button>
                   <button
@@ -399,8 +388,7 @@ function triggerError() {
                       formData.schedule === 'even'
                         ? 'bg-gray-900 text-white border-gray-900'
                         : 'border-gray-200 text-gray-600 hover:bg-gray-50',
-                    ]"
-                  >
+                    ]">
                     Se / Pay / Shan
                   </button>
                 </div>
@@ -414,8 +402,7 @@ function triggerError() {
                 type="password"
                 v-model="formData.password"
                 placeholder="••••••••"
-                class="w-full px-3 py-2.5 rounded-xl border border-gray-200 outline-none focus:border-gray-400 text-sm"
-              />
+                class="w-full px-3 py-2.5 rounded-xl border border-gray-200 outline-none focus:border-gray-400 text-sm" />
               <p v-if="passwordHint" class="text-xs text-amber-500 mt-1">
                 {{ passwordHint }}
               </p>
@@ -425,8 +412,7 @@ function triggerError() {
             <button
               @click="submitRegister"
               :disabled="loading"
-              class="w-full py-2.5 rounded-xl bg-gray-900 text-white text-sm hover:bg-gray-700 transition disabled:opacity-50"
-            >
+              class="w-full py-2.5 rounded-xl cursor-pointer bg-gray-900 text-white text-sm hover:bg-gray-700 transition disabled:opacity-50">
               {{ loading ? "Saqlanmoqda..." : "Ro'yxatdan o'tish" }}
             </button>
           </div>
@@ -437,8 +423,7 @@ function triggerError() {
           <button
             @click="checkPhone"
             :disabled="loading"
-            class="w-full py-2.5 rounded-xl bg-gray-900 text-white text-sm hover:bg-gray-700 transition disabled:opacity-50"
-          >
+            class="w-full py-2.5 rounded-xl bg-gray-900 text-white text-sm hover:bg-gray-700 transition disabled:opacity-50">
             {{ loading ? "Tekshirilmoqda..." : "Davom etish" }}
           </button>
         </template>
