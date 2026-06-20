@@ -1,9 +1,17 @@
 <script setup>
-import { reactive, ref, onMounted, computed } from "vue";
+import { reactive, ref, onMounted, computed, defineAsyncComponent } from "vue";
 import { useRouter } from "vue-router";
+import { useUiStore } from '../stores/uiStore'
+import { useCoinStore } from '../stores/coinStore'
+
+const Alerts = defineAsyncComponent(() => import('../components/Alerts.vue'))
+const Leaderboard = defineAsyncComponent(() => import('../components/Leaderboard.vue'))
+const ManagerPanel = defineAsyncComponent(() => import('../components/ManagerPanel.vue'))
+const AddLesson = defineAsyncComponent(() => import('../components/AddLesson.vue'))
 
 const router = useRouter();
 const API = "https://itline-django.onrender.com/api";
+const ui = useUiStore()
 
 const ADMIN_PASSWORD = "excel2024";
 const EXCELLENCE_PASSWORD = "excellence2024";
@@ -68,8 +76,19 @@ onMounted(async () => {
     return;
   }
 
-  await fetchTeachers();
+  const coins = useCoinStore()
+  // fetch teachers and users in parallel to speed up load
+  await Promise.allSettled([fetchTeachers(), coins.fetchUsers()])
+  // prefetch lazy components in background to speed subsequent render
+  setTimeout(() => {
+    import('../components/Leaderboard.vue')
+    import('../components/ManagerPanel.vue')
+    import('../components/AddLesson.vue')
+  }, 500)
 });
+
+const currentUser = ref(JSON.parse(localStorage.getItem('user') || 'null'))
+const isManagerView = computed(() => !!(currentUser.value && (currentUser.value.is_admin || currentUser.value.role === 'manager')))
 
 // ─────────────────────────────
 // FETCH TEACHERS
@@ -78,9 +97,23 @@ onMounted(async () => {
 async function fetchTeachers() {
   try {
     const res = await fetch(`${API}/teachers/`);
+    if (!res.ok) {
+      const t = await res.text().catch(() => '')
+      console.error('fetchTeachers failed', res.status, t)
+      window.dispatchEvent(new CustomEvent('app-alert', { detail: { type: 'error', message: `Teachers fetch failed: ${res.status}` } }))
+      return
+    }
+    const ct = res.headers.get('content-type') || ''
+    if (!ct.includes('application/json')) {
+      const t = await res.text().catch(() => '')
+      console.error('fetchTeachers non-json', t)
+      window.dispatchEvent(new CustomEvent('app-alert', { detail: { type: 'error', message: 'Teachers response not JSON' } }))
+      return
+    }
     teachers.value = await res.json();
   } catch (e) {
     console.error(e);
+    window.dispatchEvent(new CustomEvent('app-alert', { detail: { type: 'error', message: 'Teachers fetch error' } }))
   }
 }
 
@@ -105,26 +138,34 @@ function onPhoneInput() {
 }
 
 async function checkPhone() {
-  loading.value = true;
-
+  ui.start()
   try {
     const res = await fetch(`${API}/login/`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        phone: formData.phone,
-        password: null,
-      }),
+      body: JSON.stringify({ phone: formData.phone, password: null }),
     });
 
+    if (!res.ok) {
+      const t = await res.text().catch(() => '')
+      console.error('checkPhone failed', res.status, t)
+      window.dispatchEvent(new CustomEvent('app-alert', { detail: { type: 'error', message: `Phone check failed: ${res.status}` } }))
+      return
+    }
+    const ct = res.headers.get('content-type') || ''
+    if (!ct.includes('application/json')) {
+      const t = await res.text().catch(() => '')
+      console.error('checkPhone non-json', t)
+      window.dispatchEvent(new CustomEvent('app-alert', { detail: { type: 'error', message: 'Phone check invalid response' } }))
+      return
+    }
     const result = await res.json();
-
     phoneChecked.value = true;
     isNew.value = !result.exists;
   } catch (e) {
     console.error(e);
   } finally {
-    loading.value = false;
+    ui.stop()
   }
 }
 
@@ -134,22 +175,30 @@ async function checkPhone() {
 
 async function submitLogin() {
   if (!formData.password) return triggerError();
-
-  loading.value = true;
-
+  ui.start()
   try {
     const res = await fetch(`${API}/login/`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        phone: formData.phone,
-        password: formData.password,
-      }),
+      body: JSON.stringify({ phone: formData.phone, password: formData.password }),
     });
 
+    if (!res.ok) {
+      const t = await res.text().catch(() => '')
+      console.error('submitLogin failed', res.status, t)
+      window.dispatchEvent(new CustomEvent('app-alert', { detail: { type: 'error', message: `Login failed: ${res.status}` } }))
+      return
+    }
+    const ct = res.headers.get('content-type') || ''
+    if (!ct.includes('application/json')) {
+      const t = await res.text().catch(() => '')
+      console.error('submitLogin non-json', t)
+      window.dispatchEvent(new CustomEvent('app-alert', { detail: { type: 'error', message: 'Login invalid response' } }))
+      return
+    }
     const result = await res.json();
 
-    if (res.ok && result.exists) {
+    if (result.exists) {
       const userData = {
         id: result.id,
         name: result.name,
@@ -169,7 +218,7 @@ async function submitLogin() {
   } catch (e) {
     console.error(e);
   } finally {
-    loading.value = false;
+    ui.stop()
   }
 }
 
@@ -191,15 +240,9 @@ async function submitRegister() {
     }
   }
 
-  loading.value = true;
-
+  ui.start()
   try {
-    const payload = {
-      name: formData.name,
-      phone: formData.phone,
-      password: formData.password,
-    };
-
+    const payload = { name: formData.name, phone: formData.phone, password: formData.password };
     if (isAdminPassword.value) {
       payload.admin_password = formData.password;
     } else if (isExcellencePassword.value) {
@@ -216,28 +259,38 @@ async function submitRegister() {
       body: JSON.stringify(payload),
     });
 
-    const result = await res.json();
-
-    if (res.ok) {
-      const userData = {
-        id: result.id,
-        name: result.name,
-        surname: result.surname,
-        phone: result.phone,
-        teacher_id: result.teacher_id ?? null,
-        is_admin: result.is_admin ?? false,
-        is_excellence: result.is_excellence ?? false,
-      };
-
-      localStorage.setItem("user", JSON.stringify(userData));
-      redirectUser(userData);
-    } else {
-      alert(result.error || "Xatolik");
+    if (!res.ok) {
+      const t = await res.text().catch(() => '')
+      console.error('submitRegister failed', res.status, t)
+      window.dispatchEvent(new CustomEvent('app-alert', { detail: { type: 'error', message: `Register failed: ${res.status}` } }))
+      return
     }
+
+    const ct = res.headers.get('content-type') || ''
+    if (!ct.includes('application/json')) {
+      const t = await res.text().catch(() => '')
+      console.error('submitRegister non-json', t)
+      window.dispatchEvent(new CustomEvent('app-alert', { detail: { type: 'error', message: 'Register invalid response' } }))
+      return
+    }
+
+    const result = await res.json();
+    const userData = {
+      id: result.id,
+      name: result.name,
+      surname: result.surname,
+      phone: result.phone,
+      teacher_id: result.teacher_id ?? null,
+      is_admin: result.is_admin ?? false,
+      is_excellence: result.is_excellence ?? false,
+    };
+
+    localStorage.setItem("user", JSON.stringify(userData));
+    redirectUser(userData);
   } catch (e) {
     console.error(e);
   } finally {
-    loading.value = false;
+    ui.stop()
   }
 }
 
@@ -263,7 +316,7 @@ function triggerError() {
         <div
           class="w-10 h-10 bg-gray-900 rounded-xl flex items-center justify-center mb-5"
         >
-          <span class="text-white text-sm font-medium">E</span>
+          <span class="text-white text-sm font-medium">I</span>
         </div>
 
         <h1 class="text-xl font-semibold text-gray-900 mb-1">
@@ -443,6 +496,19 @@ function triggerError() {
           </button>
         </template>
       </div>
+    </div>
+  </div>
+  <!-- Alerts + Leaderboard -->
+  <div class="mt-4 px-4">
+    <Alerts />
+    <div class="mt-4">
+      <Leaderboard />
+    </div>
+
+    <div class="mt-4" v-if="isManagerView">
+      <ManagerPanel>
+        <AddLesson />
+      </ManagerPanel>
     </div>
   </div>
 </template>
