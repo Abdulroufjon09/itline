@@ -1,31 +1,18 @@
 <script setup>
-import { reactive, ref, onMounted, computed, defineAsyncComponent } from "vue";
+import { reactive, ref, onMounted, computed } from "vue";
 import { useRouter } from "vue-router";
-import { useUiStore } from '../stores/uiStore'
-import { useCoinStore } from '../stores/coinStore'
-
-const Alerts = defineAsyncComponent(() => import('../components/Alerts.vue'))
-const Leaderboard = defineAsyncComponent(() => import('../components/Leaderboard.vue'))
-const ManagerPanel = defineAsyncComponent(() => import('../components/ManagerPanel.vue'))
-const AddLesson = defineAsyncComponent(() => import('../components/AddLesson.vue'))
+import { useUiStore } from "../stores/uiStore";
 
 const router = useRouter();
-const API = "https://itline-django.onrender.com/api";
-const ui = useUiStore()
+const API = "https://itline-django-9s85.onrender.com/api";
+const ui = useUiStore();
 
 const ADMIN_PASSWORD = "excel2024";
 const EXCELLENCE_PASSWORD = "excellence2024";
 
-// ─────────────────────────────
-// STATE
-// ─────────────────────────────
-
 const teachers = ref([]);
-const loading = ref(false);
-
 const phoneChecked = ref(false);
 const isNew = ref(false);
-
 const wrongPassword = ref(false);
 const errorStyle = ref(false);
 
@@ -38,10 +25,6 @@ const formData = reactive({
   schedule: "odd",
 });
 
-// ─────────────────────────────
-// COMPUTED
-// ─────────────────────────────
-
 const isAdminPassword = computed(() => formData.password === ADMIN_PASSWORD);
 const isExcellencePassword = computed(
   () => formData.password === EXCELLENCE_PASSWORD,
@@ -50,167 +33,85 @@ const isSpecialPassword = computed(
   () => isAdminPassword.value || isExcellencePassword.value,
 );
 
-// ─────────────────────────────
-// REDIRECT
-// ─────────────────────────────
-
 function redirectUser(user) {
-  if (user.is_excellence) {
-    router.push("/excellence");
-  } else if (user.is_admin) {
-    router.push("/admin");
-  } else {
-    router.push("/students");
-  }
+  if (user.is_excellence) router.push("/excellence");
+  else if (user.is_admin) router.push("/admin");
+  else router.push("/students");
 }
-
-// ─────────────────────────────
-// AUTO LOGIN
-// ─────────────────────────────
 
 onMounted(async () => {
   const user = localStorage.getItem("user");
-
   if (user) {
     redirectUser(JSON.parse(user));
     return;
   }
-
-  const coins = useCoinStore()
-  // fetch teachers and users in parallel to speed up load
-  await Promise.allSettled([fetchTeachers(), coins.fetchUsers()])
-  // prefetch lazy components in background to speed subsequent render
-  setTimeout(() => {
-    import('../components/Leaderboard.vue')
-    import('../components/ManagerPanel.vue')
-    import('../components/AddLesson.vue')
-  }, 500)
+  await fetchTeachers();
 });
-
-const currentUser = ref(JSON.parse(localStorage.getItem('user') || 'null'))
-const isManagerView = computed(() => !!(currentUser.value && (currentUser.value.is_admin || currentUser.value.role === 'manager')))
-
-// ─────────────────────────────
-// FETCH TEACHERS
-// ─────────────────────────────
 
 async function fetchTeachers() {
   try {
     const res = await fetch(`${API}/teachers/`);
-    if (!res.ok) {
-      const t = await res.text().catch(() => '')
-      console.error('fetchTeachers failed', res.status, t)
-      window.dispatchEvent(new CustomEvent('app-alert', { detail: { type: 'error', message: `Teachers fetch failed: ${res.status}` } }))
-      return
-    }
-    const ct = res.headers.get('content-type') || ''
-    if (!ct.includes('application/json')) {
-      const t = await res.text().catch(() => '')
-      console.error('fetchTeachers non-json', t)
-      window.dispatchEvent(new CustomEvent('app-alert', { detail: { type: 'error', message: 'Teachers response not JSON' } }))
-      return
-    }
     teachers.value = await res.json();
   } catch (e) {
     console.error(e);
-    window.dispatchEvent(new CustomEvent('app-alert', { detail: { type: 'error', message: 'Teachers fetch error' } }))
   }
 }
 
-// ─────────────────────────────
-// PHONE CHECK
-// ─────────────────────────────
-
 let debounce = null;
-
 function onPhoneInput() {
   clearTimeout(debounce);
-
   phoneChecked.value = false;
   isNew.value = false;
   wrongPassword.value = false;
-
   formData.password = "";
-
-  if (formData.phone.length >= 9) {
-    debounce = setTimeout(checkPhone, 500);
-  }
+  if (formData.phone.length >= 9) debounce = setTimeout(checkPhone, 500);
 }
 
 async function checkPhone() {
-  ui.start()
+  ui.start();
   try {
     const res = await fetch(`${API}/login/`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ phone: formData.phone, password: null }),
     });
-
-    if (!res.ok) {
-      const t = await res.text().catch(() => '')
-      console.error('checkPhone failed', res.status, t)
-      window.dispatchEvent(new CustomEvent('app-alert', { detail: { type: 'error', message: `Phone check failed: ${res.status}` } }))
-      return
-    }
-    const ct = res.headers.get('content-type') || ''
-    if (!ct.includes('application/json')) {
-      const t = await res.text().catch(() => '')
-      console.error('checkPhone non-json', t)
-      window.dispatchEvent(new CustomEvent('app-alert', { detail: { type: 'error', message: 'Phone check invalid response' } }))
-      return
-    }
     const result = await res.json();
     phoneChecked.value = true;
     isNew.value = !result.exists;
   } catch (e) {
     console.error(e);
   } finally {
-    ui.stop()
+    ui.stop();
   }
 }
 
-// ─────────────────────────────
-// LOGIN
-// ─────────────────────────────
-
 async function submitLogin() {
   if (!formData.password) return triggerError();
-  ui.start()
+  ui.start();
   try {
     const res = await fetch(`${API}/login/`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ phone: formData.phone, password: formData.password }),
+      body: JSON.stringify({
+        phone: formData.phone,
+        password: formData.password,
+      }),
     });
-
-    if (!res.ok) {
-      const t = await res.text().catch(() => '')
-      console.error('submitLogin failed', res.status, t)
-      window.dispatchEvent(new CustomEvent('app-alert', { detail: { type: 'error', message: `Login failed: ${res.status}` } }))
-      return
-    }
-    const ct = res.headers.get('content-type') || ''
-    if (!ct.includes('application/json')) {
-      const t = await res.text().catch(() => '')
-      console.error('submitLogin non-json', t)
-      window.dispatchEvent(new CustomEvent('app-alert', { detail: { type: 'error', message: 'Login invalid response' } }))
-      return
-    }
     const result = await res.json();
-
     if (result.exists) {
-      const userData = {
-        id: result.id,
-        name: result.name,
-        surname: result.surname,
-        phone: result.phone,
-        teacher_id: result.teacher_id ?? null,
-        is_admin: result.is_admin ?? false,
-        is_excellence: result.is_excellence ?? false,
-      };
-
-      localStorage.setItem("user", JSON.stringify(userData));
-      redirectUser(userData);
+      localStorage.setItem(
+        "user",
+        JSON.stringify({
+          id: result.id,
+          name: result.name,
+          surname: result.surname,
+          phone: result.phone,
+          teacher_id: result.teacher_id ?? null,
+          is_admin: result.is_admin ?? false,
+          is_excellence: result.is_excellence ?? false,
+        }),
+      );
+      redirectUser(result);
     } else {
       wrongPassword.value = true;
       setTimeout(() => (wrongPassword.value = false), 2000);
@@ -218,21 +119,13 @@ async function submitLogin() {
   } catch (e) {
     console.error(e);
   } finally {
-    ui.stop()
+    ui.stop();
   }
 }
 
-// ─────────────────────────────
-// REGISTER
-// ─────────────────────────────
-
 async function submitRegister() {
   const required = ["name", "phone", "password"];
-
-  if (!isSpecialPassword.value) {
-    required.push("surname", "teacher_id");
-  }
-
+  if (!isSpecialPassword.value) required.push("surname", "teacher_id");
   for (const f of required) {
     if (!formData[f]) {
       triggerError();
@@ -240,14 +133,17 @@ async function submitRegister() {
     }
   }
 
-  ui.start()
+  ui.start();
   try {
-    const payload = { name: formData.name, phone: formData.phone, password: formData.password };
-    if (isAdminPassword.value) {
-      payload.admin_password = formData.password;
-    } else if (isExcellencePassword.value) {
+    const payload = {
+      name: formData.name,
+      phone: formData.phone,
+      password: formData.password,
+    };
+    if (isAdminPassword.value) payload.admin_password = formData.password;
+    else if (isExcellencePassword.value)
       payload.excellence_password = formData.password;
-    } else {
+    else {
       payload.surname = formData.surname;
       payload.teacher_id = Number(formData.teacher_id);
       payload.schedule = formData.schedule;
@@ -258,23 +154,12 @@ async function submitRegister() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
-
-    if (!res.ok) {
-      const t = await res.text().catch(() => '')
-      console.error('submitRegister failed', res.status, t)
-      window.dispatchEvent(new CustomEvent('app-alert', { detail: { type: 'error', message: `Register failed: ${res.status}` } }))
-      return
-    }
-
-    const ct = res.headers.get('content-type') || ''
-    if (!ct.includes('application/json')) {
-      const t = await res.text().catch(() => '')
-      console.error('submitRegister non-json', t)
-      window.dispatchEvent(new CustomEvent('app-alert', { detail: { type: 'error', message: 'Register invalid response' } }))
-      return
-    }
-
     const result = await res.json();
+    if (!res.ok) {
+      alert(result.error || "Xatolik");
+      return;
+    }
+
     const userData = {
       id: result.id,
       name: result.name,
@@ -284,19 +169,14 @@ async function submitRegister() {
       is_admin: result.is_admin ?? false,
       is_excellence: result.is_excellence ?? false,
     };
-
     localStorage.setItem("user", JSON.stringify(userData));
     redirectUser(userData);
   } catch (e) {
     console.error(e);
   } finally {
-    ui.stop()
+    ui.stop();
   }
 }
-
-// ─────────────────────────────
-// HELPERS
-// ─────────────────────────────
 
 function triggerError() {
   errorStyle.value = true;
@@ -305,11 +185,9 @@ function triggerError() {
 </script>
 
 <template>
-  <div
-    class="w-full max-w-[360px] bg-white border border-gray-100 rounded-2xl overflow-hidden mx-4"
-  >
+  <div class="min-h-screen flex items-center justify-center bg-gray-50">
     <div
-      class="w-[360px] bg-white border border-gray-100 rounded-2xl overflow-hidden"
+      class="w-full max-w-[360px] bg-white border border-gray-100 rounded-2xl overflow-hidden mx-4"
     >
       <!-- HEADER -->
       <div class="p-8 pb-6">
@@ -318,18 +196,14 @@ function triggerError() {
         >
           <span class="text-white text-sm font-medium">I</span>
         </div>
-
         <h1 class="text-xl font-semibold text-gray-900 mb-1">
           {{ isNew ? "Ro'yxatdan o'tish" : "Kirish" }}
         </h1>
-
         <p class="text-sm text-gray-400">
           {{
-            loading
-              ? "Tekshirilmoqda..."
-              : isNew
-                ? "Ma'lumotlaringizni kiriting"
-                : "Telefon raqamingizni kiriting"
+            isNew
+              ? "Ma'lumotlaringizni kiriting"
+              : "Telefon raqamingizni kiriting"
           }}
         </p>
       </div>
@@ -372,20 +246,17 @@ function triggerError() {
               Parol noto'g'ri
             </p>
           </div>
-
           <button
             @click="submitLogin"
-            :disabled="loading"
-            class="w-full py-2.5 rounded-xl bg-gray-900 text-white text-sm hover:bg-gray-700 transition disabled:opacity-50"
+            class="w-full py-2.5 rounded-xl bg-gray-900 text-white text-sm hover:bg-gray-700 transition"
           >
-            {{ loading ? "Kirilmoqda..." : "Kirish" }}
+            Kirish
           </button>
         </template>
 
         <!-- REGISTER -->
         <template v-if="isNew">
           <div class="border-t border-gray-100 pt-4 flex flex-col gap-4">
-            <!-- NAME -->
             <div>
               <label class="block text-xs text-gray-400 mb-1.5">Ism</label>
               <input
@@ -396,8 +267,7 @@ function triggerError() {
               />
             </div>
 
-            <!-- SURNAME + TEACHER — faqat student uchun -->
-            <div v-if="!isSpecialPassword" class="flex flex-col gap-4">
+            <template v-if="!isSpecialPassword">
               <div>
                 <label class="block text-xs text-gray-400 mb-1.5"
                   >Familiya</label
@@ -418,16 +288,12 @@ function triggerError() {
                   class="w-full px-3 py-2.5 rounded-xl border border-gray-200 outline-none focus:border-gray-400 text-sm"
                 >
                   <option value="">Tanlang</option>
-                  <option
-                    v-for="teacher in teachers"
-                    :key="teacher.id"
-                    :value="teacher.id"
-                  >
-                    {{ teacher.name }}
+                  <option v-for="t in teachers" :key="t.id" :value="t.id">
+                    {{ t.name }}
                   </option>
                 </select>
               </div>
-              <div v-if="isNew && !isSpecialPassword">
+              <div>
                 <label class="block text-sm text-gray-500 mb-1"
                   >Dars kuni</label
                 >
@@ -458,9 +324,8 @@ function triggerError() {
                   </button>
                 </div>
               </div>
-            </div>
+            </template>
 
-            <!-- PASSWORD -->
             <div>
               <label class="block text-xs text-gray-400 mb-1.5">Parol</label>
               <input
@@ -469,18 +334,13 @@ function triggerError() {
                 placeholder="••••••••"
                 class="w-full px-3 py-2.5 rounded-xl border border-gray-200 outline-none focus:border-gray-400 text-sm"
               />
-              <p v-if="passwordHint" class="text-xs text-amber-500 mt-1">
-                {{ passwordHint }}
-              </p>
             </div>
 
-            <!-- BUTTON -->
             <button
               @click="submitRegister"
-              :disabled="loading"
-              class="w-full py-2.5 rounded-xl bg-gray-900 text-white text-sm hover:bg-gray-700 transition disabled:opacity-50"
+              class="w-full py-2.5 rounded-xl bg-gray-900 text-white text-sm hover:bg-gray-700 transition"
             >
-              {{ loading ? "Saqlanmoqda..." : "Ro'yxatdan o'tish" }}
+              Ro'yxatdan o'tish
             </button>
           </div>
         </template>
@@ -489,26 +349,12 @@ function triggerError() {
         <template v-if="!phoneChecked">
           <button
             @click="checkPhone"
-            :disabled="loading"
-            class="w-full py-2.5 rounded-xl bg-gray-900 text-white text-sm hover:bg-gray-700 transition disabled:opacity-50"
+            class="w-full py-2.5 rounded-xl bg-gray-900 text-white text-sm hover:bg-gray-700 transition"
           >
-            {{ loading ? "Tekshirilmoqda..." : "Davom etish" }}
+            Davom etish
           </button>
         </template>
       </div>
-    </div>
-  </div>
-  <!-- Alerts + Leaderboard -->
-  <div class="mt-4 px-4">
-    <Alerts />
-    <div class="mt-4">
-      <Leaderboard />
-    </div>
-
-    <div class="mt-4" v-if="isManagerView">
-      <ManagerPanel>
-        <AddLesson />
-      </ManagerPanel>
     </div>
   </div>
 </template>

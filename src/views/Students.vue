@@ -1,10 +1,12 @@
 <script setup>
+import Leaderboard from "@/components/Leaderboard.vue";
 import { ref, onMounted } from "vue";
 import { useRouter } from "vue-router";
+import Magazine from "./Magazine.vue";
 
 const router = useRouter();
 
-const API = "https://itline-django.onrender.com/api";
+const API = "https://itline-django-9s85.onrender.com/api";
 
 const user = JSON.parse(localStorage.getItem("user") || "{}");
 
@@ -252,6 +254,33 @@ function stageStyle(stage) {
           💳 To'lovlar
         </button>
       </div>
+      <div class="" v-if="!user.is_admin">
+        <button
+          @click="activeTab = 'leader'"
+          :class="[
+            'px-4 sm:px-5 py-2 rounded-full border text-sm transition',
+            activeTab === 'leader'
+              ? 'bg-black text-white border-black'
+              : 'border-gray-200 text-gray-600 hover:bg-gray-50',
+          ]"
+        >
+          ⍟ Leaderboard
+        </button>
+      </div>
+
+      <div class="" v-if="!user.is_admin">
+        <button
+          @click="activeTab = 'market'"
+          :class="[
+            'px-4 sm:px-5 py-2 rounded-full border text-sm transition',
+            activeTab === 'market'
+              ? 'bg-black text-white border-black'
+              : 'border-gray-200 text-gray-600 hover:bg-gray-50',
+          ]"
+        >
+          ⍟ Magazine
+        </button>
+      </div>
     </div>
 
     <!-- STUDENTS -->
@@ -366,6 +395,17 @@ function stageStyle(stage) {
       </div>
       <div v-else class="text-center py-10 text-gray-400">
         Hozircha to'lovlar mavjud emas
+      </div>
+    </div>
+    <div class="mt-4 px-4" v-if="activeTab === 'leader'">
+      <div class="mt-4">
+        <Leaderboard />
+      </div>
+    </div>
+
+    <div class="mt-4 px-4" v-if="activeTab === 'market'">
+      <div class="mt-4">
+        <Magazine />
       </div>
     </div>
   </div>

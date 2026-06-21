@@ -3,7 +3,7 @@ import { ref, onMounted, computed } from "vue";
 import { useRouter } from "vue-router";
 
 const router = useRouter();
-const API = "https://itline-django.onrender.com/api";
+const API = "https://itline-django-9s85.onrender.com/api";
 
 const user = JSON.parse(localStorage.getItem("user") || "null");
 if (!user || !user.is_excellence) router.push("/login");

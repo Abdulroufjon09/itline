@@ -1,18 +1,15 @@
 import { defineStore } from 'pinia'
-import { useCoinStore } from './coinStore'
 import { useUiStore } from './uiStore'
+import { API_BASE } from '../config'
 
 export const useAttendanceStore = defineStore('attendance', {
   actions: {
     async mark(userId: string, status: 'present' | 'absent' | 'late') {
-      const coins = useCoinStore()
       const ui = useUiStore()
       ui.start()
       try {
-        await coins.applyAttendance(userId, status)
-        // sync attendance record to backend
         try {
-          await fetch(`/api/attendance`, {
+          await fetch(`${API_BASE}/attendance`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ userId, status, ts: new Date().toISOString() }),

@@ -19,6 +19,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useUiStore } from '../stores/uiStore'
+import { API_BASE } from '../config'
 
 const ui = useUiStore()
 
@@ -30,7 +31,7 @@ const groups = ['A', 'B', 'C']
 async function create() {
   ui.start()
   try {
-    await fetch('/api/lessons', {
+    await fetch(`${API_BASE}/lessons`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ title: title.value, group: group.value }),

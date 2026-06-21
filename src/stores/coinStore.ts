@@ -1,107 +1,170 @@
-import { defineStore } from 'pinia'
-import { useUiStore } from './uiStore'
+import { defineStore } from "pinia";
+import { useUiStore } from "./uiStore";
 
-type User = {
-  id: string
-  name: string
-  role: 'student' | 'teacher' | 'admin' | 'manager'
-  coins: number
-  group?: string
+const API = "https://itline-django-9s85.onrender.com/api";
+
+// Backenddagi Student modeliga mos keladi (Teacher emas — coin faqat studentlarda)
+// coinStore.ts ichida
+interface LeaderboardUser {
+  id: number;
+  name: string;
+  surname: string;
+  teacher_name: string;
+  coins: number;
+  role: "student" | "teacher" | "admin" | "manager"; // shu qatorni qo'shing
 }
 
-export const useCoinStore = defineStore('coin', {
+export type CoinReason =
+  | "exam_pass"
+  | "homework_done"
+  | "homework_missed"
+  | "present"
+  | "late"
+  | "absent"
+  | "manual";
+
+function pushAlert(message: string, type: string = "success") {
+  window.dispatchEvent(
+    new CustomEvent("app-alert", { detail: { message, type } }),
+  );
+}
+
+export const useCoinStore = defineStore("coin", {
   state: () => ({
-    users: [] as User[],
+    users: [] as LeaderboardUser[],
     _lastFetched: 0 as number,
   }),
   getters: {
-    leaderboard: (state) => [...state.users].sort((a, b) => b.coins - a.coins),
-    topN: (state) => (n: number) => [...state.users].sort((a, b) => b.coins - a.coins).slice(0, n),
+    // Backend allaqachon coin bo'yicha tartiblab, rank biriktirib beradi
+    leaderboard: (state) => state.users,
+    topN: (state) => (n: number) => state.users.slice(0, n),
   },
   actions: {
+    // Reyting ro'yxatini /leaderboard/ orqali oladi (Student.objects, coin bo'yicha tartiblangan)
     async fetchUsers(force: boolean = false) {
-      const ui = useUiStore()
-      const TTL = 60 * 1000 // 60s cache
-      if (!force && this._lastFetched && Date.now() - this._lastFetched < TTL && this.users.length) {
-        return
+      const ui = useUiStore();
+      const TTL = 60 * 1000; // 60s cache — ortiqcha so'rovlarni oldini olish uchun
+      if (
+        !force &&
+        this._lastFetched &&
+        Date.now() - this._lastFetched < TTL &&
+        this.users.length
+      ) {
+        return;
       }
-      ui.start()
+      ui.start();
       try {
-        const res = await fetch('/api/users')
+        const res = await fetch(`${API}/leaderboard/`);
         if (!res.ok) {
-          const text = await res.text().catch(() => '')
-          console.error('CoinStore.fetchUsers non-ok', res.status, text)
-          window.dispatchEvent(new CustomEvent('app-alert', { detail: { type: 'error', message: `Users fetch failed: ${res.status}` } }))
-          return
+          console.error("CoinStore.fetchUsers non-ok", res.status);
+          pushAlert(`Reytingni yuklashda xatolik: ${res.status}`, "error");
+          return;
         }
-
-        const ct = res.headers.get('content-type') || ''
-        if (!ct.includes('application/json')) {
-          const text = await res.text().catch(() => '')
-          console.error('CoinStore.fetchUsers non-json response', text)
-          window.dispatchEvent(new CustomEvent('app-alert', { detail: { type: 'error', message: 'Users response not JSON' } }))
-          return
-        }
-
-        try {
-          this.users = await res.json()
-          this._lastFetched = Date.now()
-        } catch (e) {
-          const txt = await res.text().catch(() => '')
-          console.error('CoinStore.fetchUsers parse error', e, txt)
-          window.dispatchEvent(new CustomEvent('app-alert', { detail: { type: 'error', message: 'Users parse error' } }))
-        }
+        this.users = await res.json();
+        this._lastFetched = Date.now();
       } catch (e) {
-        console.error('CoinStore.fetchUsers', e)
-        window.dispatchEvent(new CustomEvent('app-alert', { detail: { type: 'error', message: 'Users fetch error' } }))
+        console.error("CoinStore.fetchUsers", e);
+        pushAlert("Reytingni yuklashda server xatosi", "error");
       } finally {
-        ui.stop()
+        ui.stop();
       }
     },
 
-    findUser(id: string) {
-      return this.users.find((u) => u.id === id) || null
+    findUser(id: number) {
+      return this.users.find((u) => u.id === id) || null;
     },
 
-    async updateCoin(userId: string, delta: number, reason?: string) {
-      const u = this.findUser(userId)
-      if (!u) return
-      u.coins = Math.max(0, u.coins + delta)
-      // optimistic update; also notify backend
+    // Yagona coin berish funksiyasi — backenddagi /coins/give/ bilan to'g'ridan-to'g'ri mos.
+    // Backend javobidagi haqiqiy balansni qaytaradi (optimistik hisoblamaymiz).
+    async giveCoins(
+      studentId: number,
+      reason: CoinReason,
+      amount?: number,
+      note?: string,
+      teacherId?: number,
+    ) {
+      const ui = useUiStore();
+      ui.start();
       try {
-        await fetch(`/api/users/${userId}/coins`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ delta, reason }),
-        })
+        const res = await fetch(`${API}/coins/give/`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            student_id: studentId,
+            teacher_id:
+              teacherId ??
+              JSON.parse(localStorage.getItem("user") || "{}").teacher_id,
+            reason,
+            amount,
+            note,
+          }),
+        });
+
+        const data = await res.json().catch(() => ({}));
+
+        if (!res.ok) {
+          pushAlert(data.error || "Coin berishda xatolik", "error");
+          return null;
+        }
+
+        // Lokal ro'yxatdagi balansni backend qaytargan haqiqiy son bilan yangilaymiz
+        const u = this.findUser(studentId);
+        if (u) u.coins = data.coins;
+
+        return data.coins as number;
       } catch (e) {
-        console.warn('Failed to sync coin update', e)
+        console.error("CoinStore.giveCoins", e);
+        pushAlert("Server bilan aloqa yo\u02bbq", "error");
+        return null;
+      } finally {
+        ui.stop();
       }
     },
 
-    // Attendance rules
-    async applyAttendance(userId: string, status: 'present' | 'absent' | 'late') {
-      if (status === 'present') return this.updateCoin(userId, 10, 'attendance_present')
-      if (status === 'absent') return this.updateCoin(userId, -10, 'attendance_absent')
-      if (status === 'late') return this.updateCoin(userId, -5, 'attendance_late')
+    // ─── Qulay qisqartmalar (eski applyX nomlariga o'xshash, lekin to'g'ri backend bilan) ───
+    // Eslatma: Davomat (present/late/absent) uchun coin BU YERDA berilmaydi.
+    // Backend update_attendance funksiyasi attendanceStore.mark() chaqirilganda
+    // avtomatik coin beradi/ayiradi. Bu yerda alohida chaqirilsa, coin ikki marta
+    // hisoblanadi — shuning uchun applyAttendance atayin olib tashlangan.
+
+    async applyTask(studentId: number, done: boolean, teacherId?: number) {
+      return this.giveCoins(
+        studentId,
+        done ? "homework_done" : "homework_missed",
+        undefined,
+        undefined,
+        teacherId,
+      );
     },
 
-    // Task rules
-    async applyTask(userId: string, done: boolean) {
-      return this.updateCoin(userId, done ? 10 : -10, 'task')
+    async applyExam(studentId: number, passed: boolean, teacherId?: number) {
+      if (!passed) {
+        return this.giveCoins(
+          studentId,
+          "manual",
+          0,
+          "Imtihondan o\u02bbtmadi",
+          teacherId,
+        );
+      }
+      // Bitta so'rov — backendda EXAM_PASS_COINS = 80 sifatida belgilangan
+      return this.giveCoins(
+        studentId,
+        "exam_pass",
+        undefined,
+        undefined,
+        teacherId,
+      );
     },
 
-    // Exam: base 80 coins if passed; bonus 20 awarded separately if passed
-    async applyExam(userId: string, passed: boolean) {
-      if (!passed) return this.updateCoin(userId, 0, 'exam_failed')
-      await this.updateCoin(userId, 80, 'exam_pass')
-      // bonus as separate call (per request: +20 bonus when passed)
-      await this.updateCoin(userId, 20, 'exam_bonus')
-    },
-
-    // Referral
-    async applyReferral(userId: string) {
-      return this.updateCoin(userId, 100, 'referral')
+    async referral(studentId: number, teacherId?: number) {
+      return this.giveCoins(
+        studentId,
+        "manual",
+        100,
+        "Referral bonusi",
+        teacherId,
+      );
     },
   },
-})
+});

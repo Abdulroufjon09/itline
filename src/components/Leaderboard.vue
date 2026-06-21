@@ -5,7 +5,7 @@
         <span class="rank">{{ idx + 1 }}</span>
         <span class="name">{{ u.name }}</span>
         <span class="role">{{ u.role }}</span>
-        <span class="coins">{{ u.coins }} ⍟</span>
+        <span class="coins">🪙 {{ u.coins }}</span>
       </li>
     </ul>
   </div>
@@ -17,6 +17,8 @@ import { useCoinStore } from '../stores/coinStore'
 
 const store = useCoinStore()
 onMounted(() => store.fetchUsers())
+
+
 
 // show only top 10 for performance
 const users = computed(() => store.topN(10))

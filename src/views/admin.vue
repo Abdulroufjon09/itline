@@ -3,7 +3,7 @@ import { ref, onMounted, computed } from "vue";
 import { useRouter } from "vue-router";
 
 const router = useRouter();
-const API = "https://itline-django.onrender.com/api";
+const API = "https://itline-django-9s85.onrender.com/api";
 
 // ─────────────────────────────
 // AUTH
@@ -198,23 +198,34 @@ async function deleteTeacher(id) {
     return;
   }
 
+  // o'zini o'chirishni frontendda ham oldindan bloklash (UX uchun, xavfsizlik backendda)
+  if (currentTeacherId.value === id) {
+    alert("O'zingizni o'chira olmaysiz");
+    return;
+  }
+
   try {
-    const res = await fetch(`${API}/teachers/${id}/delete/`, {
-      method: "DELETE",
-    });
+    const res = await fetch(
+      `https://itline-django-9s85.onrender.com/api/teachers/delete/${id}/`,
+      {
+        method: "DELETE",
+        headers: {
+          "X-Requester-Id": String(currentTeacherId.value),
+        },
+      },
+    );
 
     // backend error
     if (!res.ok) {
       let errorMessage = "O'chirishda xatolik";
 
+      const text = await res.text();
       try {
-        const data = await res.json();
-
+        const data = JSON.parse(text);
         if (data.error) {
           errorMessage = data.error;
         }
       } catch {
-        const text = await res.text();
         console.log(text);
       }
 
@@ -222,7 +233,7 @@ async function deleteTeacher(id) {
       return;
     }
 
-    // active teacher bo‘lsa cleanup
+    // active teacher bo'lsa cleanup
     if (selectedTeacherId.value === id) {
       selectedTeacherId.value = null;
       showStudents.value = false;
@@ -237,7 +248,6 @@ async function deleteTeacher(id) {
     alert("Server bilan aloqa yo'q");
   }
 }
-
 // ─────────────────────────────
 // REASSIGN STUDENTS
 // ─────────────────────────────
