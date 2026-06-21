@@ -1,7 +1,6 @@
 <template>
   <div
     v-if="ui.loading"
-<<<<<<< HEAD
     class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/30 backdrop-blur-sm"
   >
     <svg
@@ -52,146 +51,15 @@
           transform="translate(1.5 1.625)"
         />
       </g>
-=======
-    class="absolute inset-0 flex items-center justify-center text-blue-500 w-24 z-50">
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24">
-      <path d="M0 0h24v24H0z" fill="none" />
-      <circle cx="12" cy="2" r="0" fill="currentColor">
-        <animate
-          attributeName="r"
-          begin="0"
-          calcMode="spline"
-          dur="1s"
-          keySplines="0.2 0.2 0.4 0.8;0.2 0.2 0.4 0.8;0.2 0.2 0.4 0.8"
-          repeatCount="indefinite"
-          values="0;2;0;0" />
-      </circle>
-      <circle
-        cx="12"
-        cy="2"
-        r="0"
-        fill="currentColor"
-        transform="rotate(45 12 12)">
-        <animate
-          attributeName="r"
-          begin="0.125s"
-          calcMode="spline"
-          dur="1s"
-          keySplines="0.2 0.2 0.4 0.8;0.2 0.2 0.4 0.8;0.2 0.2 0.4 0.8"
-          repeatCount="indefinite"
-          values="0;2;0;0" />
-      </circle>
-      <circle
-        cx="12"
-        cy="2"
-        r="0"
-        fill="currentColor"
-        transform="rotate(90 12 12)">
-        <animate
-          attributeName="r"
-          begin="0.25s"
-          calcMode="spline"
-          dur="1s"
-          keySplines="0.2 0.2 0.4 0.8;0.2 0.2 0.4 0.8;0.2 0.2 0.4 0.8"
-          repeatCount="indefinite"
-          values="0;2;0;0" />
-      </circle>
-      <circle
-        cx="12"
-        cy="2"
-        r="0"
-        fill="currentColor"
-        transform="rotate(135 12 12)">
-        <animate
-          attributeName="r"
-          begin="0.375s"
-          calcMode="spline"
-          dur="1s"
-          keySplines="0.2 0.2 0.4 0.8;0.2 0.2 0.4 0.8;0.2 0.2 0.4 0.8"
-          repeatCount="indefinite"
-          values="0;2;0;0" />
-      </circle>
-      <circle
-        cx="12"
-        cy="2"
-        r="0"
-        fill="currentColor"
-        transform="rotate(180 12 12)">
-        <animate
-          attributeName="r"
-          begin="0.5s"
-          calcMode="spline"
-          dur="1s"
-          keySplines="0.2 0.2 0.4 0.8;0.2 0.2 0.4 0.8;0.2 0.2 0.4 0.8"
-          repeatCount="indefinite"
-          values="0;2;0;0" />
-      </circle>
-      <circle
-        cx="12"
-        cy="2"
-        r="0"
-        fill="currentColor"
-        transform="rotate(225 12 12)">
-        <animate
-          attributeName="r"
-          begin="0.625s"
-          calcMode="spline"
-          dur="1s"
-          keySplines="0.2 0.2 0.4 0.8;0.2 0.2 0.4 0.8;0.2 0.2 0.4 0.8"
-          repeatCount="indefinite"
-          values="0;2;0;0" />
-      </circle>
-      <circle
-        cx="12"
-        cy="2"
-        r="0"
-        fill="currentColor"
-        transform="rotate(270 12 12)">
-        <animate
-          attributeName="r"
-          begin="0.75s"
-          calcMode="spline"
-          dur="1s"
-          keySplines="0.2 0.2 0.4 0.8;0.2 0.2 0.4 0.8;0.2 0.2 0.4 0.8"
-          repeatCount="indefinite"
-          values="0;2;0;0" />
-      </circle>
-      <circle
-        cx="12"
-        cy="2"
-        r="0"
-        fill="currentColor"
-        transform="rotate(315 12 12)">
-        <animate
-          attributeName="r"
-          begin="0.875s"
-          calcMode="spline"
-          dur="1s"
-          keySplines="0.2 0.2 0.4 0.8;0.2 0.2 0.4 0.8;0.2 0.2 0.4 0.8"
-          repeatCount="indefinite"
-          values="0;2;0;0" />
-      </circle>
->>>>>>> 2f325a63d78006016bc31b3b9ec93f6bda91bf20
     </svg>
   </div>
 </template>
 
 <script setup lang="ts">
 import { useUiStore } from "../stores/uiStore";
-<<<<<<< HEAD
 
 const ui = useUiStore();
 </script>
 
 <style scoped>
 </style>
-=======
-const ui = useUiStore();
-</script>
-
-<style scoped></style>
->>>>>>> 2f325a63d78006016bc31b3b9ec93f6bda91bf20

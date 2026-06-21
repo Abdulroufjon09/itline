@@ -3,11 +3,7 @@ import { ref, onMounted, computed } from "vue";
 import { useRouter } from "vue-router";
 
 const router = useRouter();
-<<<<<<< HEAD
 const API = "https://itline-django-9s85.onrender.com/api";
-=======
-import Ask from "../components/ask.vue";
->>>>>>> 2f325a63d78006016bc31b3b9ec93f6bda91bf20
 
 const showAsk = ref(false);
 const teacherToDelete = ref(null);
