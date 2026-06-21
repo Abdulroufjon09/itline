@@ -1,19 +1,135 @@
 <template>
-  <div v-if="ui.loading" class="loading-overlay">
-    <div class="spinner">
-      <div class="dot"></div>
-    </div>
+  <div
+    v-if="ui.loading"
+    class="absolute inset-0 flex items-center justify-center text-blue-500 w-24 z-50">
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24">
+      <path d="M0 0h24v24H0z" fill="none" />
+      <circle cx="12" cy="2" r="0" fill="currentColor">
+        <animate
+          attributeName="r"
+          begin="0"
+          calcMode="spline"
+          dur="1s"
+          keySplines="0.2 0.2 0.4 0.8;0.2 0.2 0.4 0.8;0.2 0.2 0.4 0.8"
+          repeatCount="indefinite"
+          values="0;2;0;0" />
+      </circle>
+      <circle
+        cx="12"
+        cy="2"
+        r="0"
+        fill="currentColor"
+        transform="rotate(45 12 12)">
+        <animate
+          attributeName="r"
+          begin="0.125s"
+          calcMode="spline"
+          dur="1s"
+          keySplines="0.2 0.2 0.4 0.8;0.2 0.2 0.4 0.8;0.2 0.2 0.4 0.8"
+          repeatCount="indefinite"
+          values="0;2;0;0" />
+      </circle>
+      <circle
+        cx="12"
+        cy="2"
+        r="0"
+        fill="currentColor"
+        transform="rotate(90 12 12)">
+        <animate
+          attributeName="r"
+          begin="0.25s"
+          calcMode="spline"
+          dur="1s"
+          keySplines="0.2 0.2 0.4 0.8;0.2 0.2 0.4 0.8;0.2 0.2 0.4 0.8"
+          repeatCount="indefinite"
+          values="0;2;0;0" />
+      </circle>
+      <circle
+        cx="12"
+        cy="2"
+        r="0"
+        fill="currentColor"
+        transform="rotate(135 12 12)">
+        <animate
+          attributeName="r"
+          begin="0.375s"
+          calcMode="spline"
+          dur="1s"
+          keySplines="0.2 0.2 0.4 0.8;0.2 0.2 0.4 0.8;0.2 0.2 0.4 0.8"
+          repeatCount="indefinite"
+          values="0;2;0;0" />
+      </circle>
+      <circle
+        cx="12"
+        cy="2"
+        r="0"
+        fill="currentColor"
+        transform="rotate(180 12 12)">
+        <animate
+          attributeName="r"
+          begin="0.5s"
+          calcMode="spline"
+          dur="1s"
+          keySplines="0.2 0.2 0.4 0.8;0.2 0.2 0.4 0.8;0.2 0.2 0.4 0.8"
+          repeatCount="indefinite"
+          values="0;2;0;0" />
+      </circle>
+      <circle
+        cx="12"
+        cy="2"
+        r="0"
+        fill="currentColor"
+        transform="rotate(225 12 12)">
+        <animate
+          attributeName="r"
+          begin="0.625s"
+          calcMode="spline"
+          dur="1s"
+          keySplines="0.2 0.2 0.4 0.8;0.2 0.2 0.4 0.8;0.2 0.2 0.4 0.8"
+          repeatCount="indefinite"
+          values="0;2;0;0" />
+      </circle>
+      <circle
+        cx="12"
+        cy="2"
+        r="0"
+        fill="currentColor"
+        transform="rotate(270 12 12)">
+        <animate
+          attributeName="r"
+          begin="0.75s"
+          calcMode="spline"
+          dur="1s"
+          keySplines="0.2 0.2 0.4 0.8;0.2 0.2 0.4 0.8;0.2 0.2 0.4 0.8"
+          repeatCount="indefinite"
+          values="0;2;0;0" />
+      </circle>
+      <circle
+        cx="12"
+        cy="2"
+        r="0"
+        fill="currentColor"
+        transform="rotate(315 12 12)">
+        <animate
+          attributeName="r"
+          begin="0.875s"
+          calcMode="spline"
+          dur="1s"
+          keySplines="0.2 0.2 0.4 0.8;0.2 0.2 0.4 0.8;0.2 0.2 0.4 0.8"
+          repeatCount="indefinite"
+          values="0;2;0;0" />
+      </circle>
+    </svg>
   </div>
 </template>
 
 <script setup lang="ts">
-import { useUiStore } from '../stores/uiStore'
-const ui = useUiStore()
+import { useUiStore } from "../stores/uiStore";
+const ui = useUiStore();
 </script>
 
-<style scoped>
-.loading-overlay { position:fixed; inset:0; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,0.35); z-index:99999 }
-.spinner { width:80px; height:80px; display:flex; align-items:center; justify-content:center }
-.dot { width:36px; height:36px; border-radius:50%; background:linear-gradient(90deg,#06b6d4,#7c3aed); box-shadow:0 4px 18px rgba(0,0,0,0.15); animation:spin 1s linear infinite }
-@keyframes spin { from { transform:rotate(0deg) } to { transform:rotate(360deg) } }
-</style>
+<style scoped></style>

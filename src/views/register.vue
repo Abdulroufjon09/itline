@@ -367,7 +367,7 @@ function triggerError() {
 
 <template>
   <div
-    class="w-full max-w-[360px] bg-white border border-gray-100 rounded-2xl overflow-hidden mx-4">
+    class="w-full max-w-[360px] bg-white absolute top-40 left-1/2 transform -translate-x-1/2 border border-gray-100 rounded-2xl overflow-hidden mx-4">
     <div
       class="w-[360px] bg-white border border-gray-100 rounded-2xl overflow-hidden">
       <!-- HEADER -->
@@ -375,8 +375,7 @@ function triggerError() {
         <div
           class="w-10 h-10 bg-gray-900 rounded-xl flex items-center justify-center mb-5">
           <span class="text-white text-sm font-medium">I</span>
-          class="w-10 h-10 bg-gray-900 rounded-xl flex items-center
-          justify-center mb-5">
+          <!-- class="w-10 h-10 bg-gray-900 rounded-xl flex items-center justify-center mb-5"> -->
           <span class="text-white text-sm font-medium">E</span>
         </div>
 
