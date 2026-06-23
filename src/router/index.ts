@@ -29,6 +29,10 @@ const routes = [
     path: "/excellence",
     component: lazy("excellence"),
   },
+  {
+    path: "/groups",
+    component: lazy("groups"),
+  },
 ];
 
 const router = createRouter({
