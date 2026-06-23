@@ -2,109 +2,96 @@
 import { ref, onMounted, computed } from "vue";
 import { useRouter } from "vue-router";
 
-const router = useRouter();
+// ─── Constants ───────────────────────────────────────────────
 const API = "https://itline-django-9s85.onrender.com/api";
+const STAGES = [1, 2, 3, 4, 5, 6, 7];
 
-const showAsk = ref(false);
-const teacherToDelete = ref(null);
-// ─────────────────────────────
-// AUTH
-// ─────────────────────────────
+// ─── Router & Auth ───────────────────────────────────────────
+const router = useRouter();
 
 const user = JSON.parse(localStorage.getItem("user") || "null");
-
-// login qilmagan bo‘lsa
-if (!user) {
-  router.push("/login");
-}
-
-// admin bo‘lmasa
-if (user && !user.is_admin) {
-  router.push("/");
-}
+if (!user) router.push("/login");
+else if (!user.is_admin) router.push("/");
 
 function logout() {
   localStorage.removeItem("user");
   router.push("/login");
 }
 
-// ─────────────────────────────
-// STATE
-// ─────────────────────────────
+// ─── State ───────────────────────────────────────────────────
+const teachers        = ref([]);
+const students        = ref([]);
+const payments        = ref([]);
 
-const teachers = ref([]);
-const students = ref([]);
-
-const payments = ref([]);
-const loadingPayments = ref(false);
-
-const loadingStudents = ref(false);
 const loadingTeachers = ref(false);
+const loadingStudents = ref(false);
+const loadingPayments = ref(false);
+const stageLoading    = ref(null);
 
-const stageLoading = ref(null);
+const showForm        = ref(false);
+const showReassign    = ref(false);
+const showStudents    = ref(false);
+const showAsk         = ref(false);
 
-const showForm = ref(false);
-const showReassign = ref(false);
-const showStudents = ref(false);
-
-const newTeacher = ref({
-  name: "",
-  phone: "",
-});
-
-const fromTeacher = ref(null);
-const toTeacher = ref(null);
-
+const teacherToDelete = ref(null);
 const selectedTeacherId = ref(null);
 
-const STAGES = [1, 2, 3, 4, 5, 6, 7];
+const newTeacher = ref({ name: "", phone: "" });
+const fromTeacher = ref(null);
+const toTeacher   = ref(null);
 
-// ─────────────────────────────
-// COMPUTED
-// ─────────────────────────────
+// ─── Computed ─────────────────────────────────────────────────
+const selectedTeacherName = computed(
+  () => teachers.value.find((t) => t.id === selectedTeacherId.value)?.name ?? ""
+);
 
-const selectedTeacherName = computed(() => {
-  return (
-    teachers.value.find((t) => t.id === selectedTeacherId.value)?.name || ""
-  );
-});
+const currentTeacherId = computed(() => user?.id ?? null);
 
-// ─────────────────────────────
-// FETCH
-// ─────────────────────────────
+// ─── Helpers ─────────────────────────────────────────────────
+function formatMoney(value) {
+  return Number(value || 0).toLocaleString("uz-UZ") + " so'm";
+}
 
-async function updateSchedule(student, schedule) {
-  await fetch(`${API}/students/update/${student.id}/`, {
-    method: "PATCH",
+function getStudentPayment(studentId) {
+  return payments.value.find((p) => p.student_id === studentId);
+}
+
+/** Generic fetch wrapper — returns parsed JSON or throws */
+async function apiFetch(path, options = {}) {
+  const res = await fetch(`${API}${path}`, {
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ schedule }),
+    ...options,
   });
-  student.schedule = schedule;
+  if (!res.ok) {
+    const text = await res.text();
+    let msg = "Xatolik yuz berdi";
+    try { msg = JSON.parse(text)?.error ?? msg; } catch { /* plain text */ }
+    throw new Error(msg);
+  }
+  // 204 No Content
+  if (res.status === 204) return null;
+  return res.json();
+}
+
+// ─── Fetch ───────────────────────────────────────────────────
+async function fetchTeachers() {
+  loadingTeachers.value = true;
+  try {
+    teachers.value = await apiFetch("/teachers/");
+  } catch (e) {
+    alert(e.message);
+  } finally {
+    loadingTeachers.value = false;
+  }
 }
 
 async function fetchStudents(teacherId) {
+  if (!teacherId) { students.value = []; return; }
   loadingStudents.value = true;
-
   try {
-    if (!teacherId) {
-      students.value = [];
-      return;
-    }
-
-    const res = await fetch(`${API}/students/?teacher_id=${teacherId}`);
-
-    if (!res.ok) {
-      throw new Error("Students yuklanmadi");
-    }
-
-    const data = await res.json();
-
-    console.log("STUDENTS:", data);
-
-    students.value = data;
+    students.value = await apiFetch(`/students/?teacher_id=${teacherId}`);
   } catch (e) {
-    console.error(e);
-    alert("Studentlarni yuklashda xatolik");
+    alert(e.message);
   } finally {
     loadingStudents.value = false;
   }
@@ -112,276 +99,136 @@ async function fetchStudents(teacherId) {
 
 async function fetchPayments(teacherId) {
   loadingPayments.value = true;
-
   try {
-    const res = await fetch(`${API}/payments/?teacher_id=${teacherId}`);
-
-    if (!res.ok) {
-      throw new Error("Payments yuklanmadi");
-    }
-
-    payments.value = await res.json();
-
-    console.log("PAYMENTS:", payments.value);
+    payments.value = await apiFetch(`/payments/?teacher_id=${teacherId}`);
   } catch (e) {
-    console.error(e);
-    alert("To'lovlarni yuklashda xatolik");
+    alert(e.message);
   } finally {
     loadingPayments.value = false;
   }
 }
 
-onMounted(async () => {
-  await fetchTeachers();
-});
+onMounted(fetchTeachers);
 
-// ─────────────────────────────
-// CREATE TEACHER
-// ─────────────────────────────
-
-async function fetchTeachers() {
-  try {
-    const res = await fetch(`${API}/teachers/`);
-    const data = await res.json();
-
-    console.log("TEACHERS:", data);
-
-    teachers.value = data;
-  } catch (e) {
-    console.error("Error:", e);
-  }
-}
-
-onMounted(() => {
-  fetchTeachers();
-});
-
+// ─── Teacher Actions ──────────────────────────────────────────
 async function createTeacher() {
-  if (!newTeacher.value.name.trim()) {
-    alert("Teacher ismini kiriting");
-    return;
-  }
-
+  if (!newTeacher.value.name.trim()) { alert("Ism kiriting"); return; }
   try {
-    const res = await fetch(`${API}/teachers/create/`, {
+    await apiFetch("/teachers/create/", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
       body: JSON.stringify(newTeacher.value),
     });
-
-    if (!res.ok) {
-      throw new Error("Teacher yaratilmadi");
-    }
-
-    newTeacher.value = {
-      name: "",
-      phone: "",
-    };
-
+    newTeacher.value = { name: "", phone: "" };
     showForm.value = false;
-
     await fetchTeachers();
-
-    alert("Teacher qo'shildi");
   } catch (e) {
-    console.error(e);
-    alert("Teacher yaratishda xatolik");
+    alert(e.message);
   }
 }
 
-// ─────────────────────────────
-// DELETE TEACHER
-// ─────────────────────────────
-
-async function deleteTeacher(id) {
-  teacherToDelete.value = id;
-  showAsk.value = true;
-
-  // o'zini o'chirishni frontendda ham oldindan bloklash (UX uchun, xavfsizlik backendda)
+function askDelete(id) {
+  // O'zini o'chirmasin
   if (currentTeacherId.value === id) {
     alert("O'zingizni o'chira olmaysiz");
     return;
   }
+  teacherToDelete.value = id;
+  showAsk.value = true;
+}
 
+async function confirmDelete() {
+  const id = teacherToDelete.value;
+  showAsk.value = false;
+  teacherToDelete.value = null;
   try {
-    const res = await fetch(
-      `https://itline-django-9s85.onrender.com/api/teachers/delete/${id}/`,
-      {
-        method: "DELETE",
-        headers: {
-          "X-Requester-Id": String(currentTeacherId.value),
-        },
-      },
-    );
-
-    // backend error
-    if (!res.ok) {
-      let errorMessage = "O'chirishda xatolik";
-
-      const text = await res.text();
-      try {
-        const data = JSON.parse(text);
-        if (data.error) {
-          errorMessage = data.error;
-        }
-      } catch {
-        console.log(text);
-      }
-
-      alert(errorMessage);
-      return;
-    }
-
-    // active teacher bo'lsa cleanup
+    await apiFetch(`/teachers/delete/${id}/`, {
+      method: "DELETE",
+      headers: { "X-Requester-Id": String(currentTeacherId.value) },
+    });
     if (selectedTeacherId.value === id) {
       selectedTeacherId.value = null;
       showStudents.value = false;
       students.value = [];
     }
-
     await fetchTeachers();
-
-    alert("Teacher o'chirildi");
   } catch (e) {
-    console.error(e);
-    alert("Server bilan aloqa yo'q");
+    alert(e.message);
   }
 }
-// ─────────────────────────────
-// REASSIGN STUDENTS
-// ─────────────────────────────
 
 async function reassignStudents() {
-  if (!fromTeacher.value || !toTeacher.value) {
-    alert("Teacher tanlang");
-    return;
-  }
-
-  if (fromTeacher.value === toTeacher.value) {
-    alert("Bir xil teacher tanlandi");
-    return;
-  }
-
+  if (!fromTeacher.value || !toTeacher.value) { alert("Teacher tanlang"); return; }
+  if (fromTeacher.value === toTeacher.value) { alert("Bir xil teacher tanlandi"); return; }
+  const fromId = fromTeacher.value;
   try {
-    const fromId = fromTeacher.value;
-
-    const res = await fetch(`${API}/teachers/reassign/`, {
+    await apiFetch("/teachers/reassign/", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        from_teacher_id: fromId,
-        to_teacher_id: toTeacher.value,
-      }),
+      body: JSON.stringify({ from_teacher_id: fromId, to_teacher_id: toTeacher.value }),
     });
-
-    const data = await res.json();
-
-    if (!res.ok) {
-      alert(data.error || "Xatolik");
-      return;
-    }
-
-    alert("O'quvchilar o'tkazildi");
-
     showReassign.value = false;
-
     fromTeacher.value = null;
-    toTeacher.value = null;
-
-    if (selectedTeacherId.value === fromId) {
-      await fetchStudents(selectedTeacherId.value);
-    }
+    toTeacher.value   = null;
+    if (selectedTeacherId.value === fromId) await fetchStudents(selectedTeacherId.value);
   } catch (e) {
-    console.error(e);
-    alert("Server bilan aloqa yo'q");
+    alert(e.message);
   }
 }
 
-// ─────────────────────────────
-// SELECT TEACHER
-// ─────────────────────────────
-
+// ─── Student Actions ──────────────────────────────────────────
 async function selectTeacher(teacherId) {
   selectedTeacherId.value = teacherId;
   showStudents.value = true;
-
+  // Parallel fetch — ikki so'rov bir vaqtda ketadi
   await Promise.all([fetchStudents(teacherId), fetchPayments(teacherId)]);
 }
 
-// ─────────────────────────────
-// UPDATE STAGE
-// ─────────────────────────────
-
 async function updateStage(student, stage) {
-  if (stageLoading.value === student.id) {
-    return;
-  }
-
+  if (stageLoading.value === student.id) return;
   stageLoading.value = student.id;
-
   try {
-    const res = await fetch(`${API}/students/update/${student.id}/`, {
+    const result = await apiFetch(`/students/update/${student.id}/`, {
       method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-      },
       body: JSON.stringify({ stage }),
     });
-
-    const result = await res.json();
-
-    if (!res.ok) {
-      alert(result.error || "Xatolik");
-      return;
-    }
-
-    // stage 5 => boshqa teacherga o'tsa
     if (stage === 5 && result.teacher_id !== selectedTeacherId.value) {
       students.value = students.value.filter((s) => s.id !== student.id);
-
       alert(`${student.name} kotta teacherga o'tdi`);
     } else {
       const s = students.value.find((s) => s.id === student.id);
-
-      if (s) {
-        s.stage = result.stage;
-        s.teacher_id = result.teacher_id;
-        s.teacher_name = result.teacher_name;
-      }
+      if (s) Object.assign(s, { stage: result.stage, teacher_id: result.teacher_id, teacher_name: result.teacher_name });
     }
   } catch (e) {
-    console.error(e);
-    alert("Server bilan aloqa yo'q");
+    alert(e.message);
   } finally {
     stageLoading.value = null;
   }
 }
 
-function getStudentPayment(studentId) {
-  return payments.value.find((p) => p.student_id === studentId);
-}
-
-function formatMoney(value) {
-  return Number(value || 0).toLocaleString("uz-UZ") + " so'm";
+async function updateSchedule(student, schedule) {
+  try {
+    await apiFetch(`/students/update/${student.id}/`, {
+      method: "PATCH",
+      body: JSON.stringify({ schedule }),
+    });
+    student.schedule = schedule;
+  } catch (e) {
+    alert(e.message);
+  }
 }
 </script>
+
 <template>
-  <div class="max-w-4xl mx-auto mx-3 px-4">
+  <div class="max-w-4xl mx-auto px-4">
+
     <!-- HEADER -->
     <div class="flex justify-between items-center mb-8 pt-4">
       <div>
         <h1 class="text-2xl font-medium">Admin panel</h1>
-        <p class="text-gray-400 text-sm mt-1">
-          Xush kelibsiz, {{ user.name }}!
-        </p>
+        <p class="text-gray-400 text-sm mt-1">Xush kelibsiz, {{ user.name }}!</p>
       </div>
       <button
         @click="logout"
-        class="px-4 py-2 rounded-full text-sm hover:bg-gray-50">
+        class="px-4 py-2 rounded-full text-sm hover:bg-gray-50 cursor-pointer">
         Chiqish
       </button>
     </div>
@@ -407,18 +254,18 @@ function formatMoney(value) {
         <div class="flex gap-2">
           <button
             @click="showReassign = !showReassign"
-            class="px-3 py-1 rounded-full text-sm">
+            class="px-3 py-1 rounded-full text-sm cursor-pointer">
             O'tkazish
           </button>
           <button
             @click="showForm = !showForm"
-            class="bg-black text-white px-3 py-1 rounded-full text-sm">
+            class="bg-black text-white px-3 py-1 rounded-full text-sm cursor-pointer">
             + Qo'shish
           </button>
         </div>
       </div>
 
-      <!-- FORM -->
+      <!-- ADD FORM -->
       <div v-if="showForm" class="p-4 bg-gray-50 rounded-xl mb-4">
         <input
           v-model="newTeacher.name"
@@ -430,58 +277,73 @@ function formatMoney(value) {
           class="w-full p-2 rounded mb-2" />
         <button
           @click="createTeacher"
-          class="w-full bg-black text-white py-2 rounded">
+          class="w-full bg-black text-white py-2 rounded cursor-pointer">
           Saqlash
         </button>
       </div>
 
       <!-- REASSIGN -->
       <div v-if="showReassign" class="p-4 bg-yellow-50 rounded-xl mb-4">
-        <select v-model.number="fromTeacher" class="w-full p-2 rounded mb-2">
+        <select v-model.number="fromTeacher" class="w-full p-2 rounded mb-2 cursor-pointer">
           <option :value="null">Kimdan</option>
-          <option v-for="t in teachers" :key="t.id" :value="t.id">
-            {{ t.name }}
-          </option>
+          <option v-for="t in teachers" :key="t.id" :value="t.id">{{ t.name }}</option>
         </select>
-        <select v-model.number="toTeacher" class="w-full p-2 rounded mb-2">
+        <select v-model.number="toTeacher" class="w-full p-2 rounded mb-2 cursor-pointer">
           <option :value="null">Kimga</option>
-          <option v-for="t in teachers" :key="t.id" :value="t.id">
-            {{ t.name }}
-          </option>
+          <option v-for="t in teachers" :key="t.id" :value="t.id">{{ t.name }}</option>
         </select>
         <button
           @click="reassignStudents"
-          class="w-full bg-yellow-500 text-white py-2 rounded">
+          class="w-full bg-yellow-500 text-white py-2 rounded cursor-pointer">
           O'tkazish
         </button>
       </div>
 
-      <!-- LIST -->
-      <div
-        v-for="t in teachers"
-        :key="t.id"
-        class="flex flex-wrap gap-2 justify-between items-center p-3 rounded-xl mb-2">
-        <div>
-          <p class="font-medium">{{ t.name }}</p>
-          <p class="text-xs text-gray-400">{{ t.phone }}</p>
+      <!-- TEACHER LIST -->
+      <div v-if="loadingTeachers" class="text-gray-400 text-sm py-2">Yuklanmoqda...</div>
+      <template v-else>
+        <div
+          v-for="t in teachers"
+          :key="t.id"
+          class="flex flex-wrap gap-2 justify-between items-center p-3 rounded-xl mb-2">
+          <div>
+            <p class="font-medium">{{ t.name }}</p>
+            <p class="text-xs text-gray-400">{{ t.phone }}</p>
+          </div>
+          <div class="flex gap-2">
+            <button
+              @click="selectTeacher(t.id)"
+              class="text-blue-500 text-sm border px-2 rounded cursor-pointer">
+              O'quvchilar
+            </button>
+            <button
+              @click="askDelete(t.id)"
+              class="text-red-400 text-sm border px-2 rounded cursor-pointer">
+              O'chirish
+            </button>
+          </div>
         </div>
-        <div class="flex gap-2">
+      </template>
+    </div>
+
+    <!-- CONFIRM DELETE DIALOG -->
+    <div
+      v-if="showAsk"
+      class="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+      <div class="bg-white rounded-2xl p-6 max-w-sm w-full mx-4 shadow-xl">
+        <h3 class="font-medium text-lg mb-2">Teacherni o'chirish</h3>
+        <p class="text-gray-500 text-sm mb-6">Rostdan ham o'chirmoqchimisiz?</p>
+        <div class="flex gap-3">
           <button
-            @click="selectTeacher(t.id)"
-            class="text-blue-500 text-sm border px-2 rounded cursor-pointer">
-            O'quvchilar
+            @click="showAsk = false; teacherToDelete = null"
+            class="flex-1 py-2 rounded-xl border text-sm cursor-pointer">
+            Bekor
           </button>
           <button
-            @click="deleteTeacher(t.id)"
-            class="text-red-400 text-sm border px-2 rounded cursor-pointer">
+            @click="confirmDelete"
+            class="flex-1 py-2 rounded-xl bg-red-500 text-white text-sm cursor-pointer">
             O'chirish
           </button>
-          <Ask
-            v-if="showAsk"
-            title="Teacherni o'chirish"
-            message="Rostdan ham o'chirmoqchimisiz?"
-            @confirm="confirmDelete"
-            @cancel="showAsk = false" />
         </div>
       </div>
     </div>
@@ -491,72 +353,74 @@ function formatMoney(value) {
       <h2 class="mb-4 font-medium">
         {{ selectedTeacherName }} — o'quvchilari ({{ students.length }})
       </h2>
-      <div v-if="loadingStudents">Yuklanmoqda...</div>
-      <div
-        v-else
-        v-for="s in students"
-        :key="s.id"
-        class="flex flex-wrap gap-2 justify-between items-center p-3 rounded mb-2">
-        <div>
-          <p class="font-medium">{{ s.name }} {{ s.surname }}</p>
 
-          <p class="text-xs text-gray-400">
-            {{ s.phone }}
-          </p>
+      <div v-if="loadingStudents || loadingPayments" class="text-gray-400 text-sm">
+        Yuklanmoqda...
+      </div>
 
-          <div
-            v-if="getStudentPayment(s.id)"
-            class="mt-2 flex flex-wrap items-center gap-2">
-            <span
-              :class="
-                getStudentPayment(s.id).is_paid
+      <template v-else>
+        <div
+          v-for="s in students"
+          :key="s.id"
+          class="flex flex-wrap gap-2 justify-between items-center p-3 rounded mb-2">
+          <!-- Info -->
+          <div>
+            <p class="font-medium">{{ s.name }} {{ s.surname }}</p>
+            <p class="text-xs text-gray-400">{{ s.phone }}</p>
+
+            <div v-if="getStudentPayment(s.id)" class="mt-2 flex flex-wrap items-center gap-2">
+              <span
+                :class="getStudentPayment(s.id).is_paid
                   ? 'bg-green-100 text-green-700'
-                  : 'bg-red-100 text-red-600'
-              "
-              class="text-xs px-2 py-1 rounded-full">
-              {{
-                getStudentPayment(s.id).is_paid ? "To‘langan" : "To‘lanmagan"
-              }}
-            </span>
+                  : 'bg-red-100 text-red-600'"
+                class="text-xs px-2 py-1 rounded-full">
+                {{ getStudentPayment(s.id).is_paid ? "To'langan" : "To'lanmagan" }}
+              </span>
+              <span class="text-xs text-gray-500">
+                {{ formatMoney(getStudentPayment(s.id).amount_due) }}
+              </span>
+            </div>
+          </div>
 
-            <span class="text-xs text-gray-500">
-              {{ formatMoney(getStudentPayment(s.id).amount_due) }}
-            </span>
+          <!-- Stage buttons -->
+          <div class="flex gap-1 flex-wrap">
+            <button
+              v-for="st in STAGES"
+              :key="st"
+              @click="updateStage(s, st)"
+              :disabled="stageLoading === s.id"
+              class="w-7 h-7 text-xs rounded-full transition"
+              :class="s.stage === st ? 'bg-black text-white' : 'hover:bg-gray-100'">
+              {{ st }}
+            </button>
+          </div>
+
+          <!-- Schedule buttons -->
+          <div class="flex gap-1 w-full mt-1">
+            <button
+              @click="updateSchedule(s, 'odd')"
+              :class="[
+                'flex-1 text-xs py-1 rounded-lg border transition',
+                s.schedule === 'odd'
+                  ? 'bg-gray-900 text-white border-gray-900'
+                  : 'border-gray-200 text-gray-500 hover:bg-gray-50',
+              ]">
+              Du/Chor/Juma
+            </button>
+            <button
+              @click="updateSchedule(s, 'even')"
+              :class="[
+                'flex-1 text-xs py-1 rounded-lg border transition',
+                s.schedule === 'even'
+                  ? 'bg-gray-900 text-white border-gray-900'
+                  : 'border-gray-200 text-gray-500 hover:bg-gray-50',
+              ]">
+              Se/Pay/Shan
+            </button>
           </div>
         </div>
-        <div class="flex gap-1 flex-wrap">
-          <button
-            v-for="st in STAGES"
-            :key="st"
-            @click="updateStage(s, st)"
-            class="w-7 h-7 text-xs rounded-full"
-            :class="s.stage === st ? 'bg-black text-white' : ''">
-            {{ st }}
-          </button>
-        </div>
-        <div class="flex gap-1 w-full mt-1">
-          <button
-            @click="updateSchedule(s, 'odd')"
-            :class="[
-              'flex-1 text-xs py-1 rounded-lg border transition',
-              s.schedule === 'odd'
-                ? 'bg-gray-900 text-white border-gray-900'
-                : 'border-gray-200 text-gray-500 hover:bg-gray-50',
-            ]">
-            Du/Chor/Juma
-          </button>
-          <button
-            @click="updateSchedule(s, 'even')"
-            :class="[
-              'flex-1 text-xs py-1 rounded-lg border transition',
-              s.schedule === 'even'
-                ? 'bg-gray-900 text-white border-gray-900'
-                : 'border-gray-200 text-gray-500 hover:bg-gray-50',
-            ]">
-            Se/Pay/Shan
-          </button>
-        </div>
-      </div>
+      </template>
     </div>
+
   </div>
 </template>
