@@ -19,26 +19,26 @@ function logout() {
 }
 
 // ─── State ───────────────────────────────────────────────────
-const teachers        = ref([]);
-const students        = ref([]);
-const payments        = ref([]);
+const teachers = ref([]);
+const students = ref([]);
+const payments = ref([]);
 
 const loadingTeachers = ref(false);
 const loadingStudents = ref(false);
 const loadingPayments = ref(false);
-const stageLoading    = ref(null);
+const stageLoading = ref(null);
 
-const showForm        = ref(false);
-const showReassign    = ref(false);
-const showStudents    = ref(false);
-const showAsk         = ref(false);
+const showForm = ref(false);
+const showReassign = ref(false);
+const showStudents = ref(false);
+const showAsk = ref(false);
 
-const teacherToDelete   = ref(null);
+const teacherToDelete = ref(null);
 const selectedTeacherId = ref(null);
 
 const newTeacher = ref({ name: "", phone: "" });
 const fromTeacher = ref(null);
-const toTeacher   = ref(null);
+const toTeacher = ref(null);
 
 // ─── Computed ────────────────────────────────────────────────
 const selectedTeacherName = computed(
@@ -295,12 +295,8 @@ onMounted(async () => {
       </div>
 
       <!-- LIST -->
-      <div
-        v-else
-        v-for="t in teachers"
-        :key="t.id"
-        class="flex flex-wrap gap-2 justify-between items-center p-3 rounded-xl mb-2"
-      >
+      <div v-else v-for="t in teachers" :key="t.id"
+        class="flex flex-wrap gap-2 justify-between items-center p-3 rounded-xl mb-2">
         <div>
           <p class="font-medium">{{ t.name }}</p>
           <p class="text-xs text-gray-400">{{ t.phone }}</p>
@@ -342,23 +338,19 @@ onMounted(async () => {
         Yuklanmoqda...
       </div>
 
-      <div
-        v-else
-        v-for="s in students"
-        :key="s.id"
-        class="flex flex-wrap gap-2 justify-between items-center p-3 rounded mb-2"
-      >
+      <div v-else v-for="s in students" :key="s.id"
+        class="flex flex-wrap gap-2 justify-between items-center p-3 rounded mb-2">
         <div>
           <p class="font-medium">{{ s.name }} {{ s.surname }}</p>
           <p class="text-xs text-gray-400">{{ s.phone }}</p>
           <div v-if="getStudentPayment(s.id)" class="mt-2 flex flex-wrap items-center gap-2">
-            <span
-              :class="getStudentPayment(s.id).is_paid
-                ? 'bg-green-100 text-green-700'
-                : 'bg-red-100 text-red-600'"
-              class="text-xs px-2 py-1 rounded-full"
-            >
-              {{ getStudentPayment(s.id).is_paid ? "To'langan" : "To'lanmagan" }}
+            <span :class="getStudentPayment(s.id).is_paid
+              ? 'bg-green-100 text-green-700'
+              : 'bg-red-100 text-red-600'
+              " class="text-xs px-2 py-1 rounded-full">
+              {{
+                getStudentPayment(s.id).is_paid ? "To‘langan" : "To‘lanmagan"
+              }}
             </span>
             <span class="text-xs text-gray-500">
               {{ formatMoney(getStudentPayment(s.id).amount_due) }}
@@ -368,43 +360,31 @@ onMounted(async () => {
 
         <!-- Stage buttons -->
         <div class="flex gap-1 flex-wrap">
-          <button
-            v-for="st in STAGES"
-            :key="st"
-            @click="updateStage(s, st)"
-            :disabled="stageLoading === s.id"
-            class="w-7 h-7 text-xs rounded-full transition"
-            :class="[
+          <button v-for="st in STAGES" :key="st" @click="updateStage(s, st)" :disabled="stageLoading === s.id"
+            class="w-7 h-7 text-xs rounded-full transition" :class="[
               s.stage === st ? 'bg-black text-white' : 'border border-gray-200 hover:bg-gray-50',
               stageLoading === s.id ? 'opacity-50 cursor-not-allowed' : '',
-            ]"
-          >
+            ]">
             {{ st }}
           </button>
         </div>
 
         <!-- Schedule buttons -->
         <div class="flex gap-1 w-full mt-1">
-          <button
-            @click="updateSchedule(s, 'odd')"
-            :class="[
-              'flex-1 text-xs py-1 rounded-lg border transition',
-              s.schedule === 'odd'
-                ? 'bg-gray-900 text-white border-gray-900'
-                : 'border-gray-200 text-gray-500 hover:bg-gray-50',
-            ]"
-          >
+          <button @click="updateSchedule(s, 'odd')" :class="[
+            'flex-1 text-xs py-1 rounded-lg border transition',
+            s.schedule === 'odd'
+              ? 'bg-gray-900 text-white border-gray-900'
+              : 'border-gray-200 text-gray-500 hover:bg-gray-50',
+          ]">
             Du/Chor/Juma
           </button>
-          <button
-            @click="updateSchedule(s, 'even')"
-            :class="[
-              'flex-1 text-xs py-1 rounded-lg border transition',
-              s.schedule === 'even'
-                ? 'bg-gray-900 text-white border-gray-900'
-                : 'border-gray-200 text-gray-500 hover:bg-gray-50',
-            ]"
-          >
+          <button @click="updateSchedule(s, 'even')" :class="[
+            'flex-1 text-xs py-1 rounded-lg border transition',
+            s.schedule === 'even'
+              ? 'bg-gray-900 text-white border-gray-900'
+              : 'border-gray-200 text-gray-500 hover:bg-gray-50',
+          ]">
             Se/Pay/Shan
           </button>
         </div>
