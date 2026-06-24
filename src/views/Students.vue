@@ -9,7 +9,7 @@ const router = useRouter();
 const API = "https://itline-django-9s85.onrender.com/api";
 
 const user = JSON.parse(localStorage.getItem("user") || "{}");
-
+console.log(user)
 // auth
 if (!user?.id) {
   router.push("/login");
@@ -79,7 +79,7 @@ async function fetchGroups() {
     const res = await fetch(`${API}/groups/`);
     const data = await res.json();
     groups.value = data;
-
+    console.log(data)
     // O'quvchi uchun: qaysi guruhda ekanini topamiz
     if (!user.is_admin && user.id) {
       myGroup.value = data.find((g) =>
@@ -112,11 +112,12 @@ const filteredStudents = computed(() => {
 
 // Studentga guruh nomini qaytarish
 function getStudentGroup(studentId) {
+  const student = students.value.find(s => s.id === studentId);
+  if (!student) return null;
   return groups.value.find((g) =>
-    g.students?.some((s) => s.id === studentId)
+    g.students?.some((s) => s.phone === student.phone)
   ) || null;
 }
-
 // ─────────────────────────────
 // HELPERS
 // ─────────────────────────────

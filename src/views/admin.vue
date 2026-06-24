@@ -497,8 +497,8 @@ function formatMoney(value) {
 
           <div v-if="getStudentPayment(s.id)" class="mt-2 flex flex-wrap items-center gap-2">
             <span :class="getStudentPayment(s.id).is_paid
-                ? 'bg-green-100 text-green-700'
-                : 'bg-red-100 text-red-600'
+              ? 'bg-green-100 text-green-700'
+              : 'bg-red-100 text-red-600'
               " class="text-xs px-2 py-1 rounded-full">
               {{
                 getStudentPayment(s.id).is_paid ? "To‘langan" : "To‘lanmagan"
