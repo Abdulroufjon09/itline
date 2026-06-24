@@ -17,7 +17,7 @@ function logout() {
 // STATE
 // ─────────────────────────────
 
-const activeTab = ref("payments"); // "payments" | "attendance" | "prices"
+const activeTab = ref("payments");
 
 const teachers = ref([]);
 const stagePrices = ref([]);
@@ -29,21 +29,42 @@ const generating = ref(false);
 const selectedTeacherForAtt = ref(null);
 const attStudents = ref([]);
 const selectedStudent = ref(null);
-const studentMonthAttendance = ref([]); // 1 oylik davomat
+const studentMonthAttendance = ref([]);
 const selectedAttMonth = ref(new Date().toISOString().slice(0, 7));
 const loadingAtt = ref(false);
 
 // Payments
 const selectedMonth = ref(new Date().toISOString().slice(0, 7));
 const selectedTeacherId = ref("");
-const editingPrice = ref(null); // { stage, value }
+const editingPrice = ref(null);
+
+// Add tab
+const addTab = ref("student");
+const addErrorFields = ref(new Set());
+const addNetworkError = ref(false);
+const addSuccessMsg = ref("");
+const addLoading = ref(false);
+
+const studentForm = ref({
+  name: "",
+  surname: "",
+  phone: "",
+  password: "",
+  teacher_id: "",
+  schedule: "odd",
+});
+
+const teacherForm = ref({
+  name: "",
+  password: "",
+});
 
 // ─────────────────────────────
 // FETCH
 // ─────────────────────────────
 
 async function fetchTeachers() {
-  const res = await fetch(`${API}/teachers/`);
+  const res = await fetch(`${API}/teachers/create/`);
   teachers.value = await res.json();
 }
 
@@ -120,10 +141,16 @@ async function togglePaid(payment) {
   const res = await fetch(`${API}/payments/confirm/${payment.id}/`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ is_paid: !payment.is_paid }),
+    body: JSON.stringify({ 
+      is_paid: !payment.is_paid,
+      amount_due: payment.amount_due  // ← qo'shildi
+    }),
   });
   const data = await res.json();
   payment.is_paid = data.is_paid;
+  if (data.amount_due !== undefined) {
+    payment.amount_due = data.amount_due;
+  }
 }
 
 async function updateAmount(payment) {
@@ -143,7 +170,7 @@ const paidAmount = computed(() =>
 const unpaidAmount = computed(() => totalAmount.value - paidAmount.value);
 
 // ─────────────────────────────
-// ATTENDANCE (Excellence view)
+// ATTENDANCE
 // ─────────────────────────────
 
 async function selectTeacherForAtt(teacher) {
@@ -163,7 +190,6 @@ async function selectStudentForAtt(student) {
   selectedStudent.value = student;
   loadingAtt.value = true;
   try {
-    // O'sha oyning darslarini va davomatini olamiz
     const res = await fetch(
       `${API}/student-attendance/${student.id}/?month=${selectedAttMonth.value}`,
     );
@@ -173,7 +199,6 @@ async function selectStudentForAtt(student) {
   }
 }
 
-// Student to'lov holati (payments dan olamiz)
 function getStudentPayment(studentId) {
   return payments.value.find(
     (p) => p.student_id === studentId && p.month === selectedMonth.value,
@@ -196,26 +221,138 @@ function money(val) {
   return Number(val).toLocaleString("uz-UZ") + " so'm";
 }
 
-function formatMonth(m) {
-  const [year, mon] = m.split("-");
-  const months = [
-    "Yan",
-    "Fev",
-    "Mar",
-    "Apr",
-    "May",
-    "Iyn",
-    "Iyl",
-    "Avg",
-    "Sen",
-    "Okt",
-    "Noy",
-    "Dek",
-  ];
-  return `${months[parseInt(mon) - 1]} ${year}`;
-}
-</script>
+// ─────────────────────────────
+// ADD TAB — helpers
+// ─────────────────────────────
 
+function addMarkError(...fields) {
+  fields.forEach((f) => addErrorFields.value.add(f));
+  setTimeout(() => fields.forEach((f) => addErrorFields.value.delete(f)), 1500);
+}
+
+function addHasError(field) {
+  return addErrorFields.value.has(field);
+}
+
+function resetStudentForm() {
+  studentForm.value = {
+    name: "",
+    surname: "",
+    phone: "",
+    password: "",
+    teacher_id: "",
+    schedule: "odd",
+  };
+}
+
+function resetTeacherForm() {
+  teacherForm.value = { name: "", password: "" };
+}
+
+function switchAddTab(tab) {
+  addTab.value = tab;
+  addErrorFields.value.clear();
+  addNetworkError.value = false;
+  addSuccessMsg.value = "";
+}
+
+async function addApiFetch(path, options = {}) {
+  try {
+    const res = await fetch(`${API}${path}`, {
+      headers: { "Content-Type": "application/json" },
+      ...options,
+    });
+    const data = await res.json();
+    addNetworkError.value = false;
+    return { ok: res.ok, data };
+  } catch {
+    addNetworkError.value = true;
+    throw new Error("network");
+  }
+}
+
+// ─────────────────────────────
+// ADD — Student
+// ─────────────────────────────
+
+async function submitStudent() {
+  const required = ["name", "surname", "phone", "password", "teacher_id"];
+  const missing = required.filter((f) => !studentForm.value[f]);
+  if (missing.length) {
+    addMarkError(...missing);
+    return;
+  }
+
+  addLoading.value = true;
+  try {
+    const { ok, data } = await addApiFetch("/register/", {
+      method: "POST",
+      body: JSON.stringify({
+        name: studentForm.value.name,
+        surname: studentForm.value.surname,
+        phone: studentForm.value.phone,
+        password: studentForm.value.password,
+        teacher_id: Number(studentForm.value.teacher_id),
+        schedule: studentForm.value.schedule,
+      }),
+    });
+    if (!ok) {
+      alert(data.error || "Xatolik yuz berdi");
+      return;
+    }
+    addSuccessMsg.value = `${studentForm.value.name} ${studentForm.value.surname} muvaffaqiyatli qo'shildi`;
+    resetStudentForm();
+    setTimeout(() => (addSuccessMsg.value = ""), 3000);
+  } catch {
+    // addNetworkError ko'rsatiladi
+  } finally {
+    addLoading.value = false;
+  }
+}
+
+// ─────────────────────────────
+// ADD — Teacher
+// ─────────────────────────────
+
+async function submitTeacher() {
+  const required = ["name", "password"];
+  const missing = required.filter((f) => !teacherForm.value[f]);
+  if (missing.length) {
+    addMarkError(...missing);
+    return;
+  }
+
+  addLoading.value = true;
+  try {
+    const { ok, data } = await addApiFetch("/teachers/create/", {
+      method: "POST",
+      body: JSON.stringify({
+        name: teacherForm.value.name,
+        password: teacherForm.value.password,
+      }),
+    });
+    if (!ok) {
+      alert(data.error || "Xatolik yuz berdi");
+      return;
+    }
+    addSuccessMsg.value = `${teacherForm.value.name} o'qituvchi sifatida qo'shildi ✓`;
+    resetTeacherForm();
+    await fetchTeachers();
+    setTimeout(() => (addSuccessMsg.value = ""), 3000);
+  } catch {
+    // addNetworkError ko'rsatiladi
+  } finally {
+    addLoading.value = false;
+  }
+}
+
+const inputClass = (field) => [
+  "w-full px-3 py-2.5 rounded-xl border outline-none transition text-sm",
+  addHasError(field)
+    ? "border-red-300 bg-red-50"
+    : "border-gray-200 focus:border-gray-400",
+];
+</script>
 <template>
   <div class="max-w-6xl mx-auto p-4 sm:p-6">
     <!-- Header -->
@@ -240,7 +377,7 @@ function formatMonth(m) {
         v-for="tab in [
           { key: 'payments', label: '💳 To\'lovlar' },
           { key: 'attendance', label: '📋 Davomat' },
-          { key: 'prices', label: '⚙️ Narxlar' },
+          { key: 'add', label: '👤 Qo\'shish' },
         ]"
         :key="tab.key"
         @click="activeTab = tab.key"
@@ -255,7 +392,7 @@ function formatMonth(m) {
       </button>
     </div>
 
-    <!-- TO'LOVLAR -->
+    <!-- ══════════ TO'LOVLAR ══════════ -->
     <div v-if="activeTab === 'payments'">
       <div class="flex flex-wrap gap-3 mb-5">
         <div>
@@ -291,7 +428,6 @@ function formatMonth(m) {
         </div>
       </div>
 
-      <!-- Statistika -->
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5">
         <div class="bg-gray-100 rounded-xl p-4">
           <p class="text-xs text-gray-500 mb-1">Jami</p>
@@ -311,33 +447,19 @@ function formatMonth(m) {
         </div>
       </div>
 
-      <!-- Jadval -->
       <div v-if="loading" class="text-center py-8 text-gray-400">
         Yuklanmoqda...
       </div>
-
       <div v-else class="border border-gray-100 rounded-2xl overflow-x-auto">
         <table class="w-full text-sm min-w-[600px]">
           <thead>
             <tr class="bg-gray-50 border-b border-gray-100">
-              <th class="text-left px-4 py-3 text-xs text-gray-400 font-medium">
-                Student
-              </th>
-              <th class="text-left px-4 py-3 text-xs text-gray-400 font-medium">
-                Telefon
-              </th>
-              <th class="text-left px-4 py-3 text-xs text-gray-400 font-medium">
-                O'qituvchi
-              </th>
-              <th class="text-left px-4 py-3 text-xs text-gray-400 font-medium">
-                Etap
-              </th>
-              <th class="text-left px-4 py-3 text-xs text-gray-400 font-medium">
-                Summa
-              </th>
-              <th class="text-left px-4 py-3 text-xs text-gray-400 font-medium">
-                Holat
-              </th>
+              <th class="text-left px-4 py-3 text-xs text-gray-400 font-medium">Student</th>
+              <th class="text-left px-4 py-3 text-xs text-gray-400 font-medium">Telefon</th>
+              <th class="text-left px-4 py-3 text-xs text-gray-400 font-medium">O'qituvchi</th>
+              <th class="text-left px-4 py-3 text-xs text-gray-400 font-medium">Etap</th>
+              <th class="text-left px-4 py-3 text-xs text-gray-400 font-medium">Summa</th>
+              <th class="text-left px-4 py-3 text-xs text-gray-400 font-medium">Holat</th>
             </tr>
           </thead>
           <tbody>
@@ -347,12 +469,8 @@ function formatMonth(m) {
               class="border-b border-gray-50 hover:bg-gray-50 transition"
             >
               <td class="px-4 py-3 font-medium">{{ payment.student_name }}</td>
-              <td class="px-4 py-3 text-gray-500">
-                {{ payment.student_phone }}
-              </td>
-              <td class="px-4 py-3 text-gray-500">
-                {{ payment.teacher_name }}
-              </td>
+              <td class="px-4 py-3 text-gray-500">{{ payment.student_phone }}</td>
+              <td class="px-4 py-3 text-gray-500">{{ payment.teacher_name }}</td>
               <td class="px-4 py-3">{{ payment.stage }}-etap</td>
               <td class="px-4 py-3">
                 <input
@@ -390,7 +508,7 @@ function formatMonth(m) {
       </div>
     </div>
 
-    <!-- DAVOMAT -->
+    <!-- ══════════ DAVOMAT ══════════ -->
     <div v-if="activeTab === 'attendance'">
       <div class="flex gap-4 mb-4">
         <div>
@@ -403,13 +521,10 @@ function formatMonth(m) {
         </div>
       </div>
 
-      <!-- Mobile: accordion-style, Desktop: 3 ustun -->
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
         <!-- O'qituvchilar -->
         <div class="space-y-2">
-          <h3
-            class="text-xs font-medium text-gray-400 uppercase tracking-wide mb-2"
-          >
+          <h3 class="text-xs font-medium text-gray-400 uppercase tracking-wide mb-2">
             O'qituvchilar
           </h3>
           <div
@@ -425,11 +540,7 @@ function formatMonth(m) {
           >
             <p class="font-medium">{{ teacher.name }}</p>
             <p
-              :class="
-                selectedTeacherForAtt?.id === teacher.id
-                  ? 'text-gray-300'
-                  : 'text-gray-400'
-              "
+              :class="selectedTeacherForAtt?.id === teacher.id ? 'text-gray-300' : 'text-gray-400'"
               class="text-xs"
             >
               {{ teacher.phone || "Telefon yo'q" }}
@@ -439,83 +550,67 @@ function formatMonth(m) {
 
         <!-- Studentlar -->
         <div class="space-y-2">
-          <h3
-            class="text-xs font-medium text-gray-400 uppercase tracking-wide mb-2"
-          >
+          <h3 class="text-xs font-medium text-gray-400 uppercase tracking-wide mb-2">
             O'quvchilar
           </h3>
-          <div v-if="!selectedTeacherForAtt" class="text-sm text-gray-400 py-4">
+          <p v-if="!selectedTeacherForAtt" class="text-sm text-gray-400 py-4">
             O'qituvchi tanlang
-          </div>
-          <div v-else-if="loadingAtt" class="text-sm text-gray-400 py-4">
-            Yuklanmoqda...
-          </div>
-          <div
-            v-else
-            v-for="student in attStudents"
-            :key="student.id"
-            @click="selectStudentForAtt(student)"
-            :class="[
-              'px-4 py-3 rounded-xl cursor-pointer transition text-sm border',
-              selectedStudent?.id === student.id
-                ? 'bg-gray-900 text-white border-gray-900'
-                : 'border-gray-100 hover:bg-gray-50',
-            ]"
-          >
-            <div class="flex justify-between items-center">
-              <div>
-                <p class="font-medium">
-                  {{ student.name }} {{ student.surname }}
-                </p>
-                <p
-                  :class="
-                    selectedStudent?.id === student.id
-                      ? 'text-gray-300'
-                      : 'text-gray-400'
-                  "
-                  class="text-xs"
-                >
-                  {{ student.stage }}-etap
-                </p>
-              </div>
-              <span
-                v-if="getStudentPayment(student.id)"
-                :class="[
-                  'text-xs px-2 py-0.5 rounded-full',
-                  getStudentPayment(student.id)?.is_paid
-                    ? 'bg-green-100 text-green-700'
-                    : 'bg-red-100 text-red-500',
-                ]"
-              >
-                {{ getStudentPayment(student.id)?.is_paid ? "✓" : "✗" }}
-              </span>
-            </div>
-          </div>
-          <p
-            v-if="
-              selectedTeacherForAtt && !loadingAtt && attStudents.length === 0
-            "
-            class="text-sm text-gray-400 py-4"
-          >
-            O'quvchi yo'q
           </p>
+          <p v-else-if="loadingAtt" class="text-sm text-gray-400 py-4">
+            Yuklanmoqda...
+          </p>
+          <template v-else>
+            <div
+              v-for="student in attStudents"
+              :key="student.id"
+              @click="selectStudentForAtt(student)"
+              :class="[
+                'px-4 py-3 rounded-xl cursor-pointer transition text-sm border',
+                selectedStudent?.id === student.id
+                  ? 'bg-gray-900 text-white border-gray-900'
+                  : 'border-gray-100 hover:bg-gray-50',
+              ]"
+            >
+              <div class="flex justify-between items-center">
+                <div>
+                  <p class="font-medium">{{ student.name }} {{ student.surname }}</p>
+                  <p
+                    :class="selectedStudent?.id === student.id ? 'text-gray-300' : 'text-gray-400'"
+                    class="text-xs"
+                  >
+                    {{ student.stage }}-etap
+                  </p>
+                </div>
+                <span
+                  v-if="getStudentPayment(student.id)"
+                  :class="[
+                    'text-xs px-2 py-0.5 rounded-full',
+                    getStudentPayment(student.id)?.is_paid
+                      ? 'bg-green-100 text-green-700'
+                      : 'bg-red-100 text-red-500',
+                  ]"
+                >
+                  {{ getStudentPayment(student.id)?.is_paid ? "✓" : "✗" }}
+                </span>
+              </div>
+            </div>
+            <p v-if="attStudents.length === 0" class="text-sm text-gray-400 py-4">
+              O'quvchi yo'q
+            </p>
+          </template>
         </div>
 
-        <!-- Student davomati -->
+        <!-- Davomat -->
         <div>
-          <h3
-            class="text-xs font-medium text-gray-400 uppercase tracking-wide mb-2"
-          >
-            {{
-              selectedStudent ? selectedStudent.name + " davomati" : "Davomat"
-            }}
+          <h3 class="text-xs font-medium text-gray-400 uppercase tracking-wide mb-2">
+            {{ selectedStudent ? selectedStudent.name + " davomati" : "Davomat" }}
           </h3>
-          <div v-if="!selectedStudent" class="text-sm text-gray-400 py-4">
+          <p v-if="!selectedStudent" class="text-sm text-gray-400 py-4">
             O'quvchi tanlang
-          </div>
-          <div v-else-if="loadingAtt" class="text-sm text-gray-400 py-4">
+          </p>
+          <p v-else-if="loadingAtt" class="text-sm text-gray-400 py-4">
             Yuklanmoqda...
-          </div>
+          </p>
           <div v-else class="space-y-1.5">
             <div
               v-if="getStudentPayment(selectedStudent.id)"
@@ -541,9 +636,7 @@ function formatMonth(m) {
                 }}
               </p>
               <p class="text-sm font-semibold mt-0.5">
-                {{
-                  money(getStudentPayment(selectedStudent.id)?.amount_due || 0)
-                }}
+                {{ money(getStudentPayment(selectedStudent.id)?.amount_due || 0) }}
               </p>
             </div>
             <div
@@ -575,54 +668,155 @@ function formatMonth(m) {
       </div>
     </div>
 
-    <!-- NARXLAR -->
-    <div v-if="activeTab === 'prices'">
-      <h2 class="text-lg font-medium mb-4">Etap narxlari</h2>
-      <div class="space-y-2 max-w-md">
-        <div
-          v-for="sp in stagePrices"
-          :key="sp.stage"
-          class="flex flex-wrap gap-3 items-center justify-between border border-gray-100 rounded-xl px-4 py-3"
+    <!-- ══════════ QO'SHISH ══════════ -->
+    <div v-if="activeTab === 'add'">
+      <div class="flex gap-2 mb-6">
+        <button
+          @click="switchAddTab('student')"
+          :class="[
+            'px-4 py-2 rounded-xl text-sm border transition cursor-pointer',
+            addTab === 'student'
+              ? 'bg-gray-900 text-white border-gray-900'
+              : 'border-gray-200 text-gray-500 hover:bg-gray-50',
+          ]"
         >
-          <p class="text-sm font-medium">{{ sp.stage }}-etap</p>
-          <div
-            v-if="editingPrice?.stage === sp.stage"
-            class="flex gap-2 items-center flex-wrap"
-          >
-            <input
-              v-model="editingPrice.value"
-              type="number"
-              class="border border-gray-200 rounded-xl px-3 py-1.5 text-sm outline-none w-32"
-            />
+          🎓 Student
+        </button>
+        <button
+          @click="switchAddTab('teacher')"
+          :class="[
+            'px-4 py-2 rounded-xl text-sm border transition cursor-pointer',
+            addTab === 'teacher'
+              ? 'bg-gray-900 text-white border-gray-900'
+              : 'border-gray-200 text-gray-500 hover:bg-gray-50',
+          ]"
+        >
+          👤 O'qituvchi
+        </button>
+      </div>
+
+      <div
+        v-if="addNetworkError"
+        class="max-w-[420px] mb-4 px-3 py-2.5 rounded-xl bg-red-50 border border-red-200 flex items-center gap-2"
+      >
+        <span class="text-red-400">⚠</span>
+        <div>
+          <p class="text-xs font-medium text-red-600">Internet aloqasi yo'q</p>
+          <p class="text-xs text-red-400">Tarmoqni tekshirib qayta urinib ko'ring</p>
+        </div>
+        <button
+          @click="addNetworkError = false"
+          class="ml-auto text-red-300 hover:text-red-500 text-lg leading-none cursor-pointer"
+        >
+          ×
+        </button>
+      </div>
+
+      <div
+        v-if="addSuccessMsg"
+        class="max-w-[420px] mb-4 px-3 py-2.5 rounded-xl bg-green-50 border border-green-200 flex items-center gap-2"
+      >
+        <span class="text-green-500">✓</span>
+        <p class="text-xs font-medium text-green-700">{{ addSuccessMsg }}</p>
+      </div>
+
+      <!-- STUDENT FORM -->
+      <div v-if="addTab === 'student'" class="max-w-[420px] flex flex-col gap-4">
+        <div>
+          <label class="block text-xs text-gray-400 mb-1.5">Ism</label>
+          <input type="text" v-model="studentForm.name" placeholder="Ismingiz" :class="inputClass('name')" />
+        </div>
+        <div>
+          <label class="block text-xs text-gray-400 mb-1.5">Familiya</label>
+          <input type="text" v-model="studentForm.surname" placeholder="Familiyangiz" :class="inputClass('surname')" />
+        </div>
+        <div>
+          <label class="block text-xs text-gray-400 mb-1.5">Telefon</label>
+          <input type="tel" v-model="studentForm.phone" placeholder="+998 90 000 00 00" :class="inputClass('phone')" />
+        </div>
+        <div>
+          <label class="block text-xs text-gray-400 mb-1.5">O'qituvchi</label>
+          <select v-model="studentForm.teacher_id" :class="inputClass('teacher_id')">
+            <option value="">Tanlang</option>
+            <option v-for="t in teachers" :key="t.id" :value="t.id">{{ t.name }}</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs text-gray-400 mb-1.5">Dars kuni</label>
+          <div class="flex gap-2">
             <button
-              @click="savePrice"
-              class="px-3 py-1.5 bg-gray-900 text-white rounded-xl text-sm hover:bg-gray-700 transition"
+              type="button"
+              @click="studentForm.schedule = 'odd'"
+              :class="[
+                'flex-1 py-2 rounded-xl text-sm border transition cursor-pointer',
+                studentForm.schedule === 'odd'
+                  ? 'bg-gray-900 text-white border-gray-900'
+                  : 'border-gray-200 text-gray-600 hover:bg-gray-50',
+              ]"
             >
-              Saqlash
+              Du / Chor / Juma
             </button>
             <button
-              @click="editingPrice = null"
-              class="px-3 py-1.5 border border-gray-200 rounded-xl text-sm"
+              type="button"
+              @click="studentForm.schedule = 'even'"
+              :class="[
+                'flex-1 py-2 rounded-xl text-sm border transition cursor-pointer',
+                studentForm.schedule === 'even'
+                  ? 'bg-gray-900 text-white border-gray-900'
+                  : 'border-gray-200 text-gray-600 hover:bg-gray-50',
+              ]"
             >
-              Bekor
-            </button>
-          </div>
-          <div v-else class="flex items-center gap-3">
-            <span class="text-sm font-medium">{{ money(sp.price) }}</span>
-            <button
-              @click="startEditPrice(sp)"
-              class="text-xs px-3 py-1 rounded-full border border-gray-200 text-gray-500 hover:bg-gray-50 transition"
-            >
-              O'zgartirish
+              Se / Pay / Shan
             </button>
           </div>
         </div>
-        <p
-          v-if="stagePrices.length === 0"
-          class="text-sm text-gray-400 text-center py-4"
+        <div>
+          <label class="block text-xs text-gray-400 mb-1.5">Parol</label>
+          <input
+            type="password"
+            v-model="studentForm.password"
+            @keyup.enter="submitStudent"
+            placeholder="••••••••"
+            :class="inputClass('password')"
+          />
+        </div>
+        <button
+          @click="submitStudent"
+          :disabled="addLoading"
+          class="w-full py-2.5 rounded-xl bg-gray-900 text-white text-sm hover:bg-gray-700 transition cursor-pointer disabled:opacity-50"
         >
-          Narxlar yo'q.
-        </p>
+          {{ addLoading ? "Saqlanmoqda..." : "Student qo'shish" }}
+        </button>
+      </div>
+
+      <!-- TEACHER FORM -->
+      <div v-if="addTab === 'teacher'" class="max-w-[420px] flex flex-col gap-4">
+        <div>
+          <label class="block text-xs text-gray-400 mb-1.5">Ism</label>
+          <input
+            type="text"
+            v-model="teacherForm.name"
+            placeholder="O'qituvchi ismi"
+            :class="inputClass('name')"
+          />
+        </div>
+        <div>
+          <label class="block text-xs text-gray-400 mb-1.5">Parol</label>
+          <input
+            type="password"
+            v-model="teacherForm.password"
+            @keyup.enter="submitTeacher"
+            placeholder="••••••••"
+            :class="inputClass('password')"
+          />
+        </div>
+        <button
+          @click="submitTeacher"
+          :disabled="addLoading"
+          class="w-full py-2.5 rounded-xl bg-gray-900 text-white text-sm hover:bg-gray-700 transition cursor-pointer disabled:opacity-50"
+        >
+          {{ addLoading ? "Saqlanmoqda..." : "O'qituvchi qo'shish" }}
+        </button>
       </div>
     </div>
   </div>

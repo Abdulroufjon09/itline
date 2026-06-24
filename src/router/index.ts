@@ -60,6 +60,10 @@ const routes = [
     path: "/:pathMatch(.*)*",
     redirect: "/",
   },
+  {
+    path: "/groups",
+    component: lazy("groups"),
+  },
 ];
 
 // ─── Router ──────────────────────────────────────────────────

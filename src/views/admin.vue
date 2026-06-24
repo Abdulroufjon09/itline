@@ -33,14 +33,14 @@ const showReassign    = ref(false);
 const showStudents    = ref(false);
 const showAsk         = ref(false);
 
-const teacherToDelete = ref(null);
+const teacherToDelete   = ref(null);
 const selectedTeacherId = ref(null);
 
 const newTeacher = ref({ name: "", phone: "" });
 const fromTeacher = ref(null);
 const toTeacher   = ref(null);
 
-// ─── Computed ─────────────────────────────────────────────────
+// ─── Computed ────────────────────────────────────────────────
 const selectedTeacherName = computed(
   () => teachers.value.find((t) => t.id === selectedTeacherId.value)?.name ?? ""
 );
@@ -56,7 +56,6 @@ function getStudentPayment(studentId) {
   return payments.value.find((p) => p.student_id === studentId);
 }
 
-/** Generic fetch wrapper — returns parsed JSON or throws */
 async function apiFetch(path, options = {}) {
   const res = await fetch(`${API}${path}`, {
     headers: { "Content-Type": "application/json" },
@@ -68,7 +67,6 @@ async function apiFetch(path, options = {}) {
     try { msg = JSON.parse(text)?.error ?? msg; } catch { /* plain text */ }
     throw new Error(msg);
   }
-  // 204 No Content
   if (res.status === 204) return null;
   return res.json();
 }
@@ -108,9 +106,7 @@ async function fetchPayments(teacherId) {
   }
 }
 
-onMounted(fetchTeachers);
-
-// ─── Teacher Actions ──────────────────────────────────────────
+// ─── Teacher Actions ─────────────────────────────────────────
 async function createTeacher() {
   if (!newTeacher.value.name.trim()) { alert("Ism kiriting"); return; }
   try {
@@ -127,7 +123,6 @@ async function createTeacher() {
 }
 
 function askDelete(id) {
-  // O'zini o'chirmasin
   if (currentTeacherId.value === id) {
     alert("O'zingizni o'chira olmaysiz");
     return;
@@ -163,22 +158,25 @@ async function reassignStudents() {
   try {
     await apiFetch("/teachers/reassign/", {
       method: "POST",
-      body: JSON.stringify({ from_teacher_id: fromId, to_teacher_id: toTeacher.value }),
+      body: JSON.stringify({
+        from_teacher_id: fromId,
+        to_teacher_id: toTeacher.value,
+      }),
     });
     showReassign.value = false;
     fromTeacher.value = null;
-    toTeacher.value   = null;
-    if (selectedTeacherId.value === fromId) await fetchStudents(selectedTeacherId.value);
+    toTeacher.value = null;
+    if (selectedTeacherId.value === fromId)
+      await fetchStudents(selectedTeacherId.value);
   } catch (e) {
     alert(e.message);
   }
 }
 
-// ─── Student Actions ──────────────────────────────────────────
+// ─── Student Actions ─────────────────────────────────────────
 async function selectTeacher(teacherId) {
   selectedTeacherId.value = teacherId;
   showStudents.value = true;
-  // Parallel fetch — ikki so'rov bir vaqtda ketadi
   await Promise.all([fetchStudents(teacherId), fetchPayments(teacherId)]);
 }
 
@@ -195,7 +193,11 @@ async function updateStage(student, stage) {
       alert(`${student.name} kotta teacherga o'tdi`);
     } else {
       const s = students.value.find((s) => s.id === student.id);
-      if (s) Object.assign(s, { stage: result.stage, teacher_id: result.teacher_id, teacher_name: result.teacher_name });
+      if (s) Object.assign(s, {
+        stage: result.stage,
+        teacher_id: result.teacher_id,
+        teacher_name: result.teacher_name,
+      });
     }
   } catch (e) {
     alert(e.message);
@@ -215,6 +217,11 @@ async function updateSchedule(student, schedule) {
     alert(e.message);
   }
 }
+
+// ─── Mount ───────────────────────────────────────────────────
+onMounted(async () => {
+  await fetchTeachers();
+});
 </script>
 
 <template>
@@ -226,24 +233,21 @@ async function updateSchedule(student, schedule) {
         <h1 class="text-2xl font-medium">Admin panel</h1>
         <p class="text-gray-400 text-sm mt-1">Xush kelibsiz, {{ user.name }}!</p>
       </div>
-      <button
-        @click="logout"
-        class="px-4 py-2 rounded-full text-sm hover:bg-gray-50 cursor-pointer">
+      <button @click="logout" class="px-4 py-2 rounded-full text-sm hover:bg-gray-50">
         Chiqish
       </button>
     </div>
 
     <!-- QUICK NAV -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
-      <div
-        @click="$router.push('/students')"
-        class="p-5 border rounded-2xl cursor-pointer hover:bg-gray-50">
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+      <div @click="$router.push('/students')" class="p-5 border rounded-2xl cursor-pointer hover:bg-gray-50">
         👥 O'quvchilar
       </div>
-      <div
-        @click="$router.push('/attendance')"
-        class="p-5 border rounded-2xl cursor-pointer hover:bg-gray-50">
+      <div @click="$router.push('/Attendance')" class="p-5 border rounded-2xl cursor-pointer hover:bg-gray-50">
         📋 Davomat
+      </div>
+      <div @click="$router.push('/groups')" class="p-5 border rounded-2xl cursor-pointer hover:bg-gray-50">
+        🗂️ Guruhlar
       </div>
     </div>
 
@@ -252,14 +256,10 @@ async function updateSchedule(student, schedule) {
       <div class="flex justify-between mb-4">
         <h2 class="text-lg font-medium">O'qituvchilar</h2>
         <div class="flex gap-2">
-          <button
-            @click="showReassign = !showReassign"
-            class="px-3 py-1 rounded-full text-sm cursor-pointer">
+          <button @click="showReassign = !showReassign" class="px-3 py-1 rounded-full text-sm">
             O'tkazish
           </button>
-          <button
-            @click="showForm = !showForm"
-            class="bg-black text-white px-3 py-1 rounded-full text-sm cursor-pointer">
+          <button @click="showForm = !showForm" class="bg-black text-white px-3 py-1 rounded-full text-sm">
             + Qo'shish
           </button>
         </div>
@@ -267,17 +267,9 @@ async function updateSchedule(student, schedule) {
 
       <!-- ADD FORM -->
       <div v-if="showForm" class="p-4 bg-gray-50 rounded-xl mb-4">
-        <input
-          v-model="newTeacher.name"
-          placeholder="Ism"
-          class="w-full p-2 rounded mb-2" />
-        <input
-          v-model="newTeacher.phone"
-          placeholder="Telefon"
-          class="w-full p-2 rounded mb-2" />
-        <button
-          @click="createTeacher"
-          class="w-full bg-black text-white py-2 rounded cursor-pointer">
+        <input v-model="newTeacher.name" placeholder="Ism" class="w-full p-2 rounded mb-2" />
+        <input v-model="newTeacher.phone" placeholder="Telefon" class="w-full p-2 rounded mb-2" />
+        <button @click="createTeacher" class="w-full bg-black text-white py-2 rounded">
           Saqlash
         </button>
       </div>
@@ -292,58 +284,50 @@ async function updateSchedule(student, schedule) {
           <option :value="null">Kimga</option>
           <option v-for="t in teachers" :key="t.id" :value="t.id">{{ t.name }}</option>
         </select>
-        <button
-          @click="reassignStudents"
-          class="w-full bg-yellow-500 text-white py-2 rounded cursor-pointer">
+        <button @click="reassignStudents" class="w-full bg-yellow-500 text-white py-2 rounded">
           O'tkazish
         </button>
       </div>
 
-      <!-- TEACHER LIST -->
-      <div v-if="loadingTeachers" class="text-gray-400 text-sm py-2">Yuklanmoqda...</div>
-      <template v-else>
-        <div
-          v-for="t in teachers"
-          :key="t.id"
-          class="flex flex-wrap gap-2 justify-between items-center p-3 rounded-xl mb-2">
-          <div>
-            <p class="font-medium">{{ t.name }}</p>
-            <p class="text-xs text-gray-400">{{ t.phone }}</p>
-          </div>
+      <!-- LOADING -->
+      <div v-if="loadingTeachers" class="text-center py-4 text-gray-400 text-sm">
+        Yuklanmoqda...
+      </div>
+
+      <!-- LIST -->
+      <div
+        v-else
+        v-for="t in teachers"
+        :key="t.id"
+        class="flex flex-wrap gap-2 justify-between items-center p-3 rounded-xl mb-2"
+      >
+        <div>
+          <p class="font-medium">{{ t.name }}</p>
+          <p class="text-xs text-gray-400">{{ t.phone }}</p>
+        </div>
+        <div class="flex gap-2 items-center">
+          <button @click="selectTeacher(t.id)" class="text-blue-500 text-sm border px-2 rounded cursor-pointer">
+            O'quvchilar
+          </button>
+          <button @click="askDelete(t.id)" class="text-red-400 text-sm border px-2 rounded cursor-pointer">
+            O'chirish
+          </button>
+        </div>
+      </div>
+
+      <!-- DELETE CONFIRM -->
+      <div v-if="showAsk" class="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
+        <div class="bg-white rounded-2xl p-6 max-w-sm w-full mx-4 shadow-xl">
+          <h3 class="font-semibold mb-2">Teacherni o'chirish</h3>
+          <p class="text-sm text-gray-500 mb-4">Rostdan ham o'chirmoqchimisiz?</p>
           <div class="flex gap-2">
-            <button
-              @click="selectTeacher(t.id)"
-              class="text-blue-500 text-sm border px-2 rounded cursor-pointer">
-              O'quvchilar
+            <button @click="showAsk = false" class="flex-1 py-2 rounded-xl border text-sm">
+              Bekor
             </button>
-            <button
-              @click="askDelete(t.id)"
-              class="text-red-400 text-sm border px-2 rounded cursor-pointer">
+            <button @click="confirmDelete" class="flex-1 py-2 rounded-xl bg-red-500 text-white text-sm">
               O'chirish
             </button>
           </div>
-        </div>
-      </template>
-    </div>
-
-    <!-- CONFIRM DELETE DIALOG -->
-    <div
-      v-if="showAsk"
-      class="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-      <div class="bg-white rounded-2xl p-6 max-w-sm w-full mx-4 shadow-xl">
-        <h3 class="font-medium text-lg mb-2">Teacherni o'chirish</h3>
-        <p class="text-gray-500 text-sm mb-6">Rostdan ham o'chirmoqchimisiz?</p>
-        <div class="flex gap-3">
-          <button
-            @click="showAsk = false; teacherToDelete = null"
-            class="flex-1 py-2 rounded-xl border text-sm cursor-pointer">
-            Bekor
-          </button>
-          <button
-            @click="confirmDelete"
-            class="flex-1 py-2 rounded-xl bg-red-500 text-white text-sm cursor-pointer">
-            O'chirish
-          </button>
         </div>
       </div>
     </div>
@@ -354,73 +338,77 @@ async function updateSchedule(student, schedule) {
         {{ selectedTeacherName }} — o'quvchilari ({{ students.length }})
       </h2>
 
-      <div v-if="loadingStudents || loadingPayments" class="text-gray-400 text-sm">
+      <div v-if="loadingStudents" class="text-center py-4 text-gray-400 text-sm">
         Yuklanmoqda...
       </div>
 
-      <template v-else>
-        <div
-          v-for="s in students"
-          :key="s.id"
-          class="flex flex-wrap gap-2 justify-between items-center p-3 rounded mb-2">
-          <!-- Info -->
-          <div>
-            <p class="font-medium">{{ s.name }} {{ s.surname }}</p>
-            <p class="text-xs text-gray-400">{{ s.phone }}</p>
-
-            <div v-if="getStudentPayment(s.id)" class="mt-2 flex flex-wrap items-center gap-2">
-              <span
-                :class="getStudentPayment(s.id).is_paid
-                  ? 'bg-green-100 text-green-700'
-                  : 'bg-red-100 text-red-600'"
-                class="text-xs px-2 py-1 rounded-full">
-                {{ getStudentPayment(s.id).is_paid ? "To'langan" : "To'lanmagan" }}
-              </span>
-              <span class="text-xs text-gray-500">
-                {{ formatMoney(getStudentPayment(s.id).amount_due) }}
-              </span>
-            </div>
-          </div>
-
-          <!-- Stage buttons -->
-          <div class="flex gap-1 flex-wrap">
-            <button
-              v-for="st in STAGES"
-              :key="st"
-              @click="updateStage(s, st)"
-              :disabled="stageLoading === s.id"
-              class="w-7 h-7 text-xs rounded-full transition"
-              :class="s.stage === st ? 'bg-black text-white' : 'hover:bg-gray-100'">
-              {{ st }}
-            </button>
-          </div>
-
-          <!-- Schedule buttons -->
-          <div class="flex gap-1 w-full mt-1">
-            <button
-              @click="updateSchedule(s, 'odd')"
-              :class="[
-                'flex-1 text-xs py-1 rounded-lg border transition',
-                s.schedule === 'odd'
-                  ? 'bg-gray-900 text-white border-gray-900'
-                  : 'border-gray-200 text-gray-500 hover:bg-gray-50',
-              ]">
-              Du/Chor/Juma
-            </button>
-            <button
-              @click="updateSchedule(s, 'even')"
-              :class="[
-                'flex-1 text-xs py-1 rounded-lg border transition',
-                s.schedule === 'even'
-                  ? 'bg-gray-900 text-white border-gray-900'
-                  : 'border-gray-200 text-gray-500 hover:bg-gray-50',
-              ]">
-              Se/Pay/Shan
-            </button>
+      <div
+        v-else
+        v-for="s in students"
+        :key="s.id"
+        class="flex flex-wrap gap-2 justify-between items-center p-3 rounded mb-2"
+      >
+        <div>
+          <p class="font-medium">{{ s.name }} {{ s.surname }}</p>
+          <p class="text-xs text-gray-400">{{ s.phone }}</p>
+          <div v-if="getStudentPayment(s.id)" class="mt-2 flex flex-wrap items-center gap-2">
+            <span
+              :class="getStudentPayment(s.id).is_paid
+                ? 'bg-green-100 text-green-700'
+                : 'bg-red-100 text-red-600'"
+              class="text-xs px-2 py-1 rounded-full"
+            >
+              {{ getStudentPayment(s.id).is_paid ? "To'langan" : "To'lanmagan" }}
+            </span>
+            <span class="text-xs text-gray-500">
+              {{ formatMoney(getStudentPayment(s.id).amount_due) }}
+            </span>
           </div>
         </div>
-      </template>
-    </div>
 
+        <!-- Stage buttons -->
+        <div class="flex gap-1 flex-wrap">
+          <button
+            v-for="st in STAGES"
+            :key="st"
+            @click="updateStage(s, st)"
+            :disabled="stageLoading === s.id"
+            class="w-7 h-7 text-xs rounded-full transition"
+            :class="[
+              s.stage === st ? 'bg-black text-white' : 'border border-gray-200 hover:bg-gray-50',
+              stageLoading === s.id ? 'opacity-50 cursor-not-allowed' : '',
+            ]"
+          >
+            {{ st }}
+          </button>
+        </div>
+
+        <!-- Schedule buttons -->
+        <div class="flex gap-1 w-full mt-1">
+          <button
+            @click="updateSchedule(s, 'odd')"
+            :class="[
+              'flex-1 text-xs py-1 rounded-lg border transition',
+              s.schedule === 'odd'
+                ? 'bg-gray-900 text-white border-gray-900'
+                : 'border-gray-200 text-gray-500 hover:bg-gray-50',
+            ]"
+          >
+            Du/Chor/Juma
+          </button>
+          <button
+            @click="updateSchedule(s, 'even')"
+            :class="[
+              'flex-1 text-xs py-1 rounded-lg border transition',
+              s.schedule === 'even'
+                ? 'bg-gray-900 text-white border-gray-900'
+                : 'border-gray-200 text-gray-500 hover:bg-gray-50',
+            ]"
+          >
+            Se/Pay/Shan
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>

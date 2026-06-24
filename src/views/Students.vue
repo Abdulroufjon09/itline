@@ -1,6 +1,6 @@
 <script setup>
 import Leaderboard from "@/components/Leaderboard.vue";
-import { ref, onMounted } from "vue";
+import { ref, onMounted, computed } from "vue";
 import { useRouter } from "vue-router";
 import Magazine from "./Magazine.vue";
 
@@ -21,11 +21,17 @@ if (!user?.id) {
 
 const students = ref([]);
 const payments = ref([]);
+const groups = ref([]); // barcha guruhlar
+const myGroup = ref(null); // joriy o'quvchi uchun guruh
 
 const loadingStudents = ref(true);
 const loadingPayments = ref(true);
+const loadingGroups = ref(false);
 
 const activeTab = ref("students");
+
+// admin uchun guruh filter
+const selectedGroupId = ref(null);
 
 // ─────────────────────────────
 // COLORS
@@ -45,10 +51,8 @@ const avatarColors = [
 
 async function fetchStudents() {
   loadingStudents.value = true;
-
   try {
     const res = await fetch(`${API}/students/?teacher_id=${user.teacher_id}`);
-
     students.value = await res.json();
   } catch (e) {
     console.error(e);
@@ -59,10 +63,8 @@ async function fetchStudents() {
 
 async function fetchPayments() {
   loadingPayments.value = true;
-
   try {
     const res = await fetch(`${API}/payments/${user.id}/`);
-
     payments.value = await res.json();
   } catch (e) {
     console.error(e);
@@ -71,9 +73,49 @@ async function fetchPayments() {
   }
 }
 
+async function fetchGroups() {
+  loadingGroups.value = true;
+  try {
+    const res = await fetch(`${API}/groups/`);
+    const data = await res.json();
+    groups.value = data;
+
+    if (!user.is_admin && user.phone) {
+      myGroup.value =
+        data.find((g) => g.students?.some((s) => s.phone === user.phone)) ||
+        null;
+    }
+  } catch (e) {
+    console.error(e);
+  } finally {
+    loadingGroups.value = false;
+  }
+}
+
 onMounted(async () => {
-  await Promise.all([fetchStudents(), fetchPayments()]);
+  await Promise.all([fetchStudents(), fetchPayments(), fetchGroups()]);
 });
+
+// ─────────────────────────────
+// COMPUTED
+// ─────────────────────────────
+
+// Admin: tanlangan guruh bo'yicha studentlarni filter qilish
+const filteredStudents = computed(() => {
+  if (!user.is_admin || !selectedGroupId.value) return students.value;
+  const group = groups.value.find((g) => g.id === selectedGroupId.value);
+  if (!group) return students.value;
+  const ids = new Set(group.students?.map((s) => s.id) || []);
+  return students.value.filter((s) => ids.has(s.id));
+});
+
+// Studentga guruh nomini qaytarish
+function getStudentGroup(studentId) {
+  return (
+    groups.value.find((g) => g.students?.some((s) => s.id === studentId)) ||
+    null
+  );
+}
 
 // ─────────────────────────────
 // HELPERS
@@ -96,9 +138,7 @@ function formatMoney(value) {
 
 function formatMonth(month) {
   if (!month) return "";
-
   const [year, mon] = month.split("-");
-
   const months = [
     "Yanvar",
     "Fevral",
@@ -113,18 +153,14 @@ function formatMonth(month) {
     "Noyabr",
     "Dekabr",
   ];
-
   return `${months[parseInt(mon) - 1]} ${year}`;
 }
 
 function formatDate(date) {
   if (!date) return "";
-
   let cleaned = date.replace(" ", "T");
-
   const d = new Date(cleaned);
   if (isNaN(d.getTime())) return date;
-
   const year = d.getFullYear();
   const month = String(d.getMonth() + 1).padStart(2, "0");
   const day = String(d.getDate() - 1).padStart(2, "0");
@@ -132,24 +168,9 @@ function formatDate(date) {
 }
 
 function stageStyle(stage) {
-  if (stage <= 2) {
-    return {
-      backgroundColor: "#E1F5EE",
-      color: "#085041",
-    };
-  }
-
-  if (stage <= 4) {
-    return {
-      backgroundColor: "#E6F1FB",
-      color: "#0C447C",
-    };
-  }
-
-  return {
-    backgroundColor: "#FAEEDA",
-    color: "#633806",
-  };
+  if (stage <= 2) return { backgroundColor: "#E1F5EE", color: "#085041" };
+  if (stage <= 4) return { backgroundColor: "#E6F1FB", color: "#0C447C" };
+  return { backgroundColor: "#FAEEDA", color: "#633806" };
 }
 </script>
 
@@ -205,7 +226,7 @@ function stageStyle(stage) {
         {{ (user.name?.[0] || "").toUpperCase() }}
       </div>
       <div class="flex-1 min-w-0">
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-2 flex-wrap">
           <p class="font-medium text-base sm:text-lg truncate">
             {{ user.name }} {{ user.surname }}
           </p>
@@ -225,11 +246,30 @@ function stageStyle(stage) {
           </p>
         </div>
         <p class="text-sm text-gray-400">{{ user.phone }}</p>
+
+        <!-- O'quvchi uchun: guruh ko'rsatish profile cardda -->
+        <div v-if="!user.is_admin && myGroup" class="mt-2">
+          <span
+            class="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full bg-gray-100 text-gray-600"
+          >
+            🗂️ {{ myGroup.name }}
+          </span>
+        </div>
+        <div
+          v-else-if="!user.is_admin && !loadingGroups && !myGroup"
+          class="mt-2"
+        >
+          <span
+            class="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full bg-gray-50 text-gray-400"
+          >
+            Guruhga biriktirilmagan
+          </span>
+        </div>
       </div>
     </div>
 
     <!-- TABS -->
-    <div class="flex gap-3 mb-6">
+    <div class="flex gap-3 mb-6 flex-wrap">
       <button
         @click="activeTab = 'students'"
         :class="[
@@ -241,7 +281,7 @@ function stageStyle(stage) {
       >
         👥 Guruh
       </button>
-      <div class="" v-if="!user.is_admin">
+      <div v-if="!user.is_admin">
         <button
           @click="activeTab = 'payments'"
           :class="[
@@ -254,7 +294,7 @@ function stageStyle(stage) {
           💳 To'lovlar
         </button>
       </div>
-      <div class="" v-if="!user.is_admin">
+      <div v-if="!user.is_admin">
         <button
           @click="activeTab = 'leader'"
           :class="[
@@ -267,8 +307,7 @@ function stageStyle(stage) {
           ⍟ Leaderboard
         </button>
       </div>
-
-      <div class="" v-if="!user.is_admin">
+      <div v-if="!user.is_admin">
         <button
           @click="activeTab = 'market'"
           :class="[
@@ -285,15 +324,56 @@ function stageStyle(stage) {
 
     <!-- STUDENTS -->
     <div v-if="activeTab === 'students'">
-      <div class="mb-4 text-sm text-gray-400">
-        {{ students.length }} ta o'quvchi
+      <!-- Admin: guruh bo'yicha filter -->
+      <div
+        v-if="user.is_admin && groups.length > 0"
+        class="mb-4 flex gap-2 flex-wrap"
+      >
+        <button
+          @click="selectedGroupId = null"
+          :class="[
+            'px-3 py-1.5 rounded-full text-xs border transition',
+            selectedGroupId === null
+              ? 'bg-black text-white border-black'
+              : 'border-gray-200 text-gray-500 hover:bg-gray-50',
+          ]"
+        >
+          Barchasi ({{ students.length }})
+        </button>
+        <button
+          v-for="g in groups"
+          :key="g.id"
+          @click="selectedGroupId = g.id"
+          :class="[
+            'px-3 py-1.5 rounded-full text-xs border transition',
+            selectedGroupId === g.id
+              ? 'bg-black text-white border-black'
+              : 'border-gray-200 text-gray-500 hover:bg-gray-50',
+          ]"
+        >
+          🗂️ {{ g.name }}
+          <span class="opacity-60 ml-0.5">
+            ({{
+              g.students?.filter((s) => students.some((st) => st.id === s.id))
+                .length || 0
+            }})
+          </span>
+        </button>
       </div>
+
+      <div class="mb-4 text-sm text-gray-400">
+        {{ filteredStudents.length }} ta o'quvchi
+        <span v-if="selectedGroupId" class="ml-1 text-gray-500">
+          — {{ groups.find((g) => g.id === selectedGroupId)?.name }}
+        </span>
+      </div>
+
       <div class="border border-gray-100 rounded-2xl table-wrapper">
         <div v-if="loadingStudents" class="text-center py-10 text-gray-400">
           Yuklanmoqda...
         </div>
         <table
-          v-else-if="students.length > 0"
+          v-else-if="filteredStudents.length > 0"
           class="w-full text-sm min-w-[360px] responsive-table"
         >
           <thead class="bg-gray-50">
@@ -301,12 +381,13 @@ function stageStyle(stage) {
               <th class="text-left px-4 py-3">#</th>
               <th class="text-left px-4 py-3">O'quvchi</th>
               <th v-if="user.is_admin" class="text-left px-4 py-3">Raqam</th>
+              <th class="text-left px-4 py-3">Guruh</th>
               <th class="text-left px-4 py-3">Etap</th>
             </tr>
           </thead>
           <tbody>
             <tr
-              v-for="(student, index) in students"
+              v-for="(student, index) in filteredStudents"
               :key="student.id"
               class="border-t border-gray-100 hover:bg-gray-50 transition"
             >
@@ -331,6 +412,16 @@ function stageStyle(stage) {
                 >
                   {{ student.phone }}
                 </span>
+              </td>
+              <!-- GURUH USTUNI -->
+              <td class="px-4 py-4">
+                <span
+                  v-if="getStudentGroup(student.id)"
+                  class="px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600 whitespace-nowrap"
+                >
+                  🗂️ {{ getStudentGroup(student.id).name }}
+                </span>
+                <span v-else class="text-xs text-gray-300">—</span>
               </td>
               <td class="px-4 py-4">
                 <span
@@ -397,6 +488,7 @@ function stageStyle(stage) {
         Hozircha to'lovlar mavjud emas
       </div>
     </div>
+
     <div class="mt-4 px-4" v-if="activeTab === 'leader'">
       <div class="mt-4">
         <Leaderboard />
@@ -412,19 +504,16 @@ function stageStyle(stage) {
 </template>
 
 <style>
-/* desktop normal */
 .table-wrapper {
   overflow-x: auto;
 }
 
-/* kichik ekran */
 @media (max-width: 768px) {
   .responsive-table {
     min-width: 600px;
   }
 }
 
-/* telefon (eng kichik) */
 @media (max-width: 480px) {
   .responsive-table {
     min-width: 520px;
