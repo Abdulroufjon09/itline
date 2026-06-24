@@ -7,13 +7,13 @@ const API = "https://itline-django-9s85.onrender.com/api";
 // coinStore.ts ichida
 interface LeaderboardUser {
   id: number;
+  rank: number;
   name: string;
   surname: string;
   teacher_name: string;
-  coins: number;
-  role: "student" | "teacher" | "admin" | "manager"; // shu qatorni qo'shing
+  coin_balance: number;
+  role: "student" | "teacher" | "admin" | "manager";
 }
-
 export type CoinReason =
   | "exam_pass"
   | "homework_done"
@@ -109,7 +109,7 @@ export const useCoinStore = defineStore("coin", {
 
         // Lokal ro'yxatdagi balansni backend qaytargan haqiqiy son bilan yangilaymiz
         const u = this.findUser(studentId);
-        if (u) u.coins = data.coins;
+        if (u) u.coin_balance = data.coin_balance;
 
         return data.coins as number;
       } catch (e) {
@@ -120,13 +120,6 @@ export const useCoinStore = defineStore("coin", {
         ui.stop();
       }
     },
-
-    // ─── Qulay qisqartmalar (eski applyX nomlariga o'xshash, lekin to'g'ri backend bilan) ───
-    // Eslatma: Davomat (present/late/absent) uchun coin BU YERDA berilmaydi.
-    // Backend update_attendance funksiyasi attendanceStore.mark() chaqirilganda
-    // avtomatik coin beradi/ayiradi. Bu yerda alohida chaqirilsa, coin ikki marta
-    // hisoblanadi — shuning uchun applyAttendance atayin olib tashlangan.
-
     async applyTask(studentId: number, done: boolean, teacherId?: number) {
       return this.giveCoins(
         studentId,

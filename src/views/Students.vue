@@ -21,8 +21,8 @@ if (!user?.id) {
 
 const students = ref([]);
 const payments = ref([]);
-const groups = ref([]);        // barcha guruhlar
-const myGroup = ref(null);     // joriy o'quvchi uchun guruh
+const groups = ref([]); // barcha guruhlar
+const myGroup = ref(null); // joriy o'quvchi uchun guruh
 
 const loadingStudents = ref(true);
 const loadingPayments = ref(true);
@@ -141,8 +141,18 @@ function formatMonth(month) {
   if (!month) return "";
   const [year, mon] = month.split("-");
   const months = [
-    "Yanvar", "Fevral", "Mart", "Aprel", "May", "Iyun",
-    "Iyul", "Avgust", "Sentabr", "Oktabr", "Noyabr", "Dekabr",
+    "Yanvar",
+    "Fevral",
+    "Mart",
+    "Aprel",
+    "May",
+    "Iyun",
+    "Iyul",
+    "Avgust",
+    "Sentabr",
+    "Oktabr",
+    "Noyabr",
+    "Dekabr",
   ];
   return `${months[parseInt(mon) - 1]} ${year}`;
 }
@@ -180,7 +190,9 @@ function stageStyle(stage) {
         </RouterLink>
         <div>
           <h1 class="text-xl sm:text-2xl font-semibold">Kabinet</h1>
-          <p class="text-sm text-gray-400 mt-1">Xush kelibsiz, {{ user.name }}</p>
+          <p class="text-sm text-gray-400 mt-1">
+            Xush kelibsiz, {{ user.name }}
+          </p>
         </div>
       </div>
       <button @click="logout"
@@ -268,7 +280,6 @@ function stageStyle(stage) {
 
     <!-- STUDENTS -->
     <div v-if="activeTab === 'students'">
-
       <!-- Admin: guruh bo'yicha filter -->
       <div v-if="user.is_admin && groups.length > 0" class="mb-4 flex gap-2 flex-wrap">
         <button @click="selectedGroupId = null" :class="[
@@ -287,7 +298,10 @@ function stageStyle(stage) {
         ]">
           🗂️ {{ g.name }}
           <span class="opacity-60 ml-0.5">
-            ({{(g.students?.filter(s => students.some(st => st.id === s.id)).length) || 0}})
+            ({{
+              g.students?.filter((s) => students.some((st) => st.id === s.id))
+                .length || 0
+            }})
           </span>
         </button>
       </div>
@@ -295,7 +309,7 @@ function stageStyle(stage) {
       <div class="mb-4 text-sm text-gray-400">
         {{ filteredStudents.length }} ta o'quvchi
         <span v-if="selectedGroupId" class="ml-1 text-gray-500">
-          — {{groups.find(g => g.id === selectedGroupId)?.name}}
+          — {{groups.find((g) => g.id === selectedGroupId)?.name}}
         </span>
       </div>
 
@@ -376,7 +390,9 @@ function stageStyle(stage) {
                   ? 'bg-green-100 text-green-700'
                   : 'bg-red-100 text-red-600',
               ]">
-                {{ payment.is_paid ? "To'lov qilingan ✓" : "To'lov qilinmagan" }}
+                {{
+                  payment.is_paid ? "To'lov qilingan ✓" : "To'lov qilinmagan"
+                }}
               </div>
               <p v-if="payment.paid_at" class="text-xs text-gray-400 mt-2">
                 {{ formatDate(payment.paid_at) }}

@@ -29,7 +29,12 @@ const savingGroup = ref(false);
 const panel = ref(null);
 const activeGroup = ref(null);
 
-const form = ref({ name: "", teacher_id: null, students: [] });
+const form = ref({
+    name: "",
+    teacher_id: null,
+    students: [],
+    lesson_time: "09:00",
+});
 const studentSearch = ref("");
 
 const avatarColors = [
@@ -52,13 +57,13 @@ const searchResults = computed(() => {
             (s) =>
                 !form.value.students.includes(s.id) &&
                 (`${s.name} ${s.surname}`.toLowerCase().includes(q) ||
-                    (s.phone || "").includes(q))
+                    (s.phone || "").includes(q)),
         )
         .slice(0, 8);
 });
 
 const selectedStudents = computed(() =>
-    allStudents.value.filter((s) => form.value.students.includes(s.id))
+    allStudents.value.filter((s) => form.value.students.includes(s.id)),
 );
 
 // ─────────────────────────────
@@ -112,7 +117,12 @@ onMounted(() => {
 // ─────────────────────────────
 
 function openCreate() {
-    form.value = { name: "", teacher_id: null, students: [] };
+    form.value = {
+        name: "",
+        teacher_id: null,
+        students: [],
+        lesson_time: "09:00",
+    };
     studentSearch.value = "";
     activeGroup.value = null;
     panel.value = "create";
@@ -123,6 +133,7 @@ function openEdit(group) {
         name: group.name,
         teacher_id: group.teacher?.id || null,
         students: group.students?.map((s) => s.id) || [],
+        lesson_time: group.lesson_time || "09:00",
     };
     studentSearch.value = "";
     activeGroup.value = group;

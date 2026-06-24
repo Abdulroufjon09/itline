@@ -3,20 +3,24 @@ import { reactive, ref, onMounted, computed } from "vue";
 import { useRouter } from "vue-router";
 import { useUiStore } from "../stores/uiStore";
 
-const router = useRouter();
+// ─── Constants ────────────────────────────────────────────────
 const API = "https://itline-django-9s85.onrender.com/api";
-const ui = useUiStore();
-
 const ADMIN_PASSWORD = "excel2024";
 const EXCELLENCE_PASSWORD = "excellence2024";
 
+// ─── Setup ────────────────────────────────────────────────────
+const router = useRouter();
+const ui = useUiStore();
+
+// ─── State ────────────────────────────────────────────────────
 const teachers = ref([]);
 const phoneChecked = ref(false);
 const isNew = ref(false);
-const wrongPassword = ref(false);
-const errorStyle = ref(false);
+const wrongPass = ref(false);
+const errorFields = ref(new Set());
+const networkError = ref(false);
 
-const formData = reactive({
+const form = reactive({
   name: "",
   surname: "",
   phone: "",
@@ -25,163 +29,191 @@ const formData = reactive({
   schedule: "odd",
 });
 
-const isAdminPassword = computed(() => formData.password === ADMIN_PASSWORD);
-const isExcellencePassword = computed(
-  () => formData.password === EXCELLENCE_PASSWORD,
-);
-const isSpecialPassword = computed(
-  () => isAdminPassword.value || isExcellencePassword.value,
-);
+// ─── Computed ─────────────────────────────────────────────────
+const isAdmin = computed(() => form.password === ADMIN_PASSWORD);
+const isExcellence = computed(() => form.password === EXCELLENCE_PASSWORD);
+const isSpecial = computed(() => isAdmin.value || isExcellence.value);
 
+// ─── Helpers ──────────────────────────────────────────────────
 function redirectUser(user) {
   if (user.is_excellence) router.push("/excellence");
   else if (user.is_admin) router.push("/admin");
   else router.push("/students");
 }
 
-onMounted(async () => {
-  const user = localStorage.getItem("user");
-  if (user) {
-    redirectUser(JSON.parse(user));
-    return;
-  }
-  await fetchTeachers();
-});
+function buildUserPayload(result) {
+  return {
+    id: result.id,
+    name: result.name,
+    surname: result.surname,
+    phone: result.phone,
+    teacher_id: result.teacher_id ?? null,
+    is_admin: result.is_admin ?? false,
+    is_excellence: result.is_excellence ?? false,
+  };
+}
 
-async function fetchTeachers() {
+/** Maydonni xato holatiga tushiradi, 1.5s dan keyin tozalaydi */
+function markError(...fields) {
+  fields.forEach((f) => errorFields.value.add(f));
+  setTimeout(() => {
+    fields.forEach((f) => errorFields.value.delete(f));
+  }, 1500);
+}
+
+function hasError(field) {
+  return errorFields.value.has(field);
+}
+
+// ─── API ──────────────────────────────────────────────────────
+async function apiFetch(path, options = {}) {
   try {
-    const res = await fetch(`${API}/teachers/`);
-    teachers.value = await res.json();
+    const res = await fetch(`${API}${path}`, {
+      headers: { "Content-Type": "application/json" },
+      ...options,
+    });
+    const data = await res.json();
+    networkError.value = false;
+    return { ok: res.ok, data };
   } catch (e) {
-    console.error(e);
+    // TypeError: Failed to fetch — internet yo'q yoki server yetib bo'lmaydi
+    networkError.value = true;
+    throw e;
   }
 }
 
-let debounce = null;
+async function fetchTeachers() {
+  try {
+    const { data } = await apiFetch("/teachers/");
+    teachers.value = data;
+  } catch {
+    // networkError.value allaqachon true — template ko'rsatadi
+  }
+}
+
+// ─── Phone debounce ───────────────────────────────────────────
+let debounceTimer = null;
+
 function onPhoneInput() {
-  clearTimeout(debounce);
+  clearTimeout(debounceTimer);
   phoneChecked.value = false;
   isNew.value = false;
-  wrongPassword.value = false;
-  formData.password = "";
-  if (formData.phone.length >= 9) debounce = setTimeout(checkPhone, 500);
+  wrongPass.value = false;
+  form.password = "";
+  errorFields.value.clear();
+
+  if (form.phone.length >= 9) {
+    debounceTimer = setTimeout(checkPhone, 500);
+  }
 }
 
 async function checkPhone() {
   ui.start();
   try {
-    const res = await fetch(`${API}/login/`, {
+    const { ok, data } = await apiFetch("/login/", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ phone: formData.phone, password: null }),
+      body: JSON.stringify({ phone: form.phone, password: null }),
     });
-    const result = await res.json();
-    phoneChecked.value = true;
-    isNew.value = !result.exists;
-  } catch (e) {
-    console.error(e);
-  } finally {
-    ui.stop();
-  }
-}
-
-async function submitLogin() {
-  if (!formData.password) return triggerError();
-  ui.start();
-  try {
-    const res = await fetch(`${API}/login/`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        phone: formData.phone,
-        password: formData.password,
-      }),
-    });
-    const result = await res.json();
-    if (result.exists) {
-      localStorage.setItem(
-        "user",
-        JSON.stringify({
-          id: result.id,
-          name: result.name,
-          surname: result.surname,
-          phone: result.phone,
-          teacher_id: result.teacher_id ?? null,
-          is_admin: result.is_admin ?? false,
-          is_excellence: result.is_excellence ?? false,
-        }),
-      );
-      redirectUser(result);
-    } else {
-      wrongPassword.value = true;
-      setTimeout(() => (wrongPassword.value = false), 2000);
-    }
-  } catch (e) {
-    console.error(e);
-  } finally {
-    ui.stop();
-  }
-}
-
-async function submitRegister() {
-  const required = ["name", "phone", "password"];
-  if (!isSpecialPassword.value) required.push("surname", "teacher_id");
-  for (const f of required) {
-    if (!formData[f]) {
-      triggerError();
+    if (!ok) {
+      // backend xato qaytardi — "yangi" deb taxmin qilmaymiz
+      phoneChecked.value = false;
+      console.error("Telefon tekshirishda xatolik:", data);
       return;
     }
+    phoneChecked.value = true;
+    isNew.value = !data.exists;
+  } catch {
+    // networkError allaqachon true
+  } finally {
+    ui.stop();
+  }
+}
+// ─── Login ────────────────────────────────────────────────────
+async function submitLogin() {
+  if (!form.password) {
+    markError("password");
+    return;
+  }
+
+  ui.start();
+  try {
+    const { ok, data } = await apiFetch("/login/", {
+      method: "POST",
+      body: JSON.stringify({ phone: form.phone, password: form.password }),
+    });
+
+    if (ok && data.exists) {
+      const user = buildUserPayload(data);
+      localStorage.setItem("user", JSON.stringify(user));
+      redirectUser(user);
+    } else {
+      wrongPass.value = true;
+      setTimeout(() => (wrongPass.value = false), 2000);
+    }
+  } catch {
+    // networkError.value allaqachon true
+  } finally {
+    ui.stop();
+  }
+}
+
+// ─── Register ─────────────────────────────────────────────────
+async function submitRegister() {
+  // Validatsiya
+  const required = ["name", "phone", "password"];
+  if (!isSpecial.value) required.push("surname", "teacher_id");
+
+  const missing = required.filter((f) => !form[f]);
+  if (missing.length) {
+    markError(...missing);
+    return;
   }
 
   ui.start();
   try {
     const payload = {
-      name: formData.name,
-      phone: formData.phone,
-      password: formData.password,
+      name: form.name,
+      phone: form.phone,
+      password: form.password,
     };
-    if (isAdminPassword.value) payload.admin_password = formData.password;
-    else if (isExcellencePassword.value)
-      payload.excellence_password = formData.password;
+
+    if (isAdmin.value) payload.admin_password = form.password;
+    else if (isExcellence.value) payload.excellence_password = form.password;
     else {
-      payload.surname = formData.surname;
-      payload.teacher_id = Number(formData.teacher_id);
-      payload.schedule = formData.schedule;
+      payload.surname = form.surname;
+      payload.teacher_id = Number(form.teacher_id);
+      payload.schedule = form.schedule;
     }
 
-    const res = await fetch(`${API}/register/`, {
+    const { ok, data } = await apiFetch("/register/", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
-    const result = await res.json();
-    if (!res.ok) {
-      alert(result.error || "Xatolik");
+
+    if (!ok) {
+      alert(data.error || "Xatolik yuz berdi");
       return;
     }
 
-    const userData = {
-      id: result.id,
-      name: result.name,
-      surname: result.surname,
-      phone: result.phone,
-      teacher_id: result.teacher_id ?? null,
-      is_admin: result.is_admin ?? false,
-      is_excellence: result.is_excellence ?? false,
-    };
-    localStorage.setItem("user", JSON.stringify(userData));
-    redirectUser(userData);
-  } catch (e) {
-    console.error(e);
+    const user = buildUserPayload(data);
+    localStorage.setItem("user", JSON.stringify(user));
+    redirectUser(user);
+  } catch {
+    // networkError.value allaqachon true
   } finally {
     ui.stop();
   }
 }
 
-function triggerError() {
-  errorStyle.value = true;
-  setTimeout(() => (errorStyle.value = false), 1500);
-}
+// ─── Lifecycle ────────────────────────────────────────────────
+onMounted(async () => {
+  const stored = localStorage.getItem("user");
+  if (stored) {
+    redirectUser(JSON.parse(stored));
+    return;
+  }
+  await fetchTeachers();
+});
 </script>
 
 <template>
@@ -192,10 +224,9 @@ function triggerError() {
       <!-- HEADER -->
       <div class="p-8 pb-6">
         <div
-          class="w-10 h-10 bg-gray-900 rounded-xl flex items-center justify-center mb-5">
-          <span class="text-white text-sm font-medium">I</span>
-          <!-- class="w-10 h-10 bg-gray-900 rounded-xl flex items-center justify-center mb-5"> -->
-          <span class="text-white text-sm font-medium">E</span>
+          class="w-10 h-10 bg-gray-900 rounded-xl flex items-center justify-center mb-5"
+        >
+          <span class="text-white text-sm font-medium">IT</span>
         </div>
         <h1 class="text-xl font-semibold text-gray-900 mb-1">
           {{ isNew ? "Ro'yxatdan o'tish" : "Kirish" }}
@@ -209,6 +240,26 @@ function triggerError() {
         </p>
       </div>
 
+      <!-- NETWORK ERROR BANNER -->
+      <div
+        v-if="networkError"
+        class="mx-8 mb-2 px-3 py-2.5 rounded-xl bg-red-50 border border-red-200 flex items-center gap-2"
+      >
+        <span class="text-red-400 text-base">⚠</span>
+        <div>
+          <p class="text-xs font-medium text-red-600">Internet aloqasi yo'q</p>
+          <p class="text-xs text-red-400">
+            Tarmoqni tekshirib qayta urinib ko'ring
+          </p>
+        </div>
+        <button
+          @click="networkError = false"
+          class="ml-auto text-red-300 hover:text-red-500 text-lg leading-none cursor-pointer"
+        >
+          ×
+        </button>
+      </div>
+
       <!-- BODY -->
       <div class="px-8 pb-8 flex flex-col gap-4">
         <!-- PHONE -->
@@ -216,134 +267,180 @@ function triggerError() {
           <label class="block text-xs text-gray-400 mb-1.5">Telefon</label>
           <input
             type="tel"
-            v-model="formData.phone"
+            v-model="form.phone"
             @input="onPhoneInput"
+            @keyup.enter="checkPhone"
             placeholder="+998 90 000 00 00"
             :class="[
               'w-full px-3 py-2.5 rounded-xl border outline-none transition text-sm',
-              errorStyle && !formData.phone
+              hasError('phone')
                 ? 'border-red-300 bg-red-50'
                 : 'border-gray-200 focus:border-gray-400',
-            ]" />
+            ]"
+          />
         </div>
 
-        <!-- LOGIN -->
+        <!-- LOGIN (mavjud foydalanuvchi) -->
         <template v-if="phoneChecked && !isNew">
           <div>
             <label class="block text-xs text-gray-400 mb-1.5">Parol</label>
             <input
               type="password"
-              v-model="formData.password"
+              v-model="form.password"
+              @keyup.enter="submitLogin"
               placeholder="••••••••"
               :class="[
                 'w-full px-3 py-2.5 rounded-xl border outline-none transition text-sm',
-                wrongPassword || (errorStyle && !formData.password)
+                wrongPass || hasError('password')
                   ? 'border-red-300 bg-red-50'
                   : 'border-gray-200 focus:border-gray-400',
-              ]" />
-            <p v-if="wrongPassword" class="text-xs text-red-400 mt-1.5">
+              ]"
+            />
+            <p v-if="wrongPass" class="text-xs text-red-400 mt-1.5">
               Parol noto'g'ri
             </p>
           </div>
           <button
             @click="submitLogin"
-            class="w-full py-2.5 rounded-xl bg-gray-900 text-white text-sm hover:bg-gray-700 transition"
+            class="w-full py-2.5 rounded-xl bg-gray-900 text-white text-sm hover:bg-gray-700 transition cursor-pointer"
           >
             Kirish
           </button>
         </template>
 
-        <!-- REGISTER -->
+        <!-- REGISTER (yangi foydalanuvchi) -->
         <template v-if="isNew">
           <div class="border-t border-gray-100 pt-4 flex flex-col gap-4">
+            <!-- Ism -->
             <div>
               <label class="block text-xs text-gray-400 mb-1.5">Ism</label>
               <input
                 type="text"
-                v-model="formData.name"
+                v-model="form.name"
                 placeholder="Ismingiz"
-                class="w-full px-3 py-2.5 rounded-xl border border-gray-200 outline-none focus:border-gray-400 text-sm" />
+                :class="[
+                  'w-full px-3 py-2.5 rounded-xl border outline-none transition text-sm',
+                  hasError('name')
+                    ? 'border-red-300 bg-red-50'
+                    : 'border-gray-200 focus:border-gray-400',
+                ]"
+              />
             </div>
 
-            <template v-if="!isSpecialPassword">
+            <!-- Familiya + Teacher + Jadval (oddiy foydalanuvchi uchun) -->
+            <template v-if="!isSpecial">
               <div>
                 <label class="block text-xs text-gray-400 mb-1.5"
                   >Familiya</label
                 >
                 <input
                   type="text"
-                  v-model="formData.surname"
+                  v-model="form.surname"
                   placeholder="Familiyangiz"
-                  class="w-full px-3 py-2.5 rounded-xl border border-gray-200 outline-none focus:border-gray-400 text-sm" />
+                  :class="[
+                    'w-full px-3 py-2.5 rounded-xl border outline-none transition text-sm',
+                    hasError('surname')
+                      ? 'border-red-300 bg-red-50'
+                      : 'border-gray-200 focus:border-gray-400',
+                  ]"
+                />
               </div>
+
               <div>
                 <label class="block text-xs text-gray-400 mb-1.5"
                   >O'qituvchi</label
                 >
                 <select
-                  v-model="formData.teacher_id"
-                  class="w-full px-3 py-2.5 rounded-xl border border-gray-200 outline-none focus:border-gray-400 text-sm">
+                  v-model="form.teacher_id"
+                  :class="[
+                    'w-full px-3 py-2.5 rounded-xl border outline-none transition text-sm',
+                    hasError('teacher_id')
+                      ? 'border-red-300 bg-red-50'
+                      : 'border-gray-200 focus:border-gray-400',
+                  ]"
+                >
                   <option value="">Tanlang</option>
                   <option v-for="t in teachers" :key="t.id" :value="t.id">
                     {{ t.name }}
                   </option>
                 </select>
               </div>
+
               <div>
-                <label class="block text-sm text-gray-500 mb-1"
+                <label class="block text-xs text-gray-400 mb-1.5"
                   >Dars kuni</label
                 >
                 <div class="flex gap-2">
                   <button
                     type="button"
-                    @click="formData.schedule = 'odd'"
+                    @click="form.schedule = 'odd'"
                     :class="[
-                      'flex-1 py-2 rounded-xl text-sm border transition',
-                      formData.schedule === 'odd'
+                      'flex-1 py-2 rounded-xl text-sm border transition cursor-pointer',
+                      form.schedule === 'odd'
                         ? 'bg-gray-900 text-white border-gray-900'
                         : 'border-gray-200 text-gray-600 hover:bg-gray-50',
-                    ]">
+                    ]"
+                  >
                     Du / Chor / Juma
                   </button>
                   <button
                     type="button"
-                    @click="formData.schedule = 'even'"
+                    @click="form.schedule = 'even'"
                     :class="[
-                      'flex-1 py-2 rounded-xl text-sm border transition',
-                      formData.schedule === 'even'
+                      'flex-1 py-2 rounded-xl text-sm border transition cursor-pointer',
+                      form.schedule === 'even'
                         ? 'bg-gray-900 text-white border-gray-900'
                         : 'border-gray-200 text-gray-600 hover:bg-gray-50',
-                    ]">
+                    ]"
+                  >
                     Se / Pay / Shan
                   </button>
                 </div>
               </div>
             </template>
 
+            <!-- Parol -->
             <div>
               <label class="block text-xs text-gray-400 mb-1.5">Parol</label>
               <input
                 type="password"
-                v-model="formData.password"
+                v-model="form.password"
+                @keyup.enter="submitRegister"
                 placeholder="••••••••"
-                class="w-full px-3 py-2.5 rounded-xl border border-gray-200 outline-none focus:border-gray-400 text-sm"
+                :class="[
+                  'w-full px-3 py-2.5 rounded-xl border outline-none transition text-sm',
+                  hasError('password')
+                    ? 'border-red-300 bg-red-50'
+                    : 'border-gray-200 focus:border-gray-400',
+                ]"
               />
+
+              <!-- Admin/Excellence badge -->
+              <p v-if="isAdmin" class="text-xs text-blue-500 mt-1.5">
+                Admin sifatida ro'yxatdan o'tilmoqda
+              </p>
+              <p
+                v-else-if="isExcellence"
+                class="text-xs text-purple-500 mt-1.5"
+              >
+                Excellence sifatida ro'yxatdan o'tilmoqda
+              </p>
             </div>
 
             <button
               @click="submitRegister"
-              class="w-full py-2.5 rounded-xl bg-gray-900 text-white text-sm hover:bg-gray-700 transition"
+              class="w-full py-2.5 rounded-xl bg-gray-900 text-white text-sm hover:bg-gray-700 transition cursor-pointer"
             >
               Ro'yxatdan o'tish
             </button>
           </div>
         </template>
 
-        <!-- INITIAL -->
+        <!-- INITIAL (telefon kiritilmagan) -->
         <template v-if="!phoneChecked">
           <button
             @click="checkPhone"
-            class="w-full py-2.5 rounded-xl bg-gray-900 text-white text-sm hover:bg-gray-700 transition"
+            class="w-full py-2.5 rounded-xl bg-gray-900 text-white text-sm hover:bg-gray-700 transition cursor-pointer"
           >
             Davom etish
           </button>
