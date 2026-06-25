@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, computed } from "vue";
+import { ref, onMounted, computed, watch } from "vue";
 import { useRouter } from "vue-router";
 
 const router = useRouter();
@@ -11,6 +11,13 @@ if (!user || !user.is_excellence) router.push("/login");
 function logout() {
   localStorage.removeItem("user");
   router.push("/login");
+}
+
+function normalizePhone(raw) {
+  const digits = raw.replace(/\D/g, "");
+  if (digits.length === 9) return "+998" + digits;
+  if (digits.length >= 11) return "+" + digits;
+  return "+" + digits;
 }
 
 // ─────────────────────────────
@@ -32,11 +39,18 @@ const selectedStudent = ref(null);
 const studentMonthAttendance = ref([]);
 const selectedAttMonth = ref(new Date().toISOString().slice(0, 7));
 const loadingAtt = ref(false);
+const attPayments = ref([]);
 
 // Payments
 const selectedMonth = ref(new Date().toISOString().slice(0, 7));
 const selectedTeacherId = ref("");
 const editingPrice = ref(null);
+
+// History tab
+const historyTeacherId = ref("");
+const historyMonth = ref(new Date().toISOString().slice(0, 7));
+const historyPayments = ref([]);
+const loadingHistory = ref(false);
 
 // Add tab
 const addTab = ref("student");
@@ -64,8 +78,13 @@ const teacherForm = ref({
 // ─────────────────────────────
 
 async function fetchTeachers() {
-  const res = await fetch(`${API}/teachers/create/`);
-  teachers.value = await res.json();
+  const res = await fetch(`${API}/teachers/`);
+  if (res.ok) {
+    teachers.value = await res.json();
+  } else {
+    const res2 = await fetch(`${API}/teachers/create/`);
+    teachers.value = await res2.json();
+  }
 }
 
 async function fetchStagePrices() {
@@ -86,8 +105,46 @@ async function fetchPayments() {
   }
 }
 
+async function fetchAttPayments() {
+  const res = await fetch(`${API}/payments/?month=${selectedAttMonth.value}`);
+  attPayments.value = await res.json();
+}
+
+async function fetchHistoryPayments() {
+  if (!historyTeacherId.value) return;
+  loadingHistory.value = true;
+  try {
+    const url = `${API}/payments/?month=${historyMonth.value}&teacher_id=${historyTeacherId.value}`;
+    const res = await fetch(url);
+    historyPayments.value = await res.json();
+  } finally {
+    loadingHistory.value = false;
+  }
+}
+
 onMounted(async () => {
-  await Promise.all([fetchTeachers(), fetchStagePrices(), fetchPayments()]);
+  await Promise.all([fetchTeachers(), fetchStagePrices()]);
+  await fetchPayments();
+  await fetchAttPayments();
+});
+
+watch(activeTab, (tab) => {
+  if (tab === "history" && historyTeacherId.value) {
+    fetchHistoryPayments();
+  }
+});
+
+watch([historyTeacherId, historyMonth], () => {
+  if (activeTab.value === "history" && historyTeacherId.value) {
+    fetchHistoryPayments();
+  }
+});
+
+watch(selectedAttMonth, async () => {
+  await fetchAttPayments();
+  if (selectedStudent.value) {
+    selectStudentForAtt(selectedStudent.value);
+  }
 });
 
 // ─────────────────────────────
@@ -141,9 +198,9 @@ async function togglePaid(payment) {
   const res = await fetch(`${API}/payments/confirm/${payment.id}/`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ 
+    body: JSON.stringify({
       is_paid: !payment.is_paid,
-      amount_due: payment.amount_due  // ← qo'shildi
+      amount_due: payment.amount_due,
     }),
   });
   const data = await res.json();
@@ -168,6 +225,16 @@ const paidAmount = computed(() =>
   payments.value.filter((p) => p.is_paid).reduce((a, b) => a + b.amount_due, 0),
 );
 const unpaidAmount = computed(() => totalAmount.value - paidAmount.value);
+
+const historyTotalAmount = computed(() =>
+  historyPayments.value.reduce((a, b) => a + b.amount_due, 0),
+);
+const historyPaidAmount = computed(() =>
+  historyPayments.value.filter((p) => p.is_paid).reduce((a, b) => a + b.amount_due, 0),
+);
+const historyUnpaidAmount = computed(() =>
+  historyTotalAmount.value - historyPaidAmount.value,
+);
 
 // ─────────────────────────────
 // ATTENDANCE
@@ -199,9 +266,9 @@ async function selectStudentForAtt(student) {
   }
 }
 
-function getStudentPayment(studentId) {
-  return payments.value.find(
-    (p) => p.student_id === studentId && p.month === selectedMonth.value,
+function getStudentPaymentForAtt(studentId) {
+  return attPayments.value.find(
+    (p) => p.student_id === studentId && p.month === selectedAttMonth.value,
   );
 }
 
@@ -290,7 +357,7 @@ async function submitStudent() {
       body: JSON.stringify({
         name: studentForm.value.name,
         surname: studentForm.value.surname,
-        phone: studentForm.value.phone,
+        phone: normalizePhone(studentForm.value.phone),
         password: studentForm.value.password,
         teacher_id: Number(studentForm.value.teacher_id),
         schedule: studentForm.value.schedule,
@@ -353,6 +420,7 @@ const inputClass = (field) => [
     : "border-gray-200 focus:border-gray-400",
 ];
 </script>
+
 <template>
   <div class="max-w-6xl mx-auto p-4 sm:p-6">
     <!-- Header -->
@@ -376,6 +444,7 @@ const inputClass = (field) => [
       <button
         v-for="tab in [
           { key: 'payments', label: '💳 To\'lovlar' },
+          { key: 'history', label: '📊 Tarix' },
           { key: 'attendance', label: '📋 Davomat' },
           { key: 'add', label: '👤 Qo\'shish' },
         ]"
@@ -435,21 +504,15 @@ const inputClass = (field) => [
         </div>
         <div class="bg-green-50 rounded-xl p-4">
           <p class="text-xs text-green-600 mb-1">To'langan</p>
-          <p class="text-xl font-semibold text-green-700">
-            {{ money(paidAmount) }}
-          </p>
+          <p class="text-xl font-semibold text-green-700">{{ money(paidAmount) }}</p>
         </div>
         <div class="bg-red-50 rounded-xl p-4">
           <p class="text-xs text-red-500 mb-1">Qolgan</p>
-          <p class="text-xl font-semibold text-red-600">
-            {{ money(unpaidAmount) }}
-          </p>
+          <p class="text-xl font-semibold text-red-600">{{ money(unpaidAmount) }}</p>
         </div>
       </div>
 
-      <div v-if="loading" class="text-center py-8 text-gray-400">
-        Yuklanmoqda...
-      </div>
+      <div v-if="loading" class="text-center py-8 text-gray-400">Yuklanmoqda...</div>
       <div v-else class="border border-gray-100 rounded-2xl overflow-x-auto">
         <table class="w-full text-sm min-w-[600px]">
           <thead>
@@ -499,13 +562,118 @@ const inputClass = (field) => [
             </tr>
           </tbody>
         </table>
-        <p
-          v-if="payments.length === 0"
-          class="text-center py-8 text-gray-400 text-sm"
-        >
+        <p v-if="payments.length === 0" class="text-center py-8 text-gray-400 text-sm">
           Bu oy uchun to'lovlar yo'q.
         </p>
       </div>
+    </div>
+
+    <!-- ══════════ TARIX ══════════ -->
+    <div v-if="activeTab === 'history'">
+      <div class="flex flex-wrap gap-3 mb-5">
+        <div>
+          <label class="block text-xs text-gray-400 mb-1">O'qituvchi</label>
+          <select
+            v-model="historyTeacherId"
+            class="border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none min-w-[160px]"
+          >
+            <option value="">— Tanlang —</option>
+            <option v-for="t in teachers" :key="t.id" :value="t.id">
+              {{ t.name }}
+            </option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs text-gray-400 mb-1">Oy</label>
+          <input
+            type="month"
+            v-model="historyMonth"
+            class="border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none"
+          />
+        </div>
+        <div class="flex items-end">
+          <button
+            @click="fetchHistoryPayments"
+            :disabled="!historyTeacherId || loadingHistory"
+            class="px-4 py-2 bg-gray-900 text-white rounded-xl text-sm hover:bg-gray-700 transition disabled:opacity-40"
+          >
+            {{ loadingHistory ? "Yuklanmoqda..." : "Ko'rish" }}
+          </button>
+        </div>
+      </div>
+
+      <div v-if="!historyTeacherId" class="text-center py-16 text-gray-400">
+        <p class="text-sm">O'qituvchini tanlang</p>
+      </div>
+
+      <template v-else>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5">
+          <div class="bg-gray-100 rounded-xl p-4">
+            <p class="text-xs text-gray-500 mb-1">Jami</p>
+            <p class="text-xl font-semibold">{{ money(historyTotalAmount) }}</p>
+            <p class="text-xs text-gray-400 mt-1">{{ historyPayments.length }} o'quvchi</p>
+          </div>
+          <div class="bg-green-50 rounded-xl p-4">
+            <p class="text-xs text-green-600 mb-1">To'langan</p>
+            <p class="text-xl font-semibold text-green-700">{{ money(historyPaidAmount) }}</p>
+            <p class="text-xs text-green-500 mt-1">
+              {{ historyPayments.filter(p => p.is_paid).length }} o'quvchi
+            </p>
+          </div>
+          <div class="bg-red-50 rounded-xl p-4">
+            <p class="text-xs text-red-500 mb-1">Qolgan</p>
+            <p class="text-xl font-semibold text-red-600">{{ money(historyUnpaidAmount) }}</p>
+            <p class="text-xs text-red-400 mt-1">
+              {{ historyPayments.filter(p => !p.is_paid).length }} o'quvchi
+            </p>
+          </div>
+        </div>
+
+        <div v-if="loadingHistory" class="text-center py-8 text-gray-400">Yuklanmoqda...</div>
+        <div v-else class="border border-gray-100 rounded-2xl overflow-x-auto">
+          <table class="w-full text-sm min-w-[500px]">
+            <thead>
+              <tr class="bg-gray-50 border-b border-gray-100">
+                <th class="text-left px-4 py-3 text-xs text-gray-400 font-medium">#</th>
+                <th class="text-left px-4 py-3 text-xs text-gray-400 font-medium">Student</th>
+                <th class="text-left px-4 py-3 text-xs text-gray-400 font-medium">Etap</th>
+                <th class="text-left px-4 py-3 text-xs text-gray-400 font-medium">Summa</th>
+                <th class="text-left px-4 py-3 text-xs text-gray-400 font-medium">Holat</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="(payment, idx) in historyPayments"
+                :key="payment.id"
+                class="border-b border-gray-50 hover:bg-gray-50 transition"
+              >
+                <td class="px-4 py-3 text-gray-400 text-xs">{{ idx + 1 }}</td>
+                <td class="px-4 py-3">
+                  <p class="font-medium">{{ payment.student_name }}</p>
+                  <p class="text-xs text-gray-400">{{ payment.student_phone }}</p>
+                </td>
+                <td class="px-4 py-3 text-gray-500">{{ payment.stage }}-etap</td>
+                <td class="px-4 py-3 font-medium">{{ money(payment.amount_due) }}</td>
+                <td class="px-4 py-3">
+                  <span
+                    :class="[
+                      'px-2.5 py-1 rounded-full text-xs font-medium',
+                      payment.is_paid
+                        ? 'bg-green-100 text-green-700'
+                        : 'bg-red-100 text-red-600',
+                    ]"
+                  >
+                    {{ payment.is_paid ? "✓ To'langan" : "✗ To'lanmagan" }}
+                  </span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <p v-if="historyPayments.length === 0" class="text-center py-8 text-gray-400 text-sm">
+            Bu oy uchun to'lovlar yo'q.
+          </p>
+        </div>
+      </template>
     </div>
 
     <!-- ══════════ DAVOMAT ══════════ -->
@@ -527,6 +695,9 @@ const inputClass = (field) => [
           <h3 class="text-xs font-medium text-gray-400 uppercase tracking-wide mb-2">
             O'qituvchilar
           </h3>
+          <p v-if="teachers.length === 0" class="text-sm text-gray-400 py-4">
+            Yuklanmoqda...
+          </p>
           <div
             v-for="teacher in teachers"
             :key="teacher.id"
@@ -582,15 +753,15 @@ const inputClass = (field) => [
                   </p>
                 </div>
                 <span
-                  v-if="getStudentPayment(student.id)"
+                  v-if="getStudentPaymentForAtt(student.id)"
                   :class="[
                     'text-xs px-2 py-0.5 rounded-full',
-                    getStudentPayment(student.id)?.is_paid
+                    getStudentPaymentForAtt(student.id)?.is_paid
                       ? 'bg-green-100 text-green-700'
                       : 'bg-red-100 text-red-500',
                   ]"
                 >
-                  {{ getStudentPayment(student.id)?.is_paid ? "✓" : "✗" }}
+                  {{ getStudentPaymentForAtt(student.id)?.is_paid ? "✓" : "✗" }}
                 </span>
               </div>
             </div>
@@ -613,10 +784,10 @@ const inputClass = (field) => [
           </p>
           <div v-else class="space-y-1.5">
             <div
-              v-if="getStudentPayment(selectedStudent.id)"
+              v-if="getStudentPaymentForAtt(selectedStudent.id)"
               :class="[
                 'rounded-xl p-3 mb-3',
-                getStudentPayment(selectedStudent.id)?.is_paid
+                getStudentPaymentForAtt(selectedStudent.id)?.is_paid
                   ? 'bg-green-50 border border-green-100'
                   : 'bg-red-50 border border-red-100',
               ]"
@@ -624,19 +795,19 @@ const inputClass = (field) => [
               <p
                 class="text-xs font-medium"
                 :class="
-                  getStudentPayment(selectedStudent.id)?.is_paid
+                  getStudentPaymentForAtt(selectedStudent.id)?.is_paid
                     ? 'text-green-700'
                     : 'text-red-600'
                 "
               >
                 {{
-                  getStudentPayment(selectedStudent.id)?.is_paid
+                  getStudentPaymentForAtt(selectedStudent.id)?.is_paid
                     ? "✓ To'lov qilingan"
                     : "✗ To'lov qilinmagan"
                 }}
               </p>
               <p class="text-sm font-semibold mt-0.5">
-                {{ money(getStudentPayment(selectedStudent.id)?.amount_due || 0) }}
+                {{ money(getStudentPaymentForAtt(selectedStudent.id)?.amount_due || 0) }}
               </p>
             </div>
             <div
