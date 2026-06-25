@@ -230,10 +230,12 @@ const historyTotalAmount = computed(() =>
   historyPayments.value.reduce((a, b) => a + b.amount_due, 0),
 );
 const historyPaidAmount = computed(() =>
-  historyPayments.value.filter((p) => p.is_paid).reduce((a, b) => a + b.amount_due, 0),
+  historyPayments.value
+    .filter((p) => p.is_paid)
+    .reduce((a, b) => a + b.amount_due, 0),
 );
-const historyUnpaidAmount = computed(() =>
-  historyTotalAmount.value - historyPaidAmount.value,
+const historyUnpaidAmount = computed(
+  () => historyTotalAmount.value - historyPaidAmount.value,
 );
 
 // ─────────────────────────────
@@ -459,6 +461,7 @@ const inputClass = (field) => [
       >
         {{ tab.label }}
       </button>
+      <router-link to="/excellence/products">Mahsulotlar</router-link>
     </div>
 
     <!-- ══════════ TO'LOVLAR ══════════ -->
@@ -504,25 +507,43 @@ const inputClass = (field) => [
         </div>
         <div class="bg-green-50 rounded-xl p-4">
           <p class="text-xs text-green-600 mb-1">To'langan</p>
-          <p class="text-xl font-semibold text-green-700">{{ money(paidAmount) }}</p>
+          <p class="text-xl font-semibold text-green-700">
+            {{ money(paidAmount) }}
+          </p>
         </div>
         <div class="bg-red-50 rounded-xl p-4">
           <p class="text-xs text-red-500 mb-1">Qolgan</p>
-          <p class="text-xl font-semibold text-red-600">{{ money(unpaidAmount) }}</p>
+          <p class="text-xl font-semibold text-red-600">
+            {{ money(unpaidAmount) }}
+          </p>
         </div>
       </div>
 
-      <div v-if="loading" class="text-center py-8 text-gray-400">Yuklanmoqda...</div>
+      <div v-if="loading" class="text-center py-8 text-gray-400">
+        Yuklanmoqda...
+      </div>
       <div v-else class="border border-gray-100 rounded-2xl overflow-x-auto">
         <table class="w-full text-sm min-w-[600px]">
           <thead>
             <tr class="bg-gray-50 border-b border-gray-100">
-              <th class="text-left px-4 py-3 text-xs text-gray-400 font-medium">Student</th>
-              <th class="text-left px-4 py-3 text-xs text-gray-400 font-medium">Telefon</th>
-              <th class="text-left px-4 py-3 text-xs text-gray-400 font-medium">O'qituvchi</th>
-              <th class="text-left px-4 py-3 text-xs text-gray-400 font-medium">Etap</th>
-              <th class="text-left px-4 py-3 text-xs text-gray-400 font-medium">Summa</th>
-              <th class="text-left px-4 py-3 text-xs text-gray-400 font-medium">Holat</th>
+              <th class="text-left px-4 py-3 text-xs text-gray-400 font-medium">
+                Student
+              </th>
+              <th class="text-left px-4 py-3 text-xs text-gray-400 font-medium">
+                Telefon
+              </th>
+              <th class="text-left px-4 py-3 text-xs text-gray-400 font-medium">
+                O'qituvchi
+              </th>
+              <th class="text-left px-4 py-3 text-xs text-gray-400 font-medium">
+                Etap
+              </th>
+              <th class="text-left px-4 py-3 text-xs text-gray-400 font-medium">
+                Summa
+              </th>
+              <th class="text-left px-4 py-3 text-xs text-gray-400 font-medium">
+                Holat
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -532,8 +553,12 @@ const inputClass = (field) => [
               class="border-b border-gray-50 hover:bg-gray-50 transition"
             >
               <td class="px-4 py-3 font-medium">{{ payment.student_name }}</td>
-              <td class="px-4 py-3 text-gray-500">{{ payment.student_phone }}</td>
-              <td class="px-4 py-3 text-gray-500">{{ payment.teacher_name }}</td>
+              <td class="px-4 py-3 text-gray-500">
+                {{ payment.student_phone }}
+              </td>
+              <td class="px-4 py-3 text-gray-500">
+                {{ payment.teacher_name }}
+              </td>
               <td class="px-4 py-3">{{ payment.stage }}-etap</td>
               <td class="px-4 py-3">
                 <input
@@ -562,7 +587,10 @@ const inputClass = (field) => [
             </tr>
           </tbody>
         </table>
-        <p v-if="payments.length === 0" class="text-center py-8 text-gray-400 text-sm">
+        <p
+          v-if="payments.length === 0"
+          class="text-center py-8 text-gray-400 text-sm"
+        >
           Bu oy uchun to'lovlar yo'q.
         </p>
       </div>
@@ -611,34 +639,62 @@ const inputClass = (field) => [
           <div class="bg-gray-100 rounded-xl p-4">
             <p class="text-xs text-gray-500 mb-1">Jami</p>
             <p class="text-xl font-semibold">{{ money(historyTotalAmount) }}</p>
-            <p class="text-xs text-gray-400 mt-1">{{ historyPayments.length }} o'quvchi</p>
+            <p class="text-xs text-gray-400 mt-1">
+              {{ historyPayments.length }} o'quvchi
+            </p>
           </div>
           <div class="bg-green-50 rounded-xl p-4">
             <p class="text-xs text-green-600 mb-1">To'langan</p>
-            <p class="text-xl font-semibold text-green-700">{{ money(historyPaidAmount) }}</p>
+            <p class="text-xl font-semibold text-green-700">
+              {{ money(historyPaidAmount) }}
+            </p>
             <p class="text-xs text-green-500 mt-1">
-              {{ historyPayments.filter(p => p.is_paid).length }} o'quvchi
+              {{ historyPayments.filter((p) => p.is_paid).length }} o'quvchi
             </p>
           </div>
           <div class="bg-red-50 rounded-xl p-4">
             <p class="text-xs text-red-500 mb-1">Qolgan</p>
-            <p class="text-xl font-semibold text-red-600">{{ money(historyUnpaidAmount) }}</p>
+            <p class="text-xl font-semibold text-red-600">
+              {{ money(historyUnpaidAmount) }}
+            </p>
             <p class="text-xs text-red-400 mt-1">
-              {{ historyPayments.filter(p => !p.is_paid).length }} o'quvchi
+              {{ historyPayments.filter((p) => !p.is_paid).length }} o'quvchi
             </p>
           </div>
         </div>
 
-        <div v-if="loadingHistory" class="text-center py-8 text-gray-400">Yuklanmoqda...</div>
+        <div v-if="loadingHistory" class="text-center py-8 text-gray-400">
+          Yuklanmoqda...
+        </div>
         <div v-else class="border border-gray-100 rounded-2xl overflow-x-auto">
           <table class="w-full text-sm min-w-[500px]">
             <thead>
               <tr class="bg-gray-50 border-b border-gray-100">
-                <th class="text-left px-4 py-3 text-xs text-gray-400 font-medium">#</th>
-                <th class="text-left px-4 py-3 text-xs text-gray-400 font-medium">Student</th>
-                <th class="text-left px-4 py-3 text-xs text-gray-400 font-medium">Etap</th>
-                <th class="text-left px-4 py-3 text-xs text-gray-400 font-medium">Summa</th>
-                <th class="text-left px-4 py-3 text-xs text-gray-400 font-medium">Holat</th>
+                <th
+                  class="text-left px-4 py-3 text-xs text-gray-400 font-medium"
+                >
+                  #
+                </th>
+                <th
+                  class="text-left px-4 py-3 text-xs text-gray-400 font-medium"
+                >
+                  Student
+                </th>
+                <th
+                  class="text-left px-4 py-3 text-xs text-gray-400 font-medium"
+                >
+                  Etap
+                </th>
+                <th
+                  class="text-left px-4 py-3 text-xs text-gray-400 font-medium"
+                >
+                  Summa
+                </th>
+                <th
+                  class="text-left px-4 py-3 text-xs text-gray-400 font-medium"
+                >
+                  Holat
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -650,10 +706,16 @@ const inputClass = (field) => [
                 <td class="px-4 py-3 text-gray-400 text-xs">{{ idx + 1 }}</td>
                 <td class="px-4 py-3">
                   <p class="font-medium">{{ payment.student_name }}</p>
-                  <p class="text-xs text-gray-400">{{ payment.student_phone }}</p>
+                  <p class="text-xs text-gray-400">
+                    {{ payment.student_phone }}
+                  </p>
                 </td>
-                <td class="px-4 py-3 text-gray-500">{{ payment.stage }}-etap</td>
-                <td class="px-4 py-3 font-medium">{{ money(payment.amount_due) }}</td>
+                <td class="px-4 py-3 text-gray-500">
+                  {{ payment.stage }}-etap
+                </td>
+                <td class="px-4 py-3 font-medium">
+                  {{ money(payment.amount_due) }}
+                </td>
                 <td class="px-4 py-3">
                   <span
                     :class="[
@@ -669,7 +731,10 @@ const inputClass = (field) => [
               </tr>
             </tbody>
           </table>
-          <p v-if="historyPayments.length === 0" class="text-center py-8 text-gray-400 text-sm">
+          <p
+            v-if="historyPayments.length === 0"
+            class="text-center py-8 text-gray-400 text-sm"
+          >
             Bu oy uchun to'lovlar yo'q.
           </p>
         </div>
@@ -692,7 +757,9 @@ const inputClass = (field) => [
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
         <!-- O'qituvchilar -->
         <div class="space-y-2">
-          <h3 class="text-xs font-medium text-gray-400 uppercase tracking-wide mb-2">
+          <h3
+            class="text-xs font-medium text-gray-400 uppercase tracking-wide mb-2"
+          >
             O'qituvchilar
           </h3>
           <p v-if="teachers.length === 0" class="text-sm text-gray-400 py-4">
@@ -711,7 +778,11 @@ const inputClass = (field) => [
           >
             <p class="font-medium">{{ teacher.name }}</p>
             <p
-              :class="selectedTeacherForAtt?.id === teacher.id ? 'text-gray-300' : 'text-gray-400'"
+              :class="
+                selectedTeacherForAtt?.id === teacher.id
+                  ? 'text-gray-300'
+                  : 'text-gray-400'
+              "
               class="text-xs"
             >
               {{ teacher.phone || "Telefon yo'q" }}
@@ -721,7 +792,9 @@ const inputClass = (field) => [
 
         <!-- Studentlar -->
         <div class="space-y-2">
-          <h3 class="text-xs font-medium text-gray-400 uppercase tracking-wide mb-2">
+          <h3
+            class="text-xs font-medium text-gray-400 uppercase tracking-wide mb-2"
+          >
             O'quvchilar
           </h3>
           <p v-if="!selectedTeacherForAtt" class="text-sm text-gray-400 py-4">
@@ -744,9 +817,15 @@ const inputClass = (field) => [
             >
               <div class="flex justify-between items-center">
                 <div>
-                  <p class="font-medium">{{ student.name }} {{ student.surname }}</p>
+                  <p class="font-medium">
+                    {{ student.name }} {{ student.surname }}
+                  </p>
                   <p
-                    :class="selectedStudent?.id === student.id ? 'text-gray-300' : 'text-gray-400'"
+                    :class="
+                      selectedStudent?.id === student.id
+                        ? 'text-gray-300'
+                        : 'text-gray-400'
+                    "
                     class="text-xs"
                   >
                     {{ student.stage }}-etap
@@ -765,7 +844,10 @@ const inputClass = (field) => [
                 </span>
               </div>
             </div>
-            <p v-if="attStudents.length === 0" class="text-sm text-gray-400 py-4">
+            <p
+              v-if="attStudents.length === 0"
+              class="text-sm text-gray-400 py-4"
+            >
               O'quvchi yo'q
             </p>
           </template>
@@ -773,8 +855,12 @@ const inputClass = (field) => [
 
         <!-- Davomat -->
         <div>
-          <h3 class="text-xs font-medium text-gray-400 uppercase tracking-wide mb-2">
-            {{ selectedStudent ? selectedStudent.name + " davomati" : "Davomat" }}
+          <h3
+            class="text-xs font-medium text-gray-400 uppercase tracking-wide mb-2"
+          >
+            {{
+              selectedStudent ? selectedStudent.name + " davomati" : "Davomat"
+            }}
           </h3>
           <p v-if="!selectedStudent" class="text-sm text-gray-400 py-4">
             O'quvchi tanlang
@@ -807,7 +893,12 @@ const inputClass = (field) => [
                 }}
               </p>
               <p class="text-sm font-semibold mt-0.5">
-                {{ money(getStudentPaymentForAtt(selectedStudent.id)?.amount_due || 0) }}
+                {{
+                  money(
+                    getStudentPaymentForAtt(selectedStudent.id)?.amount_due ||
+                      0,
+                  )
+                }}
               </p>
             </div>
             <div
@@ -873,7 +964,9 @@ const inputClass = (field) => [
         <span class="text-red-400">⚠</span>
         <div>
           <p class="text-xs font-medium text-red-600">Internet aloqasi yo'q</p>
-          <p class="text-xs text-red-400">Tarmoqni tekshirib qayta urinib ko'ring</p>
+          <p class="text-xs text-red-400">
+            Tarmoqni tekshirib qayta urinib ko'ring
+          </p>
         </div>
         <button
           @click="addNetworkError = false"
@@ -892,24 +985,47 @@ const inputClass = (field) => [
       </div>
 
       <!-- STUDENT FORM -->
-      <div v-if="addTab === 'student'" class="max-w-[420px] flex flex-col gap-4">
+      <div
+        v-if="addTab === 'student'"
+        class="max-w-[420px] flex flex-col gap-4"
+      >
         <div>
           <label class="block text-xs text-gray-400 mb-1.5">Ism</label>
-          <input type="text" v-model="studentForm.name" placeholder="Ismingiz" :class="inputClass('name')" />
+          <input
+            type="text"
+            v-model="studentForm.name"
+            placeholder="Ismingiz"
+            :class="inputClass('name')"
+          />
         </div>
         <div>
           <label class="block text-xs text-gray-400 mb-1.5">Familiya</label>
-          <input type="text" v-model="studentForm.surname" placeholder="Familiyangiz" :class="inputClass('surname')" />
+          <input
+            type="text"
+            v-model="studentForm.surname"
+            placeholder="Familiyangiz"
+            :class="inputClass('surname')"
+          />
         </div>
         <div>
           <label class="block text-xs text-gray-400 mb-1.5">Telefon</label>
-          <input type="tel" v-model="studentForm.phone" placeholder="+998 90 000 00 00" :class="inputClass('phone')" />
+          <input
+            type="tel"
+            v-model="studentForm.phone"
+            placeholder="+998 90 000 00 00"
+            :class="inputClass('phone')"
+          />
         </div>
         <div>
           <label class="block text-xs text-gray-400 mb-1.5">O'qituvchi</label>
-          <select v-model="studentForm.teacher_id" :class="inputClass('teacher_id')">
+          <select
+            v-model="studentForm.teacher_id"
+            :class="inputClass('teacher_id')"
+          >
             <option value="">Tanlang</option>
-            <option v-for="t in teachers" :key="t.id" :value="t.id">{{ t.name }}</option>
+            <option v-for="t in teachers" :key="t.id" :value="t.id">
+              {{ t.name }}
+            </option>
           </select>
         </div>
         <div>
@@ -961,7 +1077,10 @@ const inputClass = (field) => [
       </div>
 
       <!-- TEACHER FORM -->
-      <div v-if="addTab === 'teacher'" class="max-w-[420px] flex flex-col gap-4">
+      <div
+        v-if="addTab === 'teacher'"
+        class="max-w-[420px] flex flex-col gap-4"
+      >
         <div>
           <label class="block text-xs text-gray-400 mb-1.5">Ism</label>
           <input

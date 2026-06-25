@@ -64,6 +64,10 @@ const routes = [
     path: "/groups",
     component: lazy("groups"),
   },
+  {
+    path: "/excellence/products",
+    component: () => import("@/views/AdminProducts.vue"),
+  },
 ];
 
 // ─── Router ──────────────────────────────────────────────────
