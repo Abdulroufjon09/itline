@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted, computed } from "vue";
 import { useRouter } from "vue-router";
-
+// import AdminPanel from '../components/ManagerPanel.vue'
 const router = useRouter();
 const API = "https://itline-django-9s85.onrender.com/api";
 
@@ -513,5 +513,7 @@ function initials(s) {
             </div>
 
         </div>
+
+
     </div>
 </template>
