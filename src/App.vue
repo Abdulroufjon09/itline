@@ -3,7 +3,7 @@ import Loading from './components/Loading.vue'
 </script>
 
 <template>
-  <div>
+  <div  class="overflow-x-hidden">
     <Suspense>
       <template #default>
         <RouterView />

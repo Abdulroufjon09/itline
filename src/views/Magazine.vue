@@ -8,31 +8,38 @@ const API = "https://itline-django-9s85.onrender.com/api";
 const user = JSON.parse(localStorage.getItem("user") || "null");
 if (!user) router.push("/login");
 
-const coins = ref(user?.coins ?? 0);
+const coins = ref(user?.coin_balance ?? 0);
 const products = ref([]);
 const orders = ref([]);
 const loadingProducts = ref(true);
 const loadingOrders = ref(true);
 const buyingId = ref(null);
-const toast = ref("");
+const toast = ref({ msg: "", type: "success" });
 const confirmProduct = ref(null);
 
-function showToast(msg) {
-  toast.value = msg;
-  setTimeout(() => (toast.value = ""), 2200);
+function showToast(msg, type = "success") {
+  toast.value = { msg, type };
+  setTimeout(() => (toast.value = { msg: "", type: "success" }), 2200);
 }
 
 async function fetchCoins() {
-  const res = await fetch(`${API}/coins/student/${user.id}/`);
-  const data = await res.json();
-  coins.value = data.coins;
+  try {
+    const res = await fetch(`${API}/coins/student/${user.id}/`);
+    const data = await res.json();
+    coins.value = data.coin_balance;
+  } catch {
+    showToast("Coin ma'lumotini yuklashda xatolik", "error");
+  }
 }
 
 async function fetchProducts() {
   loadingProducts.value = true;
   try {
     const res = await fetch(`${API}/products/`);
-    products.value = await res.json();
+    const data = await res.json();
+    products.value = Array.isArray(data) ? data : [];
+  } catch {
+    showToast("Mahsulotlarni yuklashda xatolik", "error");
   } finally {
     loadingProducts.value = false;
   }
@@ -42,7 +49,10 @@ async function fetchOrders() {
   loadingOrders.value = true;
   try {
     const res = await fetch(`${API}/orders/student/${user.id}/`);
-    orders.value = await res.json();
+    const data = await res.json();
+    orders.value = Array.isArray(data) ? data : [];
+  } catch {
+    showToast("Buyurtmalarni yuklashda xatolik", "error");
   } finally {
     loadingOrders.value = false;
   }
@@ -50,7 +60,11 @@ async function fetchOrders() {
 
 function openConfirm(product) {
   if (coins.value < product.price_coins) {
-    showToast("Coin yetarli emas");
+    showToast("Coin yetarli emas", "error");
+    return;
+  }
+  if (product.stock !== null && product.stock !== undefined && product.stock <= 0) {
+    showToast("Mahsulot tugagan", "error");
     return;
   }
   confirmProduct.value = product;
@@ -68,12 +82,14 @@ async function confirmPurchase() {
     });
     const data = await res.json();
     if (res.ok) {
-      coins.value = data.coins;
+      coins.value = data.coin_balance;
       showToast("Buyurtma yuborildi!");
       await Promise.all([fetchProducts(), fetchOrders()]);
     } else {
-      showToast(data.error || "Xatolik");
+      showToast(data.error || "Xatolik yuz berdi", "error");
     }
+  } catch {
+    showToast("Server bilan bog'lanib bo'lmadi", "error");
   } finally {
     buyingId.value = null;
     confirmProduct.value = null;
@@ -85,6 +101,7 @@ const statusLabel = {
   approved: "Berildi",
   rejected: "Bekor qilindi",
 };
+
 const statusStyle = {
   pending: "bg-yellow-100 text-yellow-700",
   approved: "bg-green-100 text-green-700",
@@ -110,19 +127,14 @@ onMounted(async () => {
           </p>
         </div>
         <div class="flex items-center gap-2">
-          <span
-            class="px-4 py-2 rounded-full bg-amber-50 text-amber-700 text-sm font-semibold"
-          >
+          <span class="px-4 py-2 rounded-full bg-amber-50 text-amber-700 text-sm font-semibold">
             🪙 {{ coins }}
           </span>
         </div>
       </div>
 
       <!-- Mahsulotlar -->
-      <div
-        v-if="loadingProducts"
-        class="text-center py-10 text-gray-400 text-sm"
-      >
+      <div v-if="loadingProducts" class="text-center py-10 text-gray-400 text-sm">
         Yuklanmoqda...
       </div>
 
@@ -132,9 +144,7 @@ onMounted(async () => {
           :key="p.id"
           class="bg-white rounded-2xl shadow-sm overflow-hidden flex flex-col"
         >
-          <div
-            class="aspect-square bg-gray-100 flex items-center justify-center overflow-hidden"
-          >
+          <div class="aspect-square bg-gray-100 flex items-center justify-center overflow-hidden">
             <img
               v-if="p.image"
               :src="p.image"
@@ -145,34 +155,28 @@ onMounted(async () => {
           </div>
           <div class="p-4 flex flex-col flex-1">
             <p class="font-medium text-sm">{{ p.name }}</p>
-            <p
-              v-if="p.description"
-              class="text-xs text-gray-400 mt-1 line-clamp-2"
-            >
+            <p v-if="p.description" class="text-xs text-gray-400 mt-1 line-clamp-2">
               {{ p.description }}
             </p>
             <div class="mt-auto pt-3 flex items-center justify-between gap-2">
-              <span class="text-sm font-semibold text-amber-600"
-                >🪙 {{ p.price_coins }}</span
-              >
+              <span class="text-sm font-semibold text-amber-600">🪙 {{ p.price_coins }}</span>
               <button
                 @click="openConfirm(p)"
-                :disabled="!affordable(p.price_coins) || buyingId === p.id"
+                :disabled="!affordable(p.price_coins) || buyingId === p.id || (p.stock !== null && p.stock !== undefined && p.stock <= 0)"
                 :class="[
                   'px-3 py-1.5 rounded-full text-xs font-medium transition',
-                  affordable(p.price_coins)
+                  affordable(p.price_coins) && !(p.stock !== null && p.stock !== undefined && p.stock <= 0)
                     ? 'bg-gray-900 text-white hover:bg-gray-700'
                     : 'bg-gray-100 text-gray-400 cursor-not-allowed',
                 ]"
               >
-                Sotib olish
+                {{ buyingId === p.id ? "..." : "Sotib olish" }}
               </button>
             </div>
-            <p
-              v-if="p.stock !== null && p.stock !== undefined"
-              class="text-xs text-gray-400 mt-1"
+            <p v-if="p.stock !== null && p.stock !== undefined" class="text-xs mt-1"
+              :class="p.stock <= 0 ? 'text-red-400' : 'text-gray-400'"
             >
-              Qolgan: {{ p.stock }}
+              {{ p.stock <= 0 ? "Tugagan" : `Qolgan: ${p.stock}` }}
             </p>
           </div>
         </div>
@@ -187,15 +191,10 @@ onMounted(async () => {
 
       <!-- Mening buyurtmalarim -->
       <div class="bg-white rounded-2xl p-4 shadow-sm">
-        <h2
-          class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3"
-        >
+        <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">
           Mening buyurtmalarim
         </h2>
-        <div
-          v-if="loadingOrders"
-          class="text-center py-6 text-gray-400 text-sm"
-        >
+        <div v-if="loadingOrders" class="text-center py-6 text-gray-400 text-sm">
           Yuklanmoqda...
         </div>
         <div v-else class="space-y-1.5">
@@ -213,10 +212,10 @@ onMounted(async () => {
             <span
               :class="[
                 'shrink-0 text-xs px-2.5 py-1 rounded-full font-medium',
-                statusStyle[o.status],
+                statusStyle[o.status] || 'bg-gray-100 text-gray-500',
               ]"
             >
-              {{ statusLabel[o.status] }}
+              {{ statusLabel[o.status] || o.status }}
             </span>
           </div>
           <p
@@ -253,7 +252,7 @@ onMounted(async () => {
               :disabled="buyingId === confirmProduct.id"
               class="flex-1 bg-gray-900 text-white rounded-lg py-2 text-sm hover:bg-gray-700 transition disabled:opacity-50"
             >
-              Tasdiqlash
+              {{ buyingId === confirmProduct.id ? "Yuborilmoqda..." : "Tasdiqlash" }}
             </button>
           </div>
         </div>
@@ -263,10 +262,13 @@ onMounted(async () => {
     <!-- Toast -->
     <transition name="fade">
       <div
-        v-if="toast"
-        class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-sm px-4 py-2.5 rounded-full shadow-lg"
+        v-if="toast.msg"
+        :class="[
+          'fixed bottom-6 left-1/2 -translate-x-1/2 text-white text-sm px-4 py-2.5 rounded-full shadow-lg',
+          toast.type === 'error' ? 'bg-red-500' : 'bg-gray-900',
+        ]"
       >
-        {{ toast }}
+        {{ toast.msg }}
       </div>
     </transition>
   </div>

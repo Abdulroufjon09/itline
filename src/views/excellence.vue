@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted, computed, watch } from "vue";
 import { useRouter } from "vue-router";
+import AdminProducts from "./AdminProducts.vue";
 
 const router = useRouter();
 const API = "https://itline-django-9s85.onrender.com/api";
@@ -449,11 +450,12 @@ const inputClass = (field) => [
           { key: 'history', label: '📊 Tarix' },
           { key: 'attendance', label: '📋 Davomat' },
           { key: 'add', label: '👤 Qo\'shish' },
+          { key: 'mahsulotlar', label: 'mahsulotlar' },
         ]"
         :key="tab.key"
         @click="activeTab = tab.key"
         :class="[
-          'px-4 py-2 rounded-full text-sm border transition whitespace-nowrap',
+          'cursor-pointer px-4 py-2 rounded-full text-sm border transition whitespace-nowrap',
           activeTab === tab.key
             ? 'bg-gray-900 text-white border-gray-900'
             : 'border-gray-200 text-gray-500 hover:bg-gray-50',
@@ -461,7 +463,6 @@ const inputClass = (field) => [
       >
         {{ tab.label }}
       </button>
-      <router-link to="/excellence/products">Mahsulotlar</router-link>
     </div>
 
     <!-- ══════════ TO'LOVLAR ══════════ -->
@@ -1108,6 +1109,9 @@ const inputClass = (field) => [
           {{ addLoading ? "Saqlanmoqda..." : "O'qituvchi qo'shish" }}
         </button>
       </div>
+    </div>
+    <div class="" v-if="activeTab === 'mahsulotlar'">
+      <AdminProducts />
     </div>
   </div>
 </template>

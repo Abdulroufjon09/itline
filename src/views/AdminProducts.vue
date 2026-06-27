@@ -33,7 +33,7 @@ function showToast(msg, type = "success") {
 async function fetchProducts() {
   loading.value = true;
   try {
-    const res = await fetch(`${API}/admin/products/`);
+    const res = await fetch(`${API}/products/`);
     products.value = await res.json();
   } catch {
     showToast("Mahsulotlarni yuklashda xatolik", "error");
@@ -66,13 +66,16 @@ async function saveProduct() {
   try {
     let res;
     if (editingProduct.value) {
-      res = await fetch(`${API}/admin/products/${editingProduct.value.id}/update/`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
+      res = await fetch(
+        `${API}/products/update/${editingProduct.value.id}/`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        },
+      );
     } else {
-      res = await fetch(`${API}/admin/products/create/`, {
+      res = await fetch(`${API}/products/create/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -96,7 +99,7 @@ async function saveProduct() {
 
 async function toggleActive(product) {
   try {
-    const res = await fetch(`${API}/admin/products/${product.id}/update/`, {
+    const res = await fetch(`${API}/products/update/${product.id}/`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ is_active: !product.is_active }),
@@ -115,7 +118,7 @@ async function confirmDelete() {
   if (!product) return;
   deleting.value = product.id;
   try {
-    const res = await fetch(`${API}/admin/products/${product.id}/delete/`, {
+    const res = await fetch(`${API}/products/delete/${product.id}/`, {
       method: "DELETE",
     });
     if (res.ok) {
@@ -147,7 +150,10 @@ function openEdit(product) {
     image: product.image || "",
     price_coins: product.price_coins,
     description: product.description || "",
-    stock: product.stock !== null && product.stock !== undefined ? product.stock : "",
+    stock:
+      product.stock !== null && product.stock !== undefined
+        ? product.stock
+        : "",
     is_active: product.is_active,
   };
   showModal.value = true;
@@ -158,7 +164,6 @@ onMounted(fetchProducts);
 
 <template>
   <div class="max-w-5xl mx-auto px-4 py-6">
-
     <!-- Header -->
     <div class="flex justify-between items-center mb-6">
       <div>
@@ -230,9 +235,7 @@ onMounted(fetchProducts);
 
             <!-- Qoldiq -->
             <td class="px-4 py-3 text-gray-500">
-              {{
-                p.stock !== null && p.stock !== undefined ? p.stock : "∞"
-              }}
+              {{ p.stock !== null && p.stock !== undefined ? p.stock : "∞" }}
             </td>
 
             <!-- Holat toggle -->
@@ -286,7 +289,9 @@ onMounted(fetchProducts);
         class="fixed inset-0 bg-black/40 flex items-center justify-center px-4 z-50"
         @click.self="showModal = false"
       >
-        <div class="bg-white rounded-2xl p-6 w-full max-w-md space-y-4 shadow-xl">
+        <div
+          class="bg-white rounded-2xl p-6 w-full max-w-md space-y-4 shadow-xl"
+        >
           <h2 class="font-semibold text-base">
             {{ editingProduct ? "Mahsulotni tahrirlash" : "Yangi mahsulot" }}
           </h2>
@@ -326,7 +331,9 @@ onMounted(fetchProducts);
           <!-- Narx va Qoldiq -->
           <div class="grid grid-cols-2 gap-3">
             <div>
-              <label class="text-xs text-gray-500 mb-1 block">Narx (coin) *</label>
+              <label class="text-xs text-gray-500 mb-1 block"
+                >Narx (coin) *</label
+              >
               <input
                 v-model="form.price_coins"
                 type="number"
@@ -336,7 +343,9 @@ onMounted(fetchProducts);
               />
             </div>
             <div>
-              <label class="text-xs text-gray-500 mb-1 block">Qoldiq (bo'sh = ∞)</label>
+              <label class="text-xs text-gray-500 mb-1 block"
+                >Qoldiq (bo'sh = ∞)</label
+              >
               <input
                 v-model="form.stock"
                 type="number"
@@ -381,7 +390,13 @@ onMounted(fetchProducts);
               :disabled="saving"
               class="flex-1 bg-gray-900 text-white rounded-xl py-2 text-sm hover:bg-gray-700 transition disabled:opacity-50"
             >
-              {{ saving ? "Saqlanmoqda..." : editingProduct ? "Saqlash" : "Qo'shish" }}
+              {{
+                saving
+                  ? "Saqlanmoqda..."
+                  : editingProduct
+                    ? "Saqlash"
+                    : "Qo'shish"
+              }}
             </button>
           </div>
         </div>
@@ -398,7 +413,9 @@ onMounted(fetchProducts);
         <div class="bg-white rounded-2xl p-5 max-w-sm w-full shadow-xl">
           <p class="font-semibold mb-1">Mahsulotni o'chirish</p>
           <p class="text-sm text-gray-500 mb-4">
-            <span class="font-medium text-gray-700">{{ confirmDeleteProduct.name }}</span>
+            <span class="font-medium text-gray-700">{{
+              confirmDeleteProduct.name
+            }}</span>
             ni o'chirasizmi? Bu amalni bekor qilib bo'lmaydi.
           </p>
           <div class="flex gap-2">
@@ -413,7 +430,11 @@ onMounted(fetchProducts);
               :disabled="deleting === confirmDeleteProduct?.id"
               class="flex-1 bg-red-500 text-white rounded-lg py-2 text-sm hover:bg-red-600 transition disabled:opacity-50"
             >
-              {{ deleting === confirmDeleteProduct?.id ? "O'chirilmoqda..." : "O'chirish" }}
+              {{
+                deleting === confirmDeleteProduct?.id
+                  ? "O'chirilmoqda..."
+                  : "O'chirish"
+              }}
             </button>
           </div>
         </div>
@@ -447,7 +468,9 @@ onMounted(fetchProducts);
 
 .slide-up-enter-active,
 .slide-up-leave-active {
-  transition: opacity 0.2s ease, transform 0.2s ease;
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
 }
 .slide-up-enter-from,
 .slide-up-leave-to {
