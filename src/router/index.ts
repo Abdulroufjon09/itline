@@ -68,6 +68,10 @@ const routes = [
     path: "/excellence/products",
     component: () => import("@/views/AdminProducts.vue"),
   },
+  {
+    path: "/excellence/orders",
+    component: () => import("@/views/Adminorders.vue"),
+  },
 ];
 
 // ─── Router ──────────────────────────────────────────────────
