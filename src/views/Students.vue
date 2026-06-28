@@ -1,43 +1,27 @@
 <script setup>
 import Leaderboard from "@/components/Leaderboard.vue";
+import Magazine from "./Magazine.vue";
 import { ref, onMounted, computed } from "vue";
 import { useRouter } from "vue-router";
-import Magazine from "./Magazine.vue";
 
 const router = useRouter();
-
 const API = "https://itline-django-9s85.onrender.com/api";
-
 const user = JSON.parse(localStorage.getItem("user") || "{}");
-console.log(user);
-// auth
-if (!user?.id) {
-  router.push("/login");
-}
+if (!user?.id) router.push("/login");
 
-// ─────────────────────────────
-// STATE
-// ─────────────────────────────
+const QUICK_ACTIONS = [
+  { reason: "exam_pass", label: "Imtihon", amount: +80, icon: "✅" },
+  { reason: "homework_done", label: "Vazifa to'liq", amount: +20, icon: "📘" },
+  {
+    reason: "homework_partial",
+    label: "Vazifa chala",
+    amount: +10,
+    icon: "📙",
+  },
+  { reason: "homework_missed", label: "Vazifa yo'q", amount: -20, icon: "❌" },
+];
 
-const students = ref([]);
-const payments = ref([]);
-const groups = ref([]); // barcha guruhlar
-const myGroup = ref(null); // joriy o'quvchi uchun guruh
-
-const loadingStudents = ref(true);
-const loadingPayments = ref(true);
-const loadingGroups = ref(false);
-
-const activeTab = ref("students");
-
-// admin uchun guruh filter
-const selectedGroupId = ref(null);
-
-// ─────────────────────────────
-// COLORS
-// ─────────────────────────────
-
-const avatarColors = [
+const AVATAR_COLORS = [
   { backgroundColor: "#EEEDFE", color: "#3C3489" },
   { backgroundColor: "#E1F5EE", color: "#085041" },
   { backgroundColor: "#FAECE7", color: "#712B13" },
@@ -45,10 +29,37 @@ const avatarColors = [
   { backgroundColor: "#FAEEDA", color: "#633806" },
 ];
 
-// ─────────────────────────────
-// FETCH DATA
-// ─────────────────────────────
+const MONTHS = [
+  "Yanvar",
+  "Fevral",
+  "Mart",
+  "Aprel",
+  "May",
+  "Iyun",
+  "Iyul",
+  "Avgust",
+  "Sentabr",
+  "Oktabr",
+  "Noyabr",
+  "Dekabr",
+];
 
+// ─── State ────────────────────────────────────────────────────
+const students = ref([]);
+const payments = ref([]);
+const groups = ref([]);
+const myGroup = ref(null);
+const activeTab = ref("students");
+const selectedGroupId = ref(null);
+const expandedStudentId = ref(null);
+const givingCoin = ref({});
+const manualAmount = ref({});
+const bonusUsed = ref({});
+const actionFeedback = ref({});
+const loadingStudents = ref(true);
+const loadingPayments = ref(true);
+
+// ─── Fetch ────────────────────────────────────────────────────
 async function fetchStudents() {
   loadingStudents.value = true;
   try {
@@ -74,44 +85,125 @@ async function fetchPayments() {
 }
 
 async function fetchGroups() {
-  loadingGroups.value = true;
   try {
     const res = await fetch(`${API}/groups/`);
-
     const all = await res.json();
-    groups.value = all.filter((g) => g.teacher === user.teacher_id); // ✅
-    console.log(data);
-    // O'quvchi uchun: qaysi guruhda ekanini topamiz
+    groups.value = all.filter((g) => g.teacher === user.teacher_id);
     if (!user.is_admin && user.id) {
-      myGroup.value = data.find((g) =>
-        g.students?.some((s) => s.phone === user.phone),
-      );
-      console.log("myGroup:", myGroup.value);
+      myGroup.value =
+        all.find((g) => g.students?.some((s) => s.phone === user.phone)) ||
+        null;
     }
   } catch (e) {
     console.error(e);
-  } finally {
-    loadingGroups.value = false;
   }
 }
+
+async function fetchBonusStatuses() {
+  if (!user.is_admin || !students.value.length) return;
+  const month = new Date().toISOString().slice(0, 7);
+  await Promise.all(
+    students.value.map(async (s) => {
+      try {
+        const res = await fetch(`${API}/coins/transactions/${s.id}/`);
+        const txns = await res.json();
+        bonusUsed.value[s.id] = txns.some(
+          (t) => t.reason === "manual" && t.created_at?.slice(0, 7) === month,
+        );
+      } catch {
+        bonusUsed.value[s.id] = false;
+      }
+    }),
+  );
+}
+
 onMounted(async () => {
   await Promise.all([fetchStudents(), fetchPayments(), fetchGroups()]);
+  fetchBonusStatuses();
 });
 
-// ─────────────────────────────
-// COMPUTED
-// ─────────────────────────────
+// ─── Coin actions ─────────────────────────────────────────────
+function togglePanel(id) {
+  expandedStudentId.value = expandedStudentId.value === id ? null : id;
+}
 
-// Admin: tanlangan guruh bo'yicha studentlarni filter qilish
+function showFeedback(id, type, text) {
+  actionFeedback.value[id] = { type, text };
+  setTimeout(() => {
+    delete actionFeedback.value[id];
+  }, 3000);
+}
+
+async function giveCoin(studentId, reason) {
+  if (givingCoin.value[studentId]) return;
+  givingCoin.value[studentId] = true;
+  try {
+    const res = await fetch(`${API}/coins/give/`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        student_id: studentId,
+        teacher_id: user.teacher_id,
+        reason,
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      showFeedback(studentId, "error", data.error || "Xatolik");
+      return;
+    }
+    const s = students.value.find((st) => st.id === studentId);
+    if (s) s.coin_balance = data.coin_balance;
+    showFeedback(studentId, "success", "Coin berildi ✓");
+  } catch {
+    showFeedback(studentId, "error", "Server xatoligi");
+  } finally {
+    givingCoin.value[studentId] = false;
+  }
+}
+
+async function giveManualBonus(studentId) {
+  if (bonusUsed.value[studentId] || givingCoin.value[studentId]) return;
+  const amount = manualAmount.value[studentId];
+  if (!amount) return;
+  givingCoin.value[studentId] = true;
+  try {
+    const res = await fetch(`${API}/coins/give/`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        student_id: studentId,
+        teacher_id: user.teacher_id,
+        reason: "manual",
+        amount,
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      showFeedback(studentId, "error", data.error || "Xatolik");
+      return;
+    }
+    const s = students.value.find((st) => st.id === studentId);
+    if (s) s.coin_balance = data.coin_balance;
+    bonusUsed.value[studentId] = true;
+    manualAmount.value[studentId] = null;
+    showFeedback(studentId, "success", "Oylik bonus berildi ✓");
+  } catch {
+    showFeedback(studentId, "error", "Server xatoligi");
+  } finally {
+    givingCoin.value[studentId] = false;
+  }
+}
+
+// ─── Computed ─────────────────────────────────────────────────
 const filteredStudents = computed(() => {
-  if (!user.is_admin || !selectedGroupId.value) return students.value;
+  if (!selectedGroupId.value) return students.value;
   const group = groups.value.find((g) => g.id === selectedGroupId.value);
   if (!group) return students.value;
   const ids = new Set(group.students?.map((s) => s.id) || []);
   return students.value.filter((s) => ids.has(s.id));
 });
 
-// Studentga guruh nomini qaytarish
 function getStudentGroup(studentId) {
   const student = students.value.find((s) => s.id === studentId);
   if (!student) return null;
@@ -121,357 +213,428 @@ function getStudentGroup(studentId) {
     ) || null
   );
 }
-// ─────────────────────────────
-// HELPERS
-// ─────────────────────────────
 
-function logout() {
+// ─── Helpers ──────────────────────────────────────────────────
+const logout = () => {
   localStorage.removeItem("user");
   router.push("/login");
-}
-
-function initials(student) {
-  return (
-    (student.name?.[0] || "") + (student.surname?.[0] || "")
-  ).toUpperCase();
-}
-
-function formatMoney(value) {
-  return Number(value || 0).toLocaleString("uz-UZ") + " so'm";
-}
-
-function formatMonth(month) {
-  if (!month) return "";
-  const [year, mon] = month.split("-");
-  const months = [
-    "Yanvar",
-    "Fevral",
-    "Mart",
-    "Aprel",
-    "May",
-    "Iyun",
-    "Iyul",
-    "Avgust",
-    "Sentabr",
-    "Oktabr",
-    "Noyabr",
-    "Dekabr",
-  ];
-  return `${months[parseInt(mon) - 1]} ${year}`;
-}
-
-function formatDate(date) {
+};
+const initials = (s) =>
+  ((s.name?.[0] || "") + (s.surname?.[0] || "")).toUpperCase();
+const formatSigned = (v) => (v > 0 ? `+${v}` : `${v}`);
+const formatMoney = (v) => Number(v || 0).toLocaleString("uz-UZ") + " so'm";
+const formatMonth = (m) => {
+  if (!m) return "";
+  const [y, mo] = m.split("-");
+  return `${MONTHS[+mo - 1]} ${y}`;
+};
+const formatDate = (date) => {
   if (!date) return "";
-  let cleaned = date.replace(" ", "T");
-  const d = new Date(cleaned);
-  if (isNaN(d.getTime())) return date;
-  const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate() - 1).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
-
-function stageStyle(stage) {
+  const d = new Date(date.replace(" ", "T"));
+  if (isNaN(d)) return date;
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+};
+const stageStyle = (stage) => {
   if (stage <= 2) return { backgroundColor: "#E1F5EE", color: "#085041" };
   if (stage <= 4) return { backgroundColor: "#E6F1FB", color: "#0C447C" };
   return { backgroundColor: "#FAEEDA", color: "#633806" };
-}
+};
 </script>
 
 <template>
-  <div class="max-w-4xl mx-auto p-4 sm:p-6">
+  <div class="max-w-4xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
     <!-- HEADER -->
-    <div class="flex items-center justify-between mb-8">
-      <div v-if="user.is_admin" class="flex items-center gap-3">
-        <RouterLink to="/admin" class="flex text-gray-600 hover:text-gray-900 transition">
-          <svg xmlns="http://www.w3.org/2000/svg" width="1.7em" height="1.7em" viewBox="0 0 48 48">
+    <div class="flex items-center justify-between mb-6">
+      <div class="flex items-center gap-3 min-w-0">
+        <RouterLink
+          v-if="user.is_admin"
+          to="/admin"
+          class="text-gray-400 hover:text-gray-700 transition shrink-0"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="1.4em"
+            height="1.4em"
+            viewBox="0 0 48 48"
+          >
             <path d="M0 0h48v48H0z" fill="none" />
-            <path fill="none" stroke="currentColor" stroke-linejoin="round" stroke-width="4"
+            <path
+              fill="none"
+              stroke="currentColor"
+              stroke-linejoin="round"
+              stroke-width="4"
               d="M44 40.836q-7.34-8.96-13.036-10.168t-10.846-.365V41L4 23.545L20.118 7v10.167q9.523.075 16.192 6.833q6.668 6.758 7.69 16.836Z"
-              clip-rule="evenodd" />
+              clip-rule="evenodd"
+            />
           </svg>
         </RouterLink>
-        <div>
-          <h1 class="text-xl sm:text-2xl font-semibold">Kabinet</h1>
-          <p class="text-sm text-gray-400 mt-1">
-            Xush kelibsiz, {{ user.name }}
-          </p>
+        <div class="min-w-0">
+          <h1 class="text-lg sm:text-xl font-semibold truncate">Kabinet</h1>
+          <p class="text-xs text-gray-400">Xush kelibsiz, {{ user.name }}</p>
         </div>
       </div>
-      <button @click="logout"
-        class="border border-gray-200 px-4 py-2 rounded-xl text-sm hover:bg-gray-50 transition ml-auto">
+      <button
+        @click="logout"
+        class="shrink-0 border border-gray-200 px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm hover:bg-gray-50 transition"
+      >
         Chiqish
       </button>
     </div>
 
-    <!-- PROFILE -->
-    <div class="border border-gray-100 rounded-2xl p-4 sm:p-5 mb-6 flex items-center gap-4">
-      <div class="w-12 h-12 sm:w-14 sm:h-14 rounded-full flex items-center justify-center font-semibold shrink-0"
-        :style="avatarColors[0]">
+    <!-- PROFILE CARD -->
+    <div
+      class="bg-white border border-gray-100 rounded-2xl p-4 mb-5 flex items-center gap-3 shadow-sm"
+    >
+      <div
+        class="w-11 h-11 sm:w-13 sm:h-13 rounded-full flex items-center justify-center font-semibold text-sm shrink-0"
+        :style="AVATAR_COLORS[0]"
+      >
         {{ (user.name?.[0] || "").toUpperCase() }}
       </div>
       <div class="flex-1 min-w-0">
-        <div class="flex items-center gap-2 flex-wrap">
-          <p class="font-medium text-base sm:text-lg truncate">
-            {{ user.name }} {{ user.surname }}
-          </p>
-          <p class="text-yellow-500" v-if="user.is_admin">
-            <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24">
-              <path d="M0 0h24v24H0z" fill="none" />
-              <path fill="currentColor"
-                d="m12 17.275l-4.15 2.5q-.275.175-.575.15t-.525-.2t-.35-.437t-.05-.588l1.1-4.725L3.775 10.8q-.25-.225-.312-.513t.037-.562t.3-.45t.55-.225l4.85-.425l1.875-4.45q.125-.3.388-.45t.537-.15t.537.15t.388.45l1.875 4.45l4.85.425q.35.05.55.225t.3.45t.038.563t-.313.512l-3.675 3.175l1.1 4.725q.075.325-.05.588t-.35.437t-.525.2t-.575-.15z" />
-            </svg>
-          </p>
-        </div>
-        <p class="text-sm text-gray-400">{{ user.phone }}</p>
-
-        <!-- O'quvchi uchun: guruh ko'rsatish profile cardda -->
-        <div v-if="!user.is_admin && myGroup" class="mt-2">
-          <span class="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full bg-gray-100 text-gray-600">
+        <p class="font-medium text-sm sm:text-base truncate">
+          {{ user.name }} {{ user.surname }}
+          <span v-if="user.is_admin" class="text-yellow-500 ml-1">★</span>
+        </p>
+        <p class="text-xs text-gray-400 truncate">{{ user.phone }}</p>
+        <div class="mt-1.5">
+          <span
+            v-if="!user.is_admin && myGroup"
+            class="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600"
+          >
             🗂️ {{ myGroup.name }}
           </span>
-        </div>
-        <div v-else-if="!user.is_admin && !loadingGroups && !myGroup" class="mt-2">
-          <span class="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full bg-gray-50 text-gray-400">
-            Guruhga biriktirilmagan
-          </span>
+          <span
+            v-else-if="!user.is_admin && !myGroup"
+            class="text-xs text-gray-300"
+            >Guruhga biriktirilmagan</span
+          >
         </div>
       </div>
     </div>
 
     <!-- TABS -->
-    <div class="flex gap-3 mb-6 flex-wrap">
-      <button @click="activeTab = 'students'" :class="[
-        'px-4 sm:px-5 py-2 rounded-full border text-sm transition',
-        activeTab === 'students'
-          ? 'bg-black text-white border-black'
-          : 'border-gray-200 text-gray-600 hover:bg-gray-50',
-      ]">
+    <div class="flex gap-1.5 mb-5 overflow-x-auto pb-1 no-scrollbar">
+      <button
+        @click="activeTab = 'students'"
+        :class="[
+          'shrink-0 px-3.5 sm:px-4 py-2 rounded-full border text-xs sm:text-sm transition',
+          activeTab === 'students'
+            ? 'bg-black text-white border-black'
+            : 'border-gray-200 text-gray-600 hover:bg-gray-50',
+        ]"
+      >
         👥 Guruh
       </button>
-      <div v-if="!user.is_admin">
-        <button @click="activeTab = 'payments'" :class="[
-          'px-4 sm:px-5 py-2 rounded-full border text-sm transition',
-          activeTab === 'payments'
-            ? 'bg-black text-white border-black'
-            : 'border-gray-200 text-gray-600 hover:bg-gray-50',
-        ]">
+
+      <template v-if="!user.is_admin">
+        <button
+          @click="activeTab = 'payments'"
+          :class="[
+            'shrink-0 px-3.5 sm:px-4 py-2 rounded-full border text-xs sm:text-sm transition',
+            activeTab === 'payments'
+              ? 'bg-black text-white border-black'
+              : 'border-gray-200 text-gray-600 hover:bg-gray-50',
+          ]"
+        >
           💳 To'lovlar
         </button>
-      </div>
-      <div v-if="!user.is_admin">
-        <button @click="activeTab = 'leader'" :class="[
-          'px-4 sm:px-5 py-2 rounded-full border text-sm transition',
-          activeTab === 'leader'
-            ? 'bg-black text-white border-black'
-            : 'border-gray-200 text-gray-600 hover:bg-gray-50',
-        ]">
+        <button
+          @click="activeTab = 'leader'"
+          :class="[
+            'shrink-0 px-3.5 sm:px-4 py-2 rounded-full border text-xs sm:text-sm transition',
+            activeTab === 'leader'
+              ? 'bg-black text-white border-black'
+              : 'border-gray-200 text-gray-600 hover:bg-gray-50',
+          ]"
+        >
           ⍟ Leaderboard
         </button>
-      </div>
-      <div v-if="!user.is_admin">
-        <button @click="activeTab = 'market'" :class="[
-          'px-4 sm:px-5 py-2 rounded-full border text-sm transition',
-          activeTab === 'market'
-            ? 'bg-black text-white border-black'
-            : 'border-gray-200 text-gray-600 hover:bg-gray-50',
-        ]">
-          ⍟ Magazine
+        <button
+          @click="activeTab = 'market'"
+          :class="[
+            'shrink-0 px-3.5 sm:px-4 py-2 rounded-full border text-xs sm:text-sm transition',
+            activeTab === 'market'
+              ? 'bg-black text-white border-black'
+              : 'border-gray-200 text-gray-600 hover:bg-gray-50',
+          ]"
+        >
+          🛒 Magazine
         </button>
-      </div>
+      </template>
     </div>
 
-    <!-- STUDENTS -->
+    <!-- ═══════════════════════════════════════
+         STUDENTS TAB — card-based, no table
+    ═══════════════════════════════════════ -->
     <div v-if="activeTab === 'students'">
-      <!-- Admin: guruh bo'yicha filter -->
-      <div v-if="user.is_admin && groups.length > 0" class="mb-4 flex gap-2 flex-wrap">
-        <button @click="selectedGroupId = null" :class="[
-          'px-3 py-1.5 rounded-full text-xs border transition',
-          selectedGroupId === null
-            ? 'bg-black text-white border-black'
-            : 'border-gray-200 text-gray-500 hover:bg-gray-50',
-        ]">
+      <!-- Guruh filtri -->
+      <div
+        v-if="user.is_admin && groups.length > 0"
+        class="mb-4 flex gap-1.5 flex-wrap"
+      >
+        <button
+          @click="selectedGroupId = null"
+          :class="[
+            'px-3 py-1.5 rounded-full text-xs border transition',
+            selectedGroupId === null
+              ? 'bg-black text-white border-black'
+              : 'border-gray-200 text-gray-500 hover:bg-gray-50',
+          ]"
+        >
           Barchasi ({{ students.length }})
         </button>
-        <button v-for="g in groups" :key="g.id" @click="selectedGroupId = g.id" :class="[
-          'px-3 py-1.5 rounded-full text-xs border transition',
-          selectedGroupId === g.id
-            ? 'bg-black text-white border-black'
-            : 'border-gray-200 text-gray-500 hover:bg-gray-50',
-        ]">
+        <button
+          v-for="g in groups"
+          :key="g.id"
+          @click="selectedGroupId = g.id"
+          :class="[
+            'px-3 py-1.5 rounded-full text-xs border transition',
+            selectedGroupId === g.id
+              ? 'bg-black text-white border-black'
+              : 'border-gray-200 text-gray-500 hover:bg-gray-50',
+          ]"
+        >
           🗂️ {{ g.name }}
-          <span class="opacity-60 ml-0.5">
-            ({{
+          <span class="opacity-50 ml-0.5"
+            >({{
               g.students?.filter((s) => students.some((st) => st.id === s.id))
                 .length || 0
-            }})
-          </span>
+            }})</span
+          >
         </button>
       </div>
 
-      <div class="mb-4 text-sm text-gray-400">
+      <p class="text-xs text-gray-400 mb-3">
         {{ filteredStudents.length }} ta o'quvchi
-        <span v-if="selectedGroupId" class="ml-1 text-gray-500">
-          — {{groups.find((g) => g.id === selectedGroupId)?.name}}
-        </span>
-      </div>
+        <span v-if="selectedGroupId" class="text-gray-500"
+          >— {{ groups.find((g) => g.id === selectedGroupId)?.name }}</span
+        >
+      </p>
 
-      <div class="border border-gray-100 rounded-2xl table-wrapper">
-        <div v-if="loadingStudents" class="text-center py-10 text-gray-400">
-          Yuklanmoqda...
-        </div>
-        <table v-else-if="filteredStudents.length > 0" class="w-full text-sm min-w-[360px] responsive-table">
-          <thead class="bg-gray-50">
-            <tr>
-              <th class="text-left px-4 py-3">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="1em"
-                  height="1em"
-                  viewBox="0 0 24 24"
-                >
-                  <path d="M0 0h24v24H0z" fill="none" />
-                  <path
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M4 17V7l7 10V7m4 10h5m-5-7a2.5 3 0 1 0 5 0a2.5 3 0 1 0-5 0"
-                  />
-                </svg>
-              </th>
-              <th class="text-left px-4 py-3">O'quvchi</th>
-              <th v-if="user.is_admin" class="text-left px-4 py-3">Raqam</th>
-              <th class="text-left px-4 py-3">Guruh</th>
-              <th class="text-left px-4 py-3">Etap</th>
-              <th class="text-left px-4 py-3">🪙 Coin</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="(student, index) in filteredStudents" :key="student.id"
-              class="border-t border-gray-100 hover:bg-gray-50 transition">
-              <td class="px-4 py-4 text-gray-400">{{ index + 1 }}</td>
-              <td class="px-4 py-4">
-                <div class="flex items-center gap-3">
-                  <div class="w-9 h-9 rounded-full flex items-center justify-center text-xs font-semibold shrink-0"
-                    :style="avatarColors[index % avatarColors.length]">
-                    {{ initials(student) }}
-                  </div>
-                  <p class="font-medium">
-                    {{ student.name }} {{ student.surname }}
-                  </p>
-                </div>
-              </td>
-              <td v-if="user.is_admin" class="px-4 py-4">
-                <span class="px-3 py-1 rounded-full text-xs font-medium" :style="stageStyle(student.stage)">
-                  {{ student.phone }}
-                </span>
-              </td>
-              <!-- GURUH USTUNI -->
-              <td class="px-4 py-4">
-                <span v-if="getStudentGroup(student.id)"
-                  class="px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600 whitespace-nowrap">
-                  🗂️ {{ getStudentGroup(student.id).name }}
-                </span>
-                <span v-else class="text-xs text-gray-300">—</span>
-              </td>
-              <td class="px-4 py-4">
-                <span class="px-3 py-1 rounded-full text-xs font-medium" :style="stageStyle(student.stage)">
-                  {{ student.stage }}-etap
-                </span>
-              </td>
-              <td class="px-4 py-4">
-                <span class="px-3 py-1 rounded-full text-xs font-medium bg-yellow-50 text-yellow-700">
-                  🪙 {{ student.coin_balance || 0 }}
-                </span>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-        <div v-else class="text-center py-10 text-gray-400">
-          O'quvchilar yo'q
-        </div>
-      </div>
-    </div>
-
-    <!-- PAYMENTS -->
-    <div v-if="activeTab === 'payments'">
-      <div v-if="loadingPayments" class="text-center py-10 text-gray-400">
+      <!-- Loading -->
+      <div
+        v-if="loadingStudents"
+        class="text-center py-10 text-gray-400 text-sm"
+      >
         Yuklanmoqda...
       </div>
-      <div v-else-if="payments.length > 0" class="space-y-4">
-        <div v-for="payment in payments" :key="payment.id" class="border border-gray-100 rounded-2xl p-4 sm:p-5">
-          <div class="flex items-start justify-between mb-5 gap-3">
-            <div>
-              <p class="font-semibold text-base sm:text-lg">
-                {{ formatMonth(payment.month) }}
-              </p>
-              <p class="text-sm text-gray-400 mt-1">{{ payment.stage }}-etap</p>
+
+      <!-- Empty -->
+      <div
+        v-else-if="!filteredStudents.length"
+        class="text-center py-10 text-gray-400 text-sm"
+      >
+        O'quvchilar yo'q
+      </div>
+
+      <!-- Card list -->
+      <div v-else class="space-y-2">
+        <div
+          v-for="(student, index) in filteredStudents"
+          :key="student.id"
+          class="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden"
+        >
+          <!-- Student row -->
+          <div class="flex items-center gap-3 px-4 py-3.5">
+            <!-- Avatar -->
+            <div
+              class="w-9 h-9 rounded-full flex items-center justify-center text-xs font-semibold shrink-0"
+              :style="AVATAR_COLORS[index % AVATAR_COLORS.length]"
+            >
+              {{ initials(student) }}
             </div>
-            <div class="text-right shrink-0">
-              <div :class="[
-                'px-3 py-1 rounded-full text-xs font-medium inline-block',
-                payment.is_paid
-                  ? 'bg-green-100 text-green-700'
-                  : 'bg-red-100 text-red-600',
-              ]">
-                {{
-                  payment.is_paid ? "To'lov qilingan ✓" : "To'lov qilinmagan"
-                }}
-              </div>
-              <p v-if="payment.paid_at" class="text-xs text-gray-400 mt-2">
-                {{ formatDate(payment.paid_at) }}
+
+            <!-- Name + meta -->
+            <div class="flex-1 min-w-0">
+              <p class="font-medium text-sm truncate">
+                {{ student.name }} {{ student.surname }}
               </p>
+              <span
+                v-if="user.is_admin"
+                class="text-xs text-gray-400 truncate"
+                >{{ student.phone }}</span
+              >
+              <div class="flex flex-wrap items-center gap-1.5 mt-1">
+                <span
+                  class="text-xs px-2 py-0.5 rounded-full font-medium"
+                  :style="stageStyle(student.stage)"
+                >
+                  {{ student.stage }}-etap
+                </span>
+                <span
+                  v-if="getStudentGroup(student.id)"
+                  class="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-500"
+                >
+                  🗂️ {{ getStudentGroup(student.id).name }}
+                </span>
+              </div>
+            </div>
+
+            <!-- Coin + action -->
+            <div class="flex items-center gap-2 shrink-0">
+              <span
+                class="text-xs px-2.5 py-1 rounded-full bg-yellow-50 text-yellow-700 font-medium whitespace-nowrap"
+              >
+                🪙 {{ student.coin_balance || 0 }}
+              </span>
+              <button
+                v-if="user.is_admin"
+                @click="togglePanel(student.id)"
+                class="cursor-pointer w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-gray-100 transition text-sm"
+              >
+                {{ expandedStudentId === student.id ? "✕" : "⚙️" }}
+              </button>
             </div>
           </div>
-          <div>
-            <p class="text-sm text-gray-400 mb-1">To'lov summasi</p>
-            <p class="text-2xl sm:text-3xl font-bold">
-              {{ formatMoney(payment.amount_due) }}
+
+          <div
+            v-if="user.is_admin && expandedStudentId === student.id"
+            class="border-t border-gray-100 bg-gray-50/60 px-4 py-4"
+          >
+            <p class="text-xs font-medium text-gray-500 mb-3">
+              {{ student.name }} {{ student.surname }} uchun coin bering
+            </p>
+
+            <!-- Quick actions — 2x2 grid on mobile, 4 columns on sm+ -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              <button
+                v-for="action in QUICK_ACTIONS"
+                :key="action.reason"
+                @click="giveCoin(student.id, action.reason)"
+                :disabled="givingCoin[student.id]"
+                :class="[
+                  'flex flex-col items-center justify-center gap-1 rounded-xl border px-2 py-3 text-xs font-medium transition disabled:opacity-40',
+                  action.amount > 0
+                    ? 'bg-emerald-50 text-emerald-700 border-emerald-100 hover:bg-emerald-100'
+                    : 'bg-rose-50 text-rose-600 border-rose-100 hover:bg-rose-100',
+                ]"
+              >
+                <span class="text-base leading-none">{{ action.icon }}</span>
+                <span class="leading-tight text-center">{{
+                  action.label
+                }}</span>
+                <span class="font-bold tabular-nums">{{
+                  formatSigned(action.amount)
+                }}</span>
+              </button>
+            </div>
+
+            <!-- Oylik bonus -->
+            <div class="mt-3 pt-3 border-t border-gray-100">
+              <p class="text-xs text-gray-500 mb-2">
+                🎁 Oylik erkin bonus
+                <span class="text-gray-400">(1 marta)</span>
+              </p>
+              <div class="flex items-center gap-2 flex-wrap">
+                <input
+                  v-model.number="manualAmount[student.id]"
+                  type="number"
+                  placeholder="Miqdor"
+                  :disabled="bonusUsed[student.id] || givingCoin[student.id]"
+                  class="w-24 border border-gray-200 rounded-lg px-3 py-1.5 text-xs outline-none focus:border-gray-400 disabled:bg-gray-50 disabled:text-gray-300 transition"
+                />
+                <button
+                  @click="giveManualBonus(student.id)"
+                  :disabled="
+                    bonusUsed[student.id] ||
+                    !manualAmount[student.id] ||
+                    givingCoin[student.id]
+                  "
+                  :class="[
+                    'px-3 py-1.5 rounded-lg text-xs font-medium border transition',
+                    bonusUsed[student.id]
+                      ? 'border-gray-200 text-gray-300 cursor-not-allowed'
+                      : 'border-gray-800 text-gray-800 hover:bg-gray-800 hover:text-white',
+                  ]"
+                >
+                  {{
+                    bonusUsed[student.id] ? "Bu oy ishlatilgan" : "Bonus berish"
+                  }}
+                </button>
+              </div>
+            </div>
+
+            <!-- Feedback -->
+            <p
+              v-if="actionFeedback[student.id]"
+              :class="[
+                'text-xs mt-2.5 font-medium',
+                actionFeedback[student.id].type === 'success'
+                  ? 'text-emerald-600'
+                  : 'text-rose-600',
+              ]"
+            >
+              {{ actionFeedback[student.id].text }}
             </p>
           </div>
         </div>
       </div>
-      <div v-else class="text-center py-10 text-gray-400">
+    </div>
+
+    <!-- ═══════════════════════════════════════
+         PAYMENTS TAB
+    ═══════════════════════════════════════ -->
+    <div v-if="activeTab === 'payments'">
+      <div
+        v-if="loadingPayments"
+        class="text-center py-10 text-gray-400 text-sm"
+      >
+        Yuklanmoqda...
+      </div>
+      <div v-else-if="payments.length" class="space-y-3">
+        <div
+          v-for="payment in payments"
+          :key="payment.id"
+          class="bg-white border border-gray-100 rounded-2xl p-4 sm:p-5 shadow-sm"
+        >
+          <div class="flex items-start justify-between gap-3 mb-4">
+            <div>
+              <p class="font-semibold text-base">
+                {{ formatMonth(payment.month) }}
+              </p>
+              <p class="text-xs text-gray-400 mt-0.5">
+                {{ payment.stage }}-etap
+              </p>
+            </div>
+            <div class="text-right shrink-0">
+              <span
+                :class="[
+                  'px-2.5 py-1 rounded-full text-xs font-medium',
+                  payment.is_paid
+                    ? 'bg-green-100 text-green-700'
+                    : 'bg-red-100 text-red-600',
+                ]"
+                >{{
+                  payment.is_paid ? "To'lov qilingan ✓" : "To'lov qilinmagan"
+                }}</span
+              >
+              <p v-if="payment.paid_at" class="text-xs text-gray-400 mt-1.5">
+                {{ formatDate(payment.paid_at) }}
+              </p>
+            </div>
+          </div>
+          <p class="text-xs text-gray-400 mb-1">To'lov summasi</p>
+          <p class="text-2xl sm:text-3xl font-bold">
+            {{ formatMoney(payment.amount_due) }}
+          </p>
+        </div>
+      </div>
+      <div v-else class="text-center py-10 text-gray-400 text-sm">
         Hozircha to'lovlar mavjud emas
       </div>
     </div>
 
-    <div class="mt-4 px-4" v-if="activeTab === 'leader'">
-      <div class="mt-4">
-        <Leaderboard />
-      </div>
-    </div>
-
-    <div class="mt-4 px-4" v-if="activeTab === 'market'">
-      <div class="mt-4">
-        <Magazine />
-      </div>
-    </div>
+    <div class="mt-4" v-if="activeTab === 'leader'"><Leaderboard /></div>
+    <div class="mt-4" v-if="activeTab === 'market'"><Magazine /></div>
   </div>
 </template>
 
-<style>
-.table-wrapper {
-  overflow-x: auto;
+<style scoped>
+.no-scrollbar {
+  scrollbar-width: none;
 }
-
-@media (max-width: 768px) {
-  .responsive-table {
-    min-width: 600px;
-  }
-}
-
-@media (max-width: 480px) {
-  .responsive-table {
-    min-width: 520px;
-  }
-
-  .responsive-table th,
-  .responsive-table td {
-    padding: 10px 8px;
-    font-size: 12px;
-  }
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
 }
 </style>

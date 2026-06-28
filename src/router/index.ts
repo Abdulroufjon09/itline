@@ -68,6 +68,11 @@ const routes = [
     component: lazy("Adminorders"),
     meta: { requiresAuth: true, requiresAdmin: true },
   },
+  {
+    path: "/excellence/CoinSettings",
+    component: lazy("coin_settings"),
+    meta: { requiresAuth: true, requiresAdmin: true },
+  },
 ];
 
 const router = createRouter({
