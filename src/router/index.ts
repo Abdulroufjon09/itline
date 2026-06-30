@@ -68,6 +68,8 @@ const routes = [
     path: "/excellence/products",
     component: () => import("@/views/AdminProducts.vue"),
   },
+
+  { path: "/finance", component: () => import("@/views/Finance.vue") },
 ];
 
 // ─── Router ──────────────────────────────────────────────────
