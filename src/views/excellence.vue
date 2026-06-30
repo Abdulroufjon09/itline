@@ -2,6 +2,8 @@
 import { ref, onMounted, computed, watch } from "vue";
 import { useRouter } from "vue-router";
 import AdminProducts from "./AdminProducts.vue";
+import Adminorders from "./Adminorders.vue";
+import Coin_settings from "./coin_settings.vue";
 
 const router = useRouter();
 const API = "https://itline-django-9s85.onrender.com/api";
@@ -441,19 +443,21 @@ const inputClass = (field) => [
 
     <!-- Tablar -->
     <div class="flex gap-2 mb-6 overflow-x-auto pb-1">
+
       <button v-for="tab in [
         { key: 'payments', label: '💳 To\'lovlar' },
         { key: 'history', label: '📊 Tarix' },
-
         { key: 'attendance', label: '📋 Davomat' },
         { key: 'add', label: '👤 Qo\'shish' },
         { key: 'mahsulotlar', label: 'mahsulotlar' },
+        { key: 'orders', label: '📦 Buyurtmalar' },
+        { key: 'settings', label: '⚙️ Coin Settings' },
       ]" :key="tab.key" @click="activeTab = tab.key" :class="[
-        'cursor-pointer px-4 py-2 rounded-full text-sm border transition whitespace-nowrap',
-        activeTab === tab.key
-          ? 'bg-gray-900 text-white border-gray-900'
-          : 'border-gray-200 text-gray-500 hover:bg-gray-50',
-      ]">
+          'cursor-pointer px-4 py-2 rounded-full text-sm border transition whitespace-nowrap',
+          activeTab === tab.key
+            ? 'bg-gray-900 text-white border-gray-900'
+            : 'border-gray-200 text-gray-500 hover:bg-gray-50',
+        ]">
         {{ tab.label }}
       </button>
       <router-link
@@ -941,6 +945,12 @@ const inputClass = (field) => [
     </div>
     <div class="" v-if="activeTab === 'mahsulotlar'">
       <AdminProducts />
+    </div>
+    <div class="" v-if="activeTab === 'orders'">
+      <Adminorders />
+    </div>
+    <div class="" v-if="activeTab === 'settings'">
+      <Coin_settings />
     </div>
   </div>
 </template>
