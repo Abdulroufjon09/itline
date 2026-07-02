@@ -371,11 +371,15 @@ const confirmPayment = async (id) => {
     confirmingId.value = id
     try {
         console.log('confirming payment id:', id)
-        const res = await fetch(`${API}/payments/confirm/${id}/`, { method: 'POST' })
+        const res = await fetch(`${API}/payments/confirm/${id}/`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ is_paid: true })
+        })
         console.log('confirm status:', res.status)
         if (!res.ok) throw new Error()
         const idx = payments.value.findIndex(p => p.id === id)
-        if (idx !== -1) payments.value[idx].confirmed = true
+        if (idx !== -1) payments.value[idx].is_paid = true   // ⚠️ oldingi javobda aytilgan tuzatish ham shu yerda
         showToast("To'lov tasdiqlandi ✓")
     } catch (err) {
         console.error('confirm payment error:', err)
@@ -384,7 +388,6 @@ const confirmPayment = async (id) => {
         confirmingId.value = null
     }
 }
-
 onMounted(async () => {
     await loadPayments()
     // Expenses: no backend endpoint, use mock data
