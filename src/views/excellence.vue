@@ -318,7 +318,7 @@ function resetStudentForm() {
 }
 
 function resetTeacherForm() {
-  teacherForm.value = { name: "", password: "" };
+  teacherForm.value = { name: "", password: "", phone: "" };
 }
 
 function switchAddTab(tab) {
@@ -387,7 +387,7 @@ async function submitStudent() {
 // ─────────────────────────────
 
 async function submitTeacher() {
-  const required = ["name", "password"];
+  const required = ["name", "password", "phone"]; // phone qo'shing
   const missing = required.filter((f) => !teacherForm.value[f]);
   if (missing.length) {
     addMarkError(...missing);
@@ -401,6 +401,7 @@ async function submitTeacher() {
       body: JSON.stringify({
         name: teacherForm.value.name,
         password: teacherForm.value.password,
+        phone: normalizePhone(teacherForm.value.phone), // Bu qatorni qo'shing
       }),
     });
     if (!ok) {
@@ -1093,6 +1094,15 @@ const inputClass = (field) => [
             v-model="teacherForm.name"
             placeholder="O'qituvchi ismi"
             :class="inputClass('name')"
+          />
+        </div>
+        <div>
+          <label class="block text-xs text-gray-400 mb-1.5">Telefon</label>
+          <input
+            type="tel"
+            v-model="teacherForm.phone"
+            placeholder="+998 90 000 00 00"
+            :class="inputClass('phone')"
           />
         </div>
         <div>
