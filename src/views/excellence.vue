@@ -4,6 +4,7 @@ import { useRouter } from "vue-router";
 import AdminProducts from "./AdminProducts.vue";
 import Adminorders from "./Adminorders.vue";
 import Coin_settings from "./coin_settings.vue";
+import { normalizePhone } from "@/utils/phone";
 
 const router = useRouter();
 const API = "https://itline-django-9s85.onrender.com/api";
@@ -14,17 +15,6 @@ if (!user || !user.is_excellence) router.push("/login");
 function logout() {
   localStorage.removeItem("user");
   router.push("/login");
-}
-
-function normalizePhone(raw) {
-  const digits = raw.replace(/\D/g, "");
-  if (digits.length === 9) return "+998" + digits;
-  if (digits.length === 10 && digits.startsWith("0")) {
-    return "+998" + digits.slice(1); // 0901234567 -> +998901234567
-  }
-  if (digits.startsWith("998") && digits.length === 12) return "+" + digits;
-  if (digits.length >= 11) return "+" + digits;
-  return "+" + digits;
 }
 
 const activeTab = ref("payments");
@@ -71,6 +61,41 @@ const teacherForm = ref({
   name: "",
   phone: "",
 });
+
+async function submitLogin() {
+  if (!form.password) {
+    markError("password");
+    return;
+  }
+
+  let normalized;
+  try {
+    normalized = normalizePhone(form.phone);
+  } catch {
+    markError("phone");
+    return;
+  }
+
+  ui.start();
+  try {
+    const { ok, data } = await apiFetch("/login/", {
+      method: "POST",
+      body: JSON.stringify({ phone: normalized, password: form.password }),
+    });
+
+    if (ok && data.exists) {
+      localStorage.setItem("user", JSON.stringify(buildUserPayload(data)));
+      redirectUser(data);
+    } else {
+      wrongPass.value = true;
+      setTimeout(() => (wrongPass.value = false), 2000);
+    }
+  } catch {
+    // networkError ko'rsatiladi
+  } finally {
+    ui.stop();
+  }
+}
 
 async function fetchTeachers() {
   const res = await fetch(`${API}/teachers/`);
