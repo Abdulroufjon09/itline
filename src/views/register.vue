@@ -2,7 +2,7 @@
 import { reactive, ref, onMounted, computed } from "vue";
 import { useRouter } from "vue-router";
 import { useUiStore } from "../stores/uiStore";
-import { normalizePhone } from "@/utils/phone";
+import { normalizePhone } from "../utils/phone";
 
 const API = "https://itline-django-9s85.onrender.com/api";
 const router = useRouter();

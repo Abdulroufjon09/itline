@@ -4,7 +4,7 @@ import { useRouter } from "vue-router";
 import AdminProducts from "./AdminProducts.vue";
 import Adminorders from "./Adminorders.vue";
 import Coin_settings from "./coin_settings.vue";
-import { normalizePhone } from "@/utils/phone";
+import { normalizePhone } from "../utils/phone.js";
 
 const router = useRouter();
 const API = "https://itline-django-9s85.onrender.com/api";
