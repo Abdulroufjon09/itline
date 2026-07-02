@@ -19,6 +19,10 @@ function logout() {
 function normalizePhone(raw) {
   const digits = raw.replace(/\D/g, "");
   if (digits.length === 9) return "+998" + digits;
+  if (digits.length === 10 && digits.startsWith("0")) {
+    return "+998" + digits.slice(1); // 0901234567 -> +998901234567
+  }
+  if (digits.startsWith("998") && digits.length === 12) return "+" + digits;
   if (digits.length >= 11) return "+" + digits;
   return "+" + digits;
 }
