@@ -19,36 +19,6 @@ const form = reactive({
   password: "",
 });
 
-async function checkPhone() {
-  let normalized;
-  try {
-    normalized = normalizePhone(form.phone);
-  } catch {
-    notFound.value = true;
-    phoneChecked.value = false;
-    return;
-  }
-
-  ui.start();
-  try {
-    const { ok, data } = await apiFetch("/login/", {
-      method: "POST",
-      body: JSON.stringify({ phone: normalized, password: null }),
-    });
-    if (!ok) return;
-    if (!data.exists) {
-      notFound.value = true;
-      phoneChecked.value = false;
-    } else {
-      notFound.value = false;
-      phoneChecked.value = true;
-    }
-  } catch {
-  } finally {
-    ui.stop();
-  }
-}
-
 function redirectUser(user) {
   if (user.is_excellence) router.push("/excellence");
   else if (user.is_admin) router.push("/admin");
@@ -110,7 +80,15 @@ function onPhoneInput() {
 }
 
 async function checkPhone() {
-  const normalized = normalizePhone(form.phone);
+  let normalized;
+  try {
+    normalized = normalizePhone(form.phone);
+  } catch {
+    notFound.value = true;
+    phoneChecked.value = false;
+    return;
+  }
+
   ui.start();
   try {
     const { ok, data } = await apiFetch("/login/", {
@@ -138,7 +116,14 @@ async function submitLogin() {
     return;
   }
 
-  const normalized = normalizePhone(form.phone);
+  let normalized;
+  try {
+    normalized = normalizePhone(form.phone);
+  } catch {
+    markError("phone");
+    return;
+  }
+
   ui.start();
   try {
     const { ok, data } = await apiFetch("/login/", {

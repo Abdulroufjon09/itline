@@ -62,41 +62,6 @@ const teacherForm = ref({
   phone: "",
 });
 
-async function submitLogin() {
-  if (!form.password) {
-    markError("password");
-    return;
-  }
-
-  let normalized;
-  try {
-    normalized = normalizePhone(form.phone);
-  } catch {
-    markError("phone");
-    return;
-  }
-
-  ui.start();
-  try {
-    const { ok, data } = await apiFetch("/login/", {
-      method: "POST",
-      body: JSON.stringify({ phone: normalized, password: form.password }),
-    });
-
-    if (ok && data.exists) {
-      localStorage.setItem("user", JSON.stringify(buildUserPayload(data)));
-      redirectUser(data);
-    } else {
-      wrongPass.value = true;
-      setTimeout(() => (wrongPass.value = false), 2000);
-    }
-  } catch {
-    // networkError ko'rsatiladi
-  } finally {
-    ui.stop();
-  }
-}
-
 async function fetchTeachers() {
   const res = await fetch(`${API}/teachers/`);
   if (res.ok) {
@@ -352,6 +317,14 @@ async function submitStudent() {
     return;
   }
 
+  let normalizedPhone;
+  try {
+    normalizedPhone = normalizePhone(studentForm.value.phone);
+  } catch {
+    addMarkError("phone");
+    return;
+  }
+
   addLoading.value = true;
   try {
     const { ok, data } = await addApiFetch("/register/", {
@@ -359,7 +332,7 @@ async function submitStudent() {
       body: JSON.stringify({
         name: studentForm.value.name,
         surname: studentForm.value.surname,
-        phone: normalizePhone(studentForm.value.phone),
+        phone: normalizedPhone,
         password: studentForm.value.password,
         teacher_id: Number(studentForm.value.teacher_id),
         schedule: studentForm.value.schedule,
@@ -388,11 +361,19 @@ async function submitTeacher() {
     return;
   }
 
+  let normalizedPhone;
+  try {
+    normalizedPhone = normalizePhone(teacherForm.value.phone);
+  } catch {
+    addMarkError("phone");
+    return;
+  }
+
   addLoading.value = true;
   try {
     const payload = {
       name: teacherForm.value.name,
-      phone: normalizePhone(teacherForm.value.phone),
+      phone: normalizedPhone,
       // password jo'natmayabmiz - backend ADMIN_PASSWORD ishlatadi
     };
 
@@ -409,7 +390,7 @@ async function submitTeacher() {
     // ✅ Parolni ko'rsatish
     alert(
       `✅ ${teacherForm.value.name} o'qituvchi qo'shildi!\n\n` +
-        `📱 Telefon: ${normalizePhone(teacherForm.value.phone)}\n` +
+        `📱 Telefon: ${normalizedPhone}\n` +
         `🔐 Parol: excel2024\n\n` +
         `Login qilish uchun bu ma'lumotlarni ishlating.`,
     );
