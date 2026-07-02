@@ -73,6 +73,8 @@ const routes = [
     component: lazy("coin_settings"),
     meta: { requiresAuth: true, requiresAdmin: true },
   },
+
+  { path: "/finance", component: () => import("@/views/Finance.vue") },
 ];
 
 const router = createRouter({
