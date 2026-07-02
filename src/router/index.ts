@@ -1,5 +1,5 @@
 import { createRouter, createWebHistory } from "vue-router";
-import OfflineView from "@/views/offlineView.vue";
+import OfflineView from "@/views/OfflineView.vue";
 
 fetch("https://itline-django-9s85.onrender.com/api/teachers/").catch(() => {});
 
