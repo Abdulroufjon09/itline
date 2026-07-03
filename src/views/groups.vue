@@ -33,6 +33,7 @@ const form = ref({
   teacher_id: null,
   students: [],
   lesson_time: "09:00",
+  lesson_room: "",
 });
 const studentSearch = ref("");
 
@@ -121,6 +122,7 @@ function openCreate() {
     teacher_id: null,
     students: [],
     lesson_time: "09:00",
+    lesson_room: "",
   };
   studentSearch.value = "";
   activeGroup.value = null;
@@ -133,6 +135,7 @@ function openEdit(group) {
     teacher_id: group.teacher?.id || null,
     students: group.students?.map((s) => s.id) || [],
     lesson_time: group.lesson_time || "09:00",
+    lesson_room: group.lesson_room || "",
   };
   studentSearch.value = "";
   activeGroup.value = group;
@@ -183,6 +186,7 @@ async function saveGroup() {
       name: form.value.name.trim(),
       students: form.value.students,
       lesson_time: form.value.lesson_time,
+      lesson_room: form.value.lesson_room.trim(),
     };
 
     if (form.value.teacher_id) {
@@ -249,25 +253,12 @@ function initials(s) {
       <!-- Header -->
       <div class="flex items-center justify-between mb-4 sm:mb-6 gap-2">
         <div class="flex items-center gap-2 sm:gap-3 min-w-0">
-          <RouterLink
-            to="/admin"
-            class="text-gray-400 hover:text-gray-700 transition shrink-0"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="1.4em"
-              height="1.4em"
-              viewBox="0 0 48 48"
-            >
+          <RouterLink to="/admin" class="text-gray-400 hover:text-gray-700 transition shrink-0">
+            <svg xmlns="http://www.w3.org/2000/svg" width="1.4em" height="1.4em" viewBox="0 0 48 48">
               <path d="M0 0h48v48H0z" fill="none" />
-              <path
-                fill="none"
-                stroke="currentColor"
-                stroke-linejoin="round"
-                stroke-width="4"
+              <path fill="none" stroke="currentColor" stroke-linejoin="round" stroke-width="4"
                 d="M44 40.836q-7.34-8.96-13.036-10.168t-10.846-.365V41L4 23.545L20.118 7v10.167q9.523.075 16.192 6.833q6.668 6.758 7.69 16.836Z"
-                clip-rule="evenodd"
-              />
+                clip-rule="evenodd" />
             </svg>
           </RouterLink>
           <div class="min-w-0">
@@ -278,99 +269,72 @@ function initials(s) {
           </div>
         </div>
         <div class="flex gap-2 shrink-0">
-          <button
-            @click="openCreate"
-            class="bg-black text-white px-3 sm:px-4 py-2 rounded-full text-xs sm:text-sm hover:bg-gray-800 transition whitespace-nowrap"
-          >
+          <button @click="openCreate"
+            class="bg-black text-white px-3 sm:px-4 py-2 rounded-full text-xs sm:text-sm hover:bg-gray-800 transition whitespace-nowrap">
             + Guruh
           </button>
-          <button
-            @click="logout"
-            class="border border-gray-200 px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm hover:bg-gray-100 transition bg-white whitespace-nowrap hidden sm:block"
-          >
+          <button @click="logout"
+            class="border border-gray-200 px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm hover:bg-gray-100 transition bg-white whitespace-nowrap hidden sm:block">
             Chiqish
           </button>
         </div>
       </div>
       <div class="relative">
         <!-- Groups list — hidden on mobile when panel is open -->
-        <div
-          :class="[
-            panel ? 'lg:grid lg:grid-cols-5 gap-4' : '',
-            'flex flex-col lg:flex lg:flex-row gap-4',
-          ]"
-        >
+        <div :class="[
+          panel ? 'lg:grid lg:grid-cols-5 gap-4' : '',
+          'flex flex-col lg:flex lg:flex-row gap-4',
+        ]">
           <!-- List column -->
-          <div
-            :class="[
-              panel ? 'lg:col-span-2' : 'w-full',
-              panel ? 'hidden lg:block' : 'block',
-            ]"
-          >
+          <div :class="[
+            panel ? 'lg:col-span-2' : 'w-full',
+            panel ? 'hidden lg:block' : 'block',
+          ]">
             <div class="bg-white rounded-2xl shadow-sm overflow-hidden">
-              <div
-                v-if="loadingGroups"
-                class="text-center py-12 text-gray-400 text-sm"
-              >
+              <div v-if="loadingGroups" class="text-center py-12 text-gray-400 text-sm">
                 Yuklanmoqda...
               </div>
 
-              <div
-                v-else-if="groups.length === 0"
-                class="text-center py-12 text-gray-400 text-sm"
-              >
+              <div v-else-if="groups.length === 0" class="text-center py-12 text-gray-400 text-sm">
                 <p class="text-3xl mb-3">🗂️</p>
                 <p>Hozircha guruhlar yo'q</p>
-                <button
-                  @click="openCreate"
-                  class="mt-4 text-sm text-black underline"
-                >
+                <button @click="openCreate" class="mt-4 text-sm text-black underline">
                   Birinchi guruhni yarating
                 </button>
               </div>
 
               <div v-else>
-                <div
-                  v-for="group in groups"
-                  :key="group.id"
-                  @click="openDetail(group)"
-                  :class="[
-                    'px-4 sm:px-5 py-4 border-b border-gray-100 cursor-pointer transition hover:bg-gray-50 last:border-0',
-                    activeGroup?.id === group.id && panel === 'detail'
-                      ? 'bg-gray-50 border-l-2 border-l-black'
-                      : '',
-                  ]"
-                >
+                <div v-for="group in groups" :key="group.id" @click="openDetail(group)" :class="[
+                  'px-4 sm:px-5 py-4 border-b border-gray-100 cursor-pointer transition hover:bg-gray-50 last:border-0',
+                  activeGroup?.id === group.id && panel === 'detail'
+                    ? 'bg-gray-50 border-l-2 border-l-black'
+                    : '',
+                ]">
                   <div class="flex items-center justify-between gap-3">
                     <div class="flex-1 min-w-0">
                       <div class="flex items-center gap-2 flex-wrap">
                         <p class="font-medium text-sm truncate">
                           {{ group.name }}
                         </p>
-                        <span
-                          class="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full shrink-0"
-                        >
+                        <span class="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full shrink-0">
                           {{ group.students?.length || 0 }} ta
                         </span>
                       </div>
                       <p class="text-xs text-gray-400 mt-0.5 truncate">
                         {{ group.teacher?.name || "O'qituvchi yo'q" }}
+                        <span v-if="group.lesson_time">
+                          · {{ group.lesson_time }}</span>
+                        <span v-if="group.lesson_room">
+                          · {{ group.lesson_room }}-xona</span>
                       </p>
                     </div>
                     <div class="flex shrink-0 items-center">
-                      <div
-                        v-for="(s, i) in (group.students || []).slice(0, 3)"
-                        :key="s.id"
+                      <div v-for="(s, i) in (group.students || []).slice(0, 3)" :key="s.id"
                         class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold border-2 border-white -ml-2 first:ml-0"
-                        :style="avatarColors[i % avatarColors.length]"
-                        :title="`${s.name} ${s.surname}`"
-                      >
+                        :style="avatarColors[i % avatarColors.length]" :title="`${s.name} ${s.surname}`">
                         {{ initials(s) }}
                       </div>
-                      <span
-                        v-if="(group.students?.length || 0) > 3"
-                        class="text-xs text-gray-400 ml-2 self-center"
-                      >
+                      <span v-if="(group.students?.length || 0) > 3" class="text-xs text-gray-400 ml-2 self-center">
                         +{{ group.students.length - 3 }}
                       </span>
                     </div>
@@ -381,28 +345,19 @@ function initials(s) {
           </div>
 
           <!-- Panel column — full screen on mobile, side panel on desktop -->
-          <div
-            v-if="panel"
-            :class="[
-              'lg:col-span-3',
-              'fixed inset-0 z-40 lg:static lg:inset-auto lg:z-auto',
-              'flex flex-col',
-            ]"
-          >
+          <div v-if="panel" :class="[
+            'lg:col-span-3',
+            'fixed inset-0 z-40 lg:static lg:inset-auto lg:z-auto',
+            'flex flex-col',
+          ]">
             <!-- Mobile backdrop -->
-            <div
-              class="absolute inset-0 bg-black/20 lg:hidden"
-              @click="closePanel"
-            ></div>
+            <div class="absolute inset-0 bg-black/20 lg:hidden" @click="closePanel"></div>
 
             <!-- Panel content -->
             <div
-              class="relative mt-auto lg:mt-0 bg-white lg:rounded-2xl shadow-lg lg:shadow-sm rounded-t-3xl max-h-[92dvh] lg:max-h-none overflow-y-auto p-5"
-            >
+              class="relative mt-auto lg:mt-0 bg-white lg:rounded-2xl shadow-lg lg:shadow-sm rounded-t-3xl max-h-[92dvh] lg:max-h-none overflow-y-auto p-5">
               <!-- Mobile drag handle -->
-              <div
-                class="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-4 lg:hidden"
-              ></div>
+              <div class="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-4 lg:hidden"></div>
 
               <!-- DETAIL panel -->
               <template v-if="panel === 'detail' && activeGroup">
@@ -417,26 +372,29 @@ function initials(s) {
                         "O'qituvchi biriktirilmagan"
                       }}
                     </p>
+                    <p v-if="activeGroup.lesson_time || activeGroup.lesson_room"
+                      class="text-sm text-gray-400 mt-0.5 truncate">
+                      <span v-if="activeGroup.lesson_time">{{
+                        activeGroup.lesson_time
+                      }}</span>
+                      <span v-if="activeGroup.lesson_time && activeGroup.lesson_room">
+                        ·
+                      </span>
+                      <span v-if="activeGroup.lesson_room">{{ activeGroup.lesson_room }}-xona</span>
+                    </p>
                   </div>
-                  <button
-                    @click="closePanel"
-                    class="text-gray-300 hover:text-gray-600 text-2xl leading-none shrink-0"
-                  >
+                  <button @click="closePanel" class="text-gray-300 hover:text-gray-600 text-2xl leading-none shrink-0">
                     ×
                   </button>
                 </div>
 
                 <div class="flex gap-2 mb-5">
-                  <button
-                    @click="openEdit(activeGroup)"
-                    class="flex-1 border border-gray-200 py-2.5 rounded-xl text-sm hover:bg-gray-50 transition"
-                  >
+                  <button @click="openEdit(activeGroup)"
+                    class="flex-1 border border-gray-200 py-2.5 rounded-xl text-sm hover:bg-gray-50 transition">
                     ✏️ Tahrirlash
                   </button>
-                  <button
-                    @click="deleteGroup(activeGroup.id)"
-                    class="flex-1 border border-red-100 text-red-500 py-2.5 rounded-xl text-sm hover:bg-red-50 transition"
-                  >
+                  <button @click="deleteGroup(activeGroup.id)"
+                    class="flex-1 border border-red-100 text-red-500 py-2.5 rounded-xl text-sm hover:bg-red-50 transition">
                     🗑 O'chirish
                   </button>
                 </div>
@@ -446,15 +404,10 @@ function initials(s) {
                 </p>
 
                 <div v-if="activeGroup.students?.length > 0" class="space-y-2">
-                  <div
-                    v-for="(s, i) in activeGroup.students"
-                    :key="s.id"
-                    class="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50"
-                  >
-                    <div
-                      class="w-9 h-9 rounded-full flex items-center justify-center text-xs font-semibold shrink-0"
-                      :style="avatarColors[i % avatarColors.length]"
-                    >
+                  <div v-for="(s, i) in activeGroup.students" :key="s.id"
+                    class="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50">
+                    <div class="w-9 h-9 rounded-full flex items-center justify-center text-xs font-semibold shrink-0"
+                      :style="avatarColors[i % avatarColors.length]">
                       {{ initials(s) }}
                     </div>
                     <div class="flex-1 min-w-0">
@@ -463,17 +416,13 @@ function initials(s) {
                       </p>
                       <p class="text-xs text-gray-400">{{ s.phone }}</p>
                     </div>
-                    <span
-                      class="text-xs text-gray-400 shrink-0 bg-gray-100 px-2 py-0.5 rounded-full"
-                    >
+                    <span class="text-xs text-gray-400 shrink-0 bg-gray-100 px-2 py-0.5 rounded-full">
                       {{ s.stage }}-etap
                     </span>
                   </div>
                 </div>
-                <div
-                  v-else
-                  class="text-center py-8 text-gray-400 text-sm border border-dashed border-gray-200 rounded-xl"
-                >
+                <div v-else
+                  class="text-center py-8 text-gray-400 text-sm border border-dashed border-gray-200 rounded-xl">
                   Bu guruhda hozircha o'quvchi yo'q
                 </div>
               </template>
@@ -486,47 +435,34 @@ function initials(s) {
                       panel === "create" ? "Yangi guruh" : "Guruhni tahrirlash"
                     }}
                   </h2>
-                  <button
-                    @click="closePanel"
-                    class="text-gray-300 hover:text-gray-600 text-2xl leading-none"
-                  >
+                  <button @click="closePanel" class="text-gray-300 hover:text-gray-600 text-2xl leading-none">
                     ×
                   </button>
                 </div>
 
                 <div class="mb-4">
-                  <label
-                    class="text-xs text-gray-400 uppercase tracking-wide block mb-1.5"
-                    >Guruh nomi</label
-                  >
-                  <input
-                    v-model="form.name"
-                    placeholder="Masalan: A-guruh, Django-1, Morning..."
-                    class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-gray-400 transition"
-                  />
+                  <label class="text-xs text-gray-400 uppercase tracking-wide block mb-1.5">Guruh nomi</label>
+                  <input v-model="form.name" placeholder="Masalan: A-guruh, Django-1, Morning..."
+                    class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-gray-400 transition" />
+                </div>
+
+                <div class="grid grid-cols-2 gap-3 mb-4">
+                  <div>
+                    <label class="text-xs text-gray-400 uppercase tracking-wide block mb-1.5">Dars vaqti</label>
+                    <input v-model="form.lesson_time" type="time"
+                      class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-gray-400 transition" />
+                  </div>
+                  <div>
+                    <label class="text-xs text-gray-400 uppercase tracking-wide block mb-1.5">Xona</label>
+                    <input v-model="form.lesson_room" placeholder="Masalan: 204-xona"
+                      class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-gray-400 transition" />
+                  </div>
                 </div>
 
                 <div class="mb-4">
-                  <label
-                    class="text-xs text-gray-400 uppercase tracking-wide block mb-1.5"
-                    >Dars vaqti</label
-                  >
-                  <input
-                    v-model="form.lesson_time"
-                    type="time"
-                    class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-gray-400 transition"
-                  />
-                </div>
-
-                <div class="mb-4">
-                  <label
-                    class="text-xs text-gray-400 uppercase tracking-wide block mb-1.5"
-                    >O'qituvchi</label
-                  >
-                  <select
-                    v-model.number="form.teacher_id"
-                    class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-gray-400 bg-white transition"
-                  >
+                  <label class="text-xs text-gray-400 uppercase tracking-wide block mb-1.5">O'qituvchi</label>
+                  <select v-model.number="form.teacher_id"
+                    class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-gray-400 bg-white transition">
                     <option :value="null">— Tanlang</option>
                     <option v-for="t in teachers" :key="t.id" :value="t.id">
                       {{ t.name }}
@@ -535,38 +471,23 @@ function initials(s) {
                 </div>
 
                 <div class="mb-4">
-                  <label
-                    class="text-xs text-gray-400 uppercase tracking-wide block mb-1.5"
-                  >
+                  <label class="text-xs text-gray-400 uppercase tracking-wide block mb-1.5">
                     O'quvchilar
-                    <span
-                      v-if="selectedStudents.length"
-                      class="text-gray-600 normal-case ml-1"
-                    >
+                    <span v-if="selectedStudents.length" class="text-gray-600 normal-case ml-1">
                       ({{ selectedStudents.length }} ta tanlangan)
                     </span>
                   </label>
 
                   <div class="relative">
-                    <input
-                      v-model="studentSearch"
-                      placeholder="Ism yoki telefon raqam..."
-                      class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-gray-400 transition"
-                    />
-                    <div
-                      v-if="searchResults.length > 0"
-                      class="absolute z-10 w-full mt-1 bg-white border border-gray-100 rounded-xl shadow-lg overflow-hidden"
-                    >
-                      <div
-                        v-for="s in searchResults"
-                        :key="s.id"
-                        @click="addStudent(s.id)"
-                        class="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 cursor-pointer"
-                      >
+                    <input v-model="studentSearch" placeholder="Ism yoki telefon raqam..."
+                      class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-gray-400 transition" />
+                    <div v-if="searchResults.length > 0"
+                      class="absolute z-10 w-full mt-1 bg-white border border-gray-100 rounded-xl shadow-lg overflow-hidden">
+                      <div v-for="s in searchResults" :key="s.id" @click="addStudent(s.id)"
+                        class="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 cursor-pointer">
                         <div
                           class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold shrink-0"
-                          :style="avatarColors[s.id % avatarColors.length]"
-                        >
+                          :style="avatarColors[s.id % avatarColors.length]">
                           {{ initials(s) }}
                         </div>
                         <div class="flex-1 min-w-0">
@@ -575,34 +496,22 @@ function initials(s) {
                           </p>
                           <p class="text-xs text-gray-400">{{ s.phone }}</p>
                         </div>
-                        <span class="text-xs text-gray-400 shrink-0"
-                          >{{ s.stage }}-etap</span
-                        >
+                        <span class="text-xs text-gray-400 shrink-0">{{ s.stage }}-etap</span>
                       </div>
                     </div>
-                    <p
-                      v-else-if="
-                        studentSearch.trim() && searchResults.length === 0
-                      "
-                      class="absolute w-full mt-1 bg-white border border-gray-100 rounded-xl px-4 py-3 text-sm text-gray-400 text-center shadow"
-                    >
+                    <p v-else-if="
+                      studentSearch.trim() && searchResults.length === 0
+                    "
+                      class="absolute w-full mt-1 bg-white border border-gray-100 rounded-xl px-4 py-3 text-sm text-gray-400 text-center shadow">
                       Topilmadi
                     </p>
                   </div>
 
-                  <div
-                    v-if="selectedStudents.length > 0"
-                    class="mt-3 space-y-1.5"
-                  >
-                    <div
-                      v-for="(s, i) in selectedStudents"
-                      :key="s.id"
-                      class="flex items-center gap-3 px-3 py-2 bg-gray-50 rounded-xl"
-                    >
-                      <div
-                        class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold shrink-0"
-                        :style="avatarColors[i % avatarColors.length]"
-                      >
+                  <div v-if="selectedStudents.length > 0" class="mt-3 space-y-1.5">
+                    <div v-for="(s, i) in selectedStudents" :key="s.id"
+                      class="flex items-center gap-3 px-3 py-2 bg-gray-50 rounded-xl">
+                      <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold shrink-0"
+                        :style="avatarColors[i % avatarColors.length]">
                         {{ initials(s) }}
                       </div>
                       <div class="flex-1 min-w-0">
@@ -611,28 +520,21 @@ function initials(s) {
                         </p>
                         <p class="text-xs text-gray-400">{{ s.phone }}</p>
                       </div>
-                      <button
-                        @click="removeStudent(s.id)"
-                        class="w-6 h-6 flex items-center justify-center rounded-full hover:bg-red-100 hover:text-red-500 text-gray-400 text-sm transition shrink-0"
-                      >
+                      <button @click="removeStudent(s.id)"
+                        class="w-6 h-6 flex items-center justify-center rounded-full hover:bg-red-100 hover:text-red-500 text-gray-400 text-sm transition shrink-0">
                         ×
                       </button>
                     </div>
                   </div>
-                  <div
-                    v-else
-                    class="mt-3 text-center py-4 text-xs text-gray-400 border border-dashed border-gray-200 rounded-xl"
-                  >
+                  <div v-else
+                    class="mt-3 text-center py-4 text-xs text-gray-400 border border-dashed border-gray-200 rounded-xl">
                     Hali o'quvchi tanlanmagan — yuqoridan qidiring
                   </div>
                 </div>
 
                 <div class="flex gap-2 pt-2 pb-2">
-                  <button
-                    @click="saveGroup"
-                    :disabled="savingGroup"
-                    class="flex-1 bg-black text-white py-2.5 rounded-xl text-sm hover:bg-gray-800 transition disabled:opacity-50"
-                  >
+                  <button @click="saveGroup" :disabled="savingGroup"
+                    class="flex-1 bg-black text-white py-2.5 rounded-xl text-sm hover:bg-gray-800 transition disabled:opacity-50">
                     {{
                       savingGroup
                         ? "Saqlanmoqda..."
@@ -641,10 +543,8 @@ function initials(s) {
                           : "✓ Saqlash"
                     }}
                   </button>
-                  <button
-                    @click="closePanel"
-                    class="flex-1 border border-gray-200 py-2.5 rounded-xl text-sm hover:bg-gray-50 transition"
-                  >
+                  <button @click="closePanel"
+                    class="flex-1 border border-gray-200 py-2.5 rounded-xl text-sm hover:bg-gray-50 transition">
                     Bekor qilish
                   </button>
                 </div>
