@@ -579,6 +579,31 @@ function initials(s) {
                       class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-gray-400 transition"
                     />
                   </div>
+                  <div>
+                    <label
+                      class="text-xs text-gray-400 uppercase tracking-wide block mb-1.5"
+                      >Xona</label
+                    >
+                    <input
+                      v-model="form.lesson_room"
+                      placeholder="Masalan: 204-xona"
+                      class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-gray-400 transition"
+                    />
+                  </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3 mb-4">
+                  <div>
+                    <label
+                      class="text-xs text-gray-400 uppercase tracking-wide block mb-1.5"
+                      >Dars vaqti</label
+                    >
+                    <input
+                      v-model="form.lesson_time"
+                      type="time"
+                      class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-gray-400 transition"
+                    />
+                  </div>
 
                   <div>
                     <label
