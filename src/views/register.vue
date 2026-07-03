@@ -2,6 +2,7 @@
 import { reactive, ref, onMounted, computed } from "vue";
 import { useRouter } from "vue-router";
 import { useUiStore } from "../stores/uiStore";
+import { normalizePhone } from "../utils/phone";
 
 const API = "https://itline-django-9s85.onrender.com/api";
 const router = useRouter();
@@ -17,19 +18,6 @@ const form = reactive({
   phone: "",
   password: "",
 });
-
-// ─── Telefon normalizatsiya ───────────────────────────────────
-// +998901234567, 998901234567, 901234567, 90 123 45 67 → +998901234567
-function normalizePhone(raw) {
-  const digits = raw.replace(/\D/g, "");
-  if (digits.length === 9) return "+998" + digits;
-  if (digits.length === 12 && digits.startsWith("998")) return "+" + digits;
-  if (digits.length === 13 && digits.startsWith("9989")) {
-    // foydalanuvchi +998 yozib keyin raqam qo'shgan — +9989... ehtimoli
-    return "+" + digits;
-  }
-  return "+" + digits; // fallback
-}
 
 function redirectUser(user) {
   if (user.is_excellence) router.push("/excellence");
@@ -92,7 +80,15 @@ function onPhoneInput() {
 }
 
 async function checkPhone() {
-  const normalized = normalizePhone(form.phone);
+  let normalized;
+  try {
+    normalized = normalizePhone(form.phone);
+  } catch {
+    notFound.value = true;
+    phoneChecked.value = false;
+    return;
+  }
+
   ui.start();
   try {
     const { ok, data } = await apiFetch("/login/", {
@@ -120,7 +116,14 @@ async function submitLogin() {
     return;
   }
 
-  const normalized = normalizePhone(form.phone);
+  let normalized;
+  try {
+    normalized = normalizePhone(form.phone);
+  } catch {
+    markError("phone");
+    return;
+  }
+
   ui.start();
   try {
     const { ok, data } = await apiFetch("/login/", {
