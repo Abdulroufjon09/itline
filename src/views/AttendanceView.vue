@@ -80,7 +80,9 @@ async function fetchGroups() {
   try {
     const res = await fetch(`${API}/groups/`);
     const all = await res.json();
-    groups.value = all.filter((g) => g.teacher === user.teacher_id);
+    // ✅ Tuzatildi: g.teacher — bu obyekt ({id, name}), shuning uchun
+    // to'g'ridan-to'g'ri user.teacher_id bilan emas, g.teacher.id bilan solishtiramiz.
+    groups.value = all.filter((g) => g.teacher?.id === user.teacher_id);
   } catch (e) {
     console.error("Guruhlar yuklanmadi:", e);
   }

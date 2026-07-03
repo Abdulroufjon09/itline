@@ -42,7 +42,8 @@ const toTeacher = ref(null);
 
 // ─── Computed ────────────────────────────────────────────────
 const selectedTeacherName = computed(
-  () => teachers.value.find((t) => t.id === selectedTeacherId.value)?.name ?? ""
+  () =>
+    teachers.value.find((t) => t.id === selectedTeacherId.value)?.name ?? "",
 );
 
 const currentTeacherId = computed(() => user?.id ?? null);
@@ -64,7 +65,11 @@ async function apiFetch(path, options = {}) {
   if (!res.ok) {
     const text = await res.text();
     let msg = "Xatolik yuz berdi";
-    try { msg = JSON.parse(text)?.error ?? msg; } catch { /* plain text */ }
+    try {
+      msg = JSON.parse(text)?.error ?? msg;
+    } catch {
+      /* plain text */
+    }
     throw new Error(msg);
   }
   if (res.status === 204) return null;
@@ -84,7 +89,10 @@ async function fetchTeachers() {
 }
 
 async function fetchStudents(teacherId) {
-  if (!teacherId) { students.value = []; return; }
+  if (!teacherId) {
+    students.value = [];
+    return;
+  }
   loadingStudents.value = true;
   try {
     students.value = await apiFetch(`/students/?teacher_id=${teacherId}`);
@@ -108,7 +116,10 @@ async function fetchPayments(teacherId) {
 
 // ─── Teacher Actions ─────────────────────────────────────────
 async function createTeacher() {
-  if (!newTeacher.value.name.trim()) { alert("Ism kiriting"); return; }
+  if (!newTeacher.value.name.trim()) {
+    alert("Ism kiriting");
+    return;
+  }
   try {
     await apiFetch("/teachers/create/", {
       method: "POST",
@@ -152,8 +163,14 @@ async function confirmDelete() {
 }
 
 async function reassignStudents() {
-  if (!fromTeacher.value || !toTeacher.value) { alert("Teacher tanlang"); return; }
-  if (fromTeacher.value === toTeacher.value) { alert("Bir xil teacher tanlandi"); return; }
+  if (!fromTeacher.value || !toTeacher.value) {
+    alert("Teacher tanlang");
+    return;
+  }
+  if (fromTeacher.value === toTeacher.value) {
+    alert("Bir xil teacher tanlandi");
+    return;
+  }
   const fromId = fromTeacher.value;
   try {
     await apiFetch("/teachers/reassign/", {
@@ -193,11 +210,12 @@ async function updateStage(student, stage) {
       alert(`${student.name} kotta teacherga o'tdi`);
     } else {
       const s = students.value.find((s) => s.id === student.id);
-      if (s) Object.assign(s, {
-        stage: result.stage,
-        teacher_id: result.teacher_id,
-        teacher_name: result.teacher_name,
-      });
+      if (s)
+        Object.assign(s, {
+          stage: result.stage,
+          teacher_id: result.teacher_id,
+          teacher_name: result.teacher_name,
+        });
     }
   } catch (e) {
     alert(e.message);
@@ -226,27 +244,40 @@ onMounted(async () => {
 
 <template>
   <div class="max-w-4xl mx-auto px-4">
-
     <!-- HEADER -->
     <div class="flex justify-between items-center mb-8 pt-4">
       <div>
         <h1 class="text-2xl font-medium">Admin panel</h1>
-        <p class="text-gray-400 text-sm mt-1">Xush kelibsiz, {{ user.name }}!</p>
+        <p class="text-gray-400 text-sm mt-1">
+          Xush kelibsiz, {{ user.name }}!
+        </p>
       </div>
-      <button @click="logout" class="px-4 py-2 rounded-full text-sm hover:bg-gray-50">
+      <button
+        @click="logout"
+        class="px-4 py-2 rounded-full text-sm hover:bg-gray-50"
+      >
         Chiqish
       </button>
     </div>
 
     <!-- QUICK NAV -->
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-      <div @click="$router.push('/students')" class="p-5 border rounded-2xl cursor-pointer hover:bg-gray-50">
+      <div
+        @click="$router.push('/students')"
+        class="p-5 border rounded-2xl cursor-pointer hover:bg-gray-50"
+      >
         👥 O'quvchilar
       </div>
-      <div @click="$router.push('/Attendance')" class="p-5 border rounded-2xl cursor-pointer hover:bg-gray-50">
+      <div
+        @click="$router.push('/Attendance')"
+        class="p-5 border rounded-2xl cursor-pointer hover:bg-gray-50"
+      >
         📋 Davomat
       </div>
-      <div @click="$router.push('/groups')" class="p-5 border rounded-2xl cursor-pointer hover:bg-gray-50">
+      <div
+        @click="$router.push('/groups')"
+        class="p-5 border rounded-2xl cursor-pointer hover:bg-gray-50"
+      >
         🗂️ Guruhlar
       </div>
     </div>
@@ -256,71 +287,93 @@ onMounted(async () => {
       <div class="flex justify-between mb-4">
         <h2 class="text-lg font-medium">O'qituvchilar</h2>
         <div class="flex gap-2">
-          <button @click="showReassign = !showReassign" class="px-3 py-1 rounded-full text-sm">
+          <button
+            @click="showReassign = !showReassign"
+            class="px-3 py-1 rounded-full text-sm"
+          >
             O'tkazish
-          </button>
-          <button @click="showForm = !showForm" class="bg-black text-white px-3 py-1 rounded-full text-sm">
-            + Qo'shish
           </button>
         </div>
       </div>
 
-      <!-- ADD FORM -->
-      <div v-if="showForm" class="p-4 bg-gray-50 rounded-xl mb-4">
-        <input v-model="newTeacher.name" placeholder="Ism" class="w-full p-2 rounded mb-2" />
-        <input v-model="newTeacher.phone" placeholder="Telefon" class="w-full p-2 rounded mb-2" />
-        <button @click="createTeacher" class="w-full bg-black text-white py-2 rounded">
-          Saqlash
-        </button>
-      </div>
-
       <!-- REASSIGN -->
       <div v-if="showReassign" class="p-4 bg-yellow-50 rounded-xl mb-4">
-        <select v-model.number="fromTeacher" class="w-full p-2 rounded mb-2 cursor-pointer">
+        <select
+          v-model.number="fromTeacher"
+          class="w-full p-2 rounded mb-2 cursor-pointer"
+        >
           <option :value="null">Kimdan</option>
-          <option v-for="t in teachers" :key="t.id" :value="t.id">{{ t.name }}</option>
+          <option v-for="t in teachers" :key="t.id" :value="t.id">
+            {{ t.name }}
+          </option>
         </select>
-        <select v-model.number="toTeacher" class="w-full p-2 rounded mb-2 cursor-pointer">
+        <select
+          v-model.number="toTeacher"
+          class="w-full p-2 rounded mb-2 cursor-pointer"
+        >
           <option :value="null">Kimga</option>
-          <option v-for="t in teachers" :key="t.id" :value="t.id">{{ t.name }}</option>
+          <option v-for="t in teachers" :key="t.id" :value="t.id">
+            {{ t.name }}
+          </option>
         </select>
-        <button @click="reassignStudents" class="w-full bg-yellow-500 text-white py-2 rounded">
+        <button
+          @click="reassignStudents"
+          class="w-full bg-yellow-500 text-white py-2 rounded"
+        >
           O'tkazish
         </button>
       </div>
 
       <!-- LOADING -->
-      <div v-if="loadingTeachers" class="text-center py-4 text-gray-400 text-sm">
+      <div
+        v-if="loadingTeachers"
+        class="text-center py-4 text-gray-400 text-sm"
+      >
         Yuklanmoqda...
       </div>
 
       <!-- LIST -->
-      <div v-else v-for="t in teachers" :key="t.id"
-        class="flex flex-wrap gap-2 justify-between items-center p-3 rounded-xl mb-2">
+      <div
+        v-else
+        v-for="t in teachers"
+        :key="t.id"
+        class="flex flex-wrap gap-2 justify-between items-center p-3 rounded-xl mb-2"
+      >
         <div>
           <p class="font-medium">{{ t.name }}</p>
           <p class="text-xs text-gray-400">{{ t.phone }}</p>
         </div>
         <div class="flex gap-2 items-center">
-          <button @click="selectTeacher(t.id)" class="text-blue-500 text-sm border px-2 rounded cursor-pointer">
+          <button
+            @click="selectTeacher(t.id)"
+            class="text-blue-500 text-sm border px-2 rounded cursor-pointer"
+          >
             O'quvchilar
-          </button>
-          <button @click="askDelete(t.id)" class="text-red-400 text-sm border px-2 rounded cursor-pointer">
-            O'chirish
           </button>
         </div>
       </div>
 
       <!-- DELETE CONFIRM -->
-      <div v-if="showAsk" class="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
+      <div
+        v-if="showAsk"
+        class="fixed inset-0 bg-black/30 flex items-center justify-center z-50"
+      >
         <div class="bg-white rounded-2xl p-6 max-w-sm w-full mx-4 shadow-xl">
           <h3 class="font-semibold mb-2">Teacherni o'chirish</h3>
-          <p class="text-sm text-gray-500 mb-4">Rostdan ham o'chirmoqchimisiz?</p>
+          <p class="text-sm text-gray-500 mb-4">
+            Rostdan ham o'chirmoqchimisiz?
+          </p>
           <div class="flex gap-2">
-            <button @click="showAsk = false" class="flex-1 py-2 rounded-xl border text-sm">
+            <button
+              @click="showAsk = false"
+              class="flex-1 py-2 rounded-xl border text-sm"
+            >
               Bekor
             </button>
-            <button @click="confirmDelete" class="flex-1 py-2 rounded-xl bg-red-500 text-white text-sm">
+            <button
+              @click="confirmDelete"
+              class="flex-1 py-2 rounded-xl bg-red-500 text-white text-sm"
+            >
               O'chirish
             </button>
           </div>
@@ -334,20 +387,34 @@ onMounted(async () => {
         {{ selectedTeacherName }} — o'quvchilari ({{ students.length }})
       </h2>
 
-      <div v-if="loadingStudents" class="text-center py-4 text-gray-400 text-sm">
+      <div
+        v-if="loadingStudents"
+        class="text-center py-4 text-gray-400 text-sm"
+      >
         Yuklanmoqda...
       </div>
 
-      <div v-else v-for="s in students" :key="s.id"
-        class="flex flex-wrap gap-2 justify-between items-center p-3 rounded mb-2">
+      <div
+        v-else
+        v-for="s in students"
+        :key="s.id"
+        class="flex flex-wrap gap-2 justify-between items-center p-3 rounded mb-2"
+      >
         <div>
           <p class="font-medium">{{ s.name }} {{ s.surname }}</p>
           <p class="text-xs text-gray-400">{{ s.phone }}</p>
-          <div v-if="getStudentPayment(s.id)" class="mt-2 flex flex-wrap items-center gap-2">
-            <span :class="getStudentPayment(s.id).is_paid
-              ? 'bg-green-100 text-green-700'
-              : 'bg-red-100 text-red-600'
-              " class="text-xs px-2 py-1 rounded-full">
+          <div
+            v-if="getStudentPayment(s.id)"
+            class="mt-2 flex flex-wrap items-center gap-2"
+          >
+            <span
+              :class="
+                getStudentPayment(s.id).is_paid
+                  ? 'bg-green-100 text-green-700'
+                  : 'bg-red-100 text-red-600'
+              "
+              class="text-xs px-2 py-1 rounded-full"
+            >
               {{
                 getStudentPayment(s.id).is_paid ? "To‘langan" : "To‘lanmagan"
               }}
@@ -360,32 +427,20 @@ onMounted(async () => {
 
         <!-- Stage buttons -->
         <div class="flex gap-1 flex-wrap">
-          <button v-for="st in STAGES" :key="st" @click="updateStage(s, st)" :disabled="stageLoading === s.id"
-            class="w-7 h-7 text-xs rounded-full transition" :class="[
-              s.stage === st ? 'bg-black text-white' : 'border border-gray-200 hover:bg-gray-50',
+          <button
+            v-for="st in STAGES"
+            :key="st"
+            @click="updateStage(s, st)"
+            :disabled="stageLoading === s.id"
+            class="w-7 h-7 text-xs rounded-full transition"
+            :class="[
+              s.stage === st
+                ? 'bg-black text-white'
+                : 'border border-gray-200 hover:bg-gray-50',
               stageLoading === s.id ? 'opacity-50 cursor-not-allowed' : '',
-            ]">
+            ]"
+          >
             {{ st }}
-          </button>
-        </div>
-
-        <!-- Schedule buttons -->
-        <div class="flex gap-1 w-full mt-1">
-          <button @click="updateSchedule(s, 'odd')" :class="[
-            'flex-1 text-xs py-1 rounded-lg border transition',
-            s.schedule === 'odd'
-              ? 'bg-gray-900 text-white border-gray-900'
-              : 'border-gray-200 text-gray-500 hover:bg-gray-50',
-          ]">
-            Du/Chor/Juma
-          </button>
-          <button @click="updateSchedule(s, 'even')" :class="[
-            'flex-1 text-xs py-1 rounded-lg border transition',
-            s.schedule === 'even'
-              ? 'bg-gray-900 text-white border-gray-900'
-              : 'border-gray-200 text-gray-500 hover:bg-gray-50',
-          ]">
-            Se/Pay/Shan
           </button>
         </div>
       </div>

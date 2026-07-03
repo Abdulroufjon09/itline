@@ -5,6 +5,8 @@ import AdminProducts from "./AdminProducts.vue";
 import Adminorders from "./Adminorders.vue";
 import Coin_settings from "./coin_settings.vue";
 import { normalizePhone } from "../utils/phone.js";
+import Groups from "./groups.vue";
+import LessonsPlans from "./LessonsPlans.vue";
 
 const router = useRouter();
 const API = "https://itline-django-9s85.onrender.com/api";
@@ -42,13 +44,18 @@ const historyMonth = ref(new Date().toISOString().slice(0, 7));
 const historyPayments = ref([]);
 const loadingHistory = ref(false);
 
-const addTab = ref("student");
+// ══════════ QO'SHISH (bitta forma, parolga qarab rol avto aniqlanadi) ══════════
+const ROLE_PASSWORDS = {
+  excellence: "excellence2024",
+  admin: "excel2024",
+};
+
 const addErrorFields = ref(new Set());
 const addNetworkError = ref(false);
 const addSuccessMsg = ref("");
 const addLoading = ref(false);
 
-const studentForm = ref({
+const addForm = ref({
   name: "",
   surname: "",
   phone: "",
@@ -57,9 +64,26 @@ const studentForm = ref({
   schedule: "odd",
 });
 
-const teacherForm = ref({
-  name: "",
-  phone: "",
+// Parolga qarab avto aniqlanadigan rol
+const detectedRole = computed(() => {
+  const pwd = addForm.value.password;
+  if (!pwd) return null;
+  if (pwd === ROLE_PASSWORDS.excellence) return "excellence";
+  if (pwd === ROLE_PASSWORDS.admin) return "admin";
+  return "student";
+});
+
+const roleLabel = computed(() => {
+  switch (detectedRole.value) {
+    case "excellence":
+      return "🌟 Manager";
+    case "admin":
+      return "🛡️ Teacher";
+    case "student":
+      return "🎓 Student";
+    default:
+      return null;
+  }
 });
 
 async function fetchTeachers() {
@@ -272,8 +296,8 @@ function addHasError(field) {
   return addErrorFields.value.has(field);
 }
 
-function resetStudentForm() {
-  studentForm.value = {
+function resetAddForm() {
+  addForm.value = {
     name: "",
     surname: "",
     phone: "",
@@ -281,17 +305,6 @@ function resetStudentForm() {
     teacher_id: "",
     schedule: "odd",
   };
-}
-
-function resetTeacherForm() {
-  teacherForm.value = { name: "", phone: "" };
-}
-
-function switchAddTab(tab) {
-  addTab.value = tab;
-  addErrorFields.value.clear();
-  addNetworkError.value = false;
-  addSuccessMsg.value = "";
 }
 
 async function addApiFetch(path, options = {}) {
@@ -309,9 +322,20 @@ async function addApiFetch(path, options = {}) {
   }
 }
 
-async function submitStudent() {
-  const required = ["name", "surname", "phone", "password", "teacher_id"];
-  const missing = required.filter((f) => !studentForm.value[f]);
+async function submitAdd() {
+  const role = detectedRole.value;
+
+  if (!role) {
+    addMarkError("password");
+    return;
+  }
+
+  const required =
+    role === "student"
+      ? ["name", "surname", "phone", "password", "teacher_id"]
+      : ["name", "phone", "password"];
+
+  const missing = required.filter((f) => !addForm.value[f]);
   if (missing.length) {
     addMarkError(...missing);
     return;
@@ -319,7 +343,7 @@ async function submitStudent() {
 
   let normalizedPhone;
   try {
-    normalizedPhone = normalizePhone(studentForm.value.phone);
+    normalizedPhone = normalizePhone(addForm.value.phone);
   } catch {
     addMarkError("phone");
     return;
@@ -327,57 +351,27 @@ async function submitStudent() {
 
   addLoading.value = true;
   try {
-    const { ok, data } = await addApiFetch("/register/", {
-      method: "POST",
-      body: JSON.stringify({
-        name: studentForm.value.name,
-        surname: studentForm.value.surname,
-        phone: normalizedPhone,
-        password: studentForm.value.password,
-        teacher_id: Number(studentForm.value.teacher_id),
-        schedule: studentForm.value.schedule,
-      }),
-    });
-    if (!ok) {
-      alert(data.error || "Xatolik yuz berdi");
-      return;
-    }
-    addSuccessMsg.value = `${studentForm.value.name} ${studentForm.value.surname} muvaffaqiyatli qo'shildi`;
-    resetStudentForm();
-    setTimeout(() => (addSuccessMsg.value = ""), 3000);
-  } catch {
-    // addNetworkError ko'rsatiladi
-  } finally {
-    addLoading.value = false;
-  }
-}
-
-async function submitTeacher() {
-  const required = ["name", "phone"];
-  const missing = required.filter((f) => !teacherForm.value[f]);
-
-  if (missing.length) {
-    addMarkError(...missing);
-    return;
-  }
-
-  let normalizedPhone;
-  try {
-    normalizedPhone = normalizePhone(teacherForm.value.phone);
-  } catch {
-    addMarkError("phone");
-    return;
-  }
-
-  addLoading.value = true;
-  try {
+    // Backend /register/ "role" maydonini emas, balki admin_password /
+    // excellence_password maydonlarini kutadi va ularni ADMIN_PASSWORD /
+    // EXCELLENCE_PASSWORD konstantalari bilan solishtirib is_admin /
+    // is_excellence flaglarini o'zi belgilaydi. Kiritilgan parolni
+    // ikkalasiga ham yuboramiz — mos kelgani avtomatik ishlaydi,
+    // mos kelmasa student sifatida qoladi.
     const payload = {
-      name: teacherForm.value.name,
+      name: addForm.value.name,
+      surname: addForm.value.surname,
       phone: normalizedPhone,
-      // password jo'natmayabmiz - backend ADMIN_PASSWORD ishlatadi
+      password: addForm.value.password,
+      admin_password: addForm.value.password,
+      excellence_password: addForm.value.password,
     };
 
-    const { ok, data } = await addApiFetch("/teachers/create/", {
+    if (role === "student") {
+      payload.teacher_id = Number(addForm.value.teacher_id);
+      payload.schedule = addForm.value.schedule;
+    }
+
+    const { ok, data } = await addApiFetch("/register/", {
       method: "POST",
       body: JSON.stringify(payload),
     });
@@ -387,20 +381,18 @@ async function submitTeacher() {
       return;
     }
 
-    // ✅ Parolni ko'rsatish
-    alert(
-      `✅ ${teacherForm.value.name} o'qituvchi qo'shildi!\n\n` +
-        `📱 Telefon: ${normalizedPhone}\n` +
-        `🔐 Parol: excel2024\n\n` +
-        `Login qilish uchun bu ma'lumotlarni ishlating.`,
-    );
-
-    addSuccessMsg.value = `${teacherForm.value.name} o'qituvchi sifatida qo'shildi ✓`;
-    resetTeacherForm();
-    await fetchTeachers();
+    const roleText =
+      role === "excellence"
+        ? "Excellence"
+        : role === "admin"
+          ? "Admin"
+          : "Student";
+    addSuccessMsg.value = `${addForm.value.name} ${addForm.value.surname} ${roleText} sifatida muvaffaqiyatli qo'shildi`;
+    resetAddForm();
+    if (role !== "student") await fetchTeachers();
     setTimeout(() => (addSuccessMsg.value = ""), 3000);
-  } catch (error) {
-    console.error("Error:", error);
+  } catch {
+    // addNetworkError ko'rsatiladi
   } finally {
     addLoading.value = false;
   }
@@ -440,9 +432,10 @@ const inputClass = (field) => [
           { key: 'history', label: '📊 Tarix' },
           { key: 'attendance', label: '📋 Davomat' },
           { key: 'add', label: '👤 Qo\'shish' },
-          { key: 'mahsulotlar', label: 'mahsulotlar' },
+          { key: 'mahsulotlar', label: ' Mahsulotlar' },
           { key: 'orders', label: '📦 Buyurtmalar' },
           { key: 'settings', label: '⚙️ Coin Settings' },
+          { key: 'groups', label: '🗂️ Groups' },
         ]"
         :key="tab.key"
         @click="activeTab = tab.key"
@@ -929,35 +922,10 @@ const inputClass = (field) => [
     </div>
 
     <!-- ══════════ QO'SHISH ══════════ -->
-    <div v-if="activeTab === 'add'">
-      <div class="flex gap-2 mb-6">
-        <button
-          @click="switchAddTab('student')"
-          :class="[
-            'px-4 py-2 rounded-xl text-sm border transition cursor-pointer',
-            addTab === 'student'
-              ? 'bg-gray-900 text-white border-gray-900'
-              : 'border-gray-200 text-gray-500 hover:bg-gray-50',
-          ]"
-        >
-          🎓 Student
-        </button>
-        <button
-          @click="switchAddTab('teacher')"
-          :class="[
-            'px-4 py-2 rounded-xl text-sm border transition cursor-pointer',
-            addTab === 'teacher'
-              ? 'bg-gray-900 text-white border-gray-900'
-              : 'border-gray-200 text-gray-500 hover:bg-gray-50',
-          ]"
-        >
-          👤 O'qituvchi
-        </button>
-      </div>
-
+    <div v-if="activeTab === 'add'" class="max-w-[420px]">
       <div
         v-if="addNetworkError"
-        class="max-w-[420px] mb-4 px-3 py-2.5 rounded-xl bg-red-50 border border-red-200 flex items-center gap-2"
+        class="mb-4 px-3 py-2.5 rounded-xl bg-red-50 border border-red-200 flex items-center gap-2"
       >
         <span class="text-red-400">⚠</span>
         <div>
@@ -976,32 +944,28 @@ const inputClass = (field) => [
 
       <div
         v-if="addSuccessMsg"
-        class="max-w-[420px] mb-4 px-3 py-2.5 rounded-xl bg-green-50 border border-green-200 flex items-center gap-2"
+        class="mb-4 px-3 py-2.5 rounded-xl bg-green-50 border border-green-200 flex items-center gap-2"
       >
         <span class="text-green-500">✓</span>
         <p class="text-xs font-medium text-green-700">{{ addSuccessMsg }}</p>
       </div>
 
-      <!-- STUDENT FORM -->
-      <div
-        v-if="addTab === 'student'"
-        class="max-w-[420px] flex flex-col gap-4"
-      >
+      <div class="flex flex-col gap-4">
         <div>
           <label class="block text-xs text-gray-400 mb-1.5">Ism</label>
           <input
             type="text"
-            v-model="studentForm.name"
-            placeholder="Ismingiz"
+            v-model="addForm.name"
+            placeholder="Ism"
             :class="inputClass('name')"
           />
         </div>
-        <div>
+        <div v-if="detectedRole === 'student' || !detectedRole">
           <label class="block text-xs text-gray-400 mb-1.5">Familiya</label>
           <input
             type="text"
-            v-model="studentForm.surname"
-            placeholder="Familiyangiz"
+            v-model="addForm.surname"
+            placeholder="Familiya"
             :class="inputClass('surname')"
           />
         </div>
@@ -1009,102 +973,78 @@ const inputClass = (field) => [
           <label class="block text-xs text-gray-400 mb-1.5">Telefon</label>
           <input
             type="tel"
-            v-model="studentForm.phone"
+            v-model="addForm.phone"
             placeholder="+998 90 000 00 00"
             :class="inputClass('phone')"
           />
         </div>
-        <div>
-          <label class="block text-xs text-gray-400 mb-1.5">O'qituvchi</label>
-          <select
-            v-model="studentForm.teacher_id"
-            :class="inputClass('teacher_id')"
-          >
-            <option value="">Tanlang</option>
-            <option v-for="t in teachers" :key="t.id" :value="t.id">
-              {{ t.name }}
-            </option>
-          </select>
-        </div>
-        <div>
-          <label class="block text-xs text-gray-400 mb-1.5">Dars kuni</label>
-          <div class="flex gap-2">
-            <button
-              type="button"
-              @click="studentForm.schedule = 'odd'"
-              :class="[
-                'flex-1 py-2 rounded-xl text-sm border transition cursor-pointer',
-                studentForm.schedule === 'odd'
-                  ? 'bg-gray-900 text-white border-gray-900'
-                  : 'border-gray-200 text-gray-600 hover:bg-gray-50',
-              ]"
-            >
-              Du / Chor / Juma
-            </button>
-            <button
-              type="button"
-              @click="studentForm.schedule = 'even'"
-              :class="[
-                'flex-1 py-2 rounded-xl text-sm border transition cursor-pointer',
-                studentForm.schedule === 'even'
-                  ? 'bg-gray-900 text-white border-gray-900'
-                  : 'border-gray-200 text-gray-600 hover:bg-gray-50',
-              ]"
-            >
-              Se / Pay / Shan
-            </button>
-          </div>
-        </div>
+
         <div>
           <label class="block text-xs text-gray-400 mb-1.5">Parol</label>
           <input
             type="password"
-            v-model="studentForm.password"
-            @keyup.enter="submitStudent"
+            v-model="addForm.password"
+            @keyup.enter="submitAdd"
             placeholder="••••••••"
             :class="inputClass('password')"
           />
+          <p v-if="roleLabel" class="text-xs text-gray-400 mt-1.5">
+            Aniqlangan rol:
+            <span class="font-medium text-gray-600">{{ roleLabel }}</span>
+          </p>
         </div>
+
+        <!-- Faqat student uchun: o'qituvchi va dars kuni -->
+        <template v-if="detectedRole === 'student'">
+          <div>
+            <label class="block text-xs text-gray-400 mb-1.5">O'qituvchi</label>
+            <select
+              v-model="addForm.teacher_id"
+              :class="inputClass('teacher_id')"
+            >
+              <option value="">Tanlang</option>
+              <option v-for="t in teachers" :key="t.id" :value="t.id">
+                {{ t.name }}
+              </option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs text-gray-400 mb-1.5">Dars kuni</label>
+            <div class="flex gap-2">
+              <button
+                type="button"
+                @click="addForm.schedule = 'odd'"
+                :class="[
+                  'flex-1 py-2 rounded-xl text-sm border transition cursor-pointer',
+                  addForm.schedule === 'odd'
+                    ? 'bg-gray-900 text-white border-gray-900'
+                    : 'border-gray-200 text-gray-600 hover:bg-gray-50',
+                ]"
+              >
+                Du / Chor / Juma
+              </button>
+              <button
+                type="button"
+                @click="addForm.schedule = 'even'"
+                :class="[
+                  'flex-1 py-2 rounded-xl text-sm border transition cursor-pointer',
+                  addForm.schedule === 'even'
+                    ? 'bg-gray-900 text-white border-gray-900'
+                    : 'border-gray-200 text-gray-600 hover:bg-gray-50',
+                ]"
+              >
+                Se / Pay / Shan
+              </button>
+            </div>
+          </div>
+        </template>
+
         <button
-          @click="submitStudent"
+          @click="submitAdd"
           :disabled="addLoading"
           class="w-full py-2.5 rounded-xl bg-gray-900 text-white text-sm hover:bg-gray-700 transition cursor-pointer disabled:opacity-50"
         >
-          {{ addLoading ? "Saqlanmoqda..." : "Student qo'shish" }}
-        </button>
-      </div>
-
-      <!-- TEACHER FORM -->
-      <div
-        v-if="addTab === 'teacher'"
-        class="max-w-[420px] flex flex-col gap-4"
-      >
-        <div>
-          <label class="block text-xs text-gray-400 mb-1.5">Ism</label>
-          <input
-            type="text"
-            v-model="teacherForm.name"
-            placeholder="O'qituvchi ismi"
-            :class="inputClass('name')"
-          />
-        </div>
-
-        <div>
-          <label class="block text-xs text-gray-400 mb-1.5">Telefon</label>
-          <input
-            type="tel"
-            v-model="teacherForm.phone"
-            placeholder="+998 90 000 00 00"
-            :class="inputClass('phone')"
-          />
-        </div>
-
-        <button
-          @click="submitTeacher"
-          :disabled="addLoading"
-          class="w-full py-2.5 rounded-xl bg-gray-900 text-white text-sm hover:bg-gray-700 transition cursor-pointer disabled:opacity-50"
-        >
-          {{ addLoading ? "Saqlanmoqda..." : "O'qituvchi qo'shish" }}
+          {{ addLoading ? "Saqlanmoqda..." : "Qo'shish" }}
         </button>
       </div>
     </div>
@@ -1117,6 +1057,11 @@ const inputClass = (field) => [
     </div>
     <div class="" v-if="activeTab === 'settings'">
       <Coin_settings />
+    </div>
+    <div
+      v-if="activeTab === 'groups'"
+    >
+      <Groups/>
     </div>
   </div>
 </template>

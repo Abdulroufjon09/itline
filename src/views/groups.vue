@@ -1,12 +1,11 @@
 <script setup>
-import { ref, onMounted, computed } from "vue";
+import { ref, onMounted, computed, watch } from "vue";
 import { useRouter } from "vue-router";
 const router = useRouter();
 const API = "https://itline-django-9s85.onrender.com/api";
 
 const user = JSON.parse(localStorage.getItem("user") || "null");
 if (!user) router.push("/login");
-if (user && !user.is_admin) router.push("/");
 
 function logout() {
   localStorage.removeItem("user");
@@ -33,6 +32,8 @@ const form = ref({
   teacher_id: null,
   students: [],
   lesson_time: "09:00",
+  room: "",
+  schedule: "odd", // ✅ YANGI
 });
 const studentSearch = ref("");
 
@@ -43,6 +44,11 @@ const avatarColors = [
   { backgroundColor: "#E6F1FB", color: "#0C447C" },
   { backgroundColor: "#FAEEDA", color: "#633806" },
 ];
+
+const SCHEDULE_LABEL = {
+  odd: "Du / Chor / Juma",
+  even: "Se / Pay / Shan",
+};
 
 // ─────────────────────────────
 // COMPUTED
@@ -121,6 +127,8 @@ function openCreate() {
     teacher_id: null,
     students: [],
     lesson_time: "09:00",
+    room: "",
+    schedule: "odd", // ✅ YANGI: Default schedule
   };
   studentSearch.value = "";
   activeGroup.value = null;
@@ -133,6 +141,8 @@ function openEdit(group) {
     teacher_id: group.teacher?.id || null,
     students: group.students?.map((s) => s.id) || [],
     lesson_time: group.lesson_time || "09:00",
+    room: group.room || "",
+    schedule: group.schedule || "odd", // ✅ YANGI: Guruh schedule-ini olib olish
   };
   studentSearch.value = "";
   activeGroup.value = group;
@@ -183,6 +193,8 @@ async function saveGroup() {
       name: form.value.name.trim(),
       students: form.value.students,
       lesson_time: form.value.lesson_time,
+      room: form.value.room.trim(),
+      schedule: form.value.schedule, // ✅ YANGI: Schedule yuborish
     };
 
     if (form.value.teacher_id) {
@@ -217,7 +229,16 @@ async function saveGroup() {
 }
 
 async function deleteGroup(id) {
-  if (!confirm("Guruhni o'chirmoqchimisiz?")) return;
+  // ✅ YANGI: Xavfsiz o'chirish uchun warning
+  const message =
+    "Guruhni o'chiriladi!\n\n⚠️ AHAMIYATLI:\n" +
+    "- Studentlar o'chirilmaydi\n" +
+    "- Faqat guruhdan olib tashlanadi\n" +
+    "- Ularning ma'lumotlari saqlanib qoladi\n\n" +
+    "Davom etmoqchimisiz?";
+
+  if (!confirm(message)) return;
+
   try {
     const res = await fetch(`${API}/groups/delete/${id}/`, {
       method: "DELETE",
@@ -229,6 +250,7 @@ async function deleteGroup(id) {
     }
     closePanel();
     await fetchGroups();
+    alert("Guruh o'chirildi. Studentlar olib tashlanildi.");
   } catch (e) {
     alert("Server bilan aloqa yo'q");
   }
@@ -278,17 +300,17 @@ function initials(s) {
           </div>
         </div>
         <div class="flex gap-2 shrink-0">
+          <RouterLink
+            to="/groups/board"
+            class="border border-gray-200 px-3 sm:px-4 py-2 rounded-full text-xs sm:text-sm hover:bg-gray-100 transition bg-white whitespace-nowrap"
+          >
+            📋 Jadval
+          </RouterLink>
           <button
             @click="openCreate"
-            class="bg-black text-white px-3 sm:px-4 py-2 rounded-full text-xs sm:text-sm hover:bg-gray-800 transition whitespace-nowrap"
+            class="cursor-pointer bg-black text-white px-3 sm:px-4 py-2 rounded-full text-xs sm:text-sm hover:bg-gray-800 transition whitespace-nowrap"
           >
             + Guruh
-          </button>
-          <button
-            @click="logout"
-            class="border border-gray-200 px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm hover:bg-gray-100 transition bg-white whitespace-nowrap hidden sm:block"
-          >
-            Chiqish
           </button>
         </div>
       </div>
@@ -352,9 +374,24 @@ function initials(s) {
                         >
                           {{ group.students?.length || 0 }} ta
                         </span>
+                        <span
+                          v-if="group.schedule"
+                          class="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full shrink-0"
+                        >
+                          📅 {{ SCHEDULE_LABEL[group.schedule] }}
+                        </span>
+                        <span
+                          v-if="group.room"
+                          class="text-xs bg-amber-50 text-amber-700 px-2 py-0.5 rounded-full shrink-0"
+                        >
+                          🚪 {{ group.room }}
+                        </span>
                       </div>
                       <p class="text-xs text-gray-400 mt-0.5 truncate">
                         {{ group.teacher?.name || "O'qituvchi yo'q" }}
+                        <span v-if="group.lesson_time">
+                          · {{ group.lesson_time.slice(0, 5) }}
+                        </span>
                       </p>
                     </div>
                     <div class="flex shrink-0 items-center">
@@ -417,6 +454,30 @@ function initials(s) {
                         "O'qituvchi biriktirilmagan"
                       }}
                     </p>
+                    <div class="flex items-center gap-2 mt-2 flex-wrap">
+                      <span
+                        v-if="activeGroup.lesson_time"
+                        class="text-xs bg-gray-100 text-gray-600 px-2.5 py-1 rounded-full"
+                      >
+                        🕒 {{ activeGroup.lesson_time.slice(0, 5) }}
+                      </span>
+                      <span
+                        v-if="activeGroup.schedule"
+                        class="text-xs bg-blue-50 text-blue-700 px-2.5 py-1 rounded-full"
+                      >
+                        📅 {{ SCHEDULE_LABEL[activeGroup.schedule] }}
+                      </span>
+                      <span
+                        class="text-xs px-2.5 py-1 rounded-full"
+                        :class="
+                          activeGroup.room
+                            ? 'bg-amber-50 text-amber-700'
+                            : 'bg-gray-100 text-gray-400'
+                        "
+                      >
+                        🚪 {{ activeGroup.room || "Xona belgilanmagan" }}
+                      </span>
+                    </div>
                   </div>
                   <button
                     @click="closePanel"
@@ -506,16 +567,67 @@ function initials(s) {
                   />
                 </div>
 
+                <div class="grid grid-cols-2 gap-3 mb-4">
+                  <div>
+                    <label
+                      class="text-xs text-gray-400 uppercase tracking-wide block mb-1.5"
+                      >Dars vaqti</label
+                    >
+                    <input
+                      v-model="form.lesson_time"
+                      type="time"
+                      class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-gray-400 transition"
+                    />
+                  </div>
+
+                  <div>
+                    <label
+                      class="text-xs text-gray-400 uppercase tracking-wide block mb-1.5"
+                      >Xona</label
+                    >
+                    <input
+                      v-model="form.room"
+                      placeholder="204-xona"
+                      class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-gray-400 transition"
+                    />
+                  </div>
+                </div>
+
+                <!-- ✅ YANGI: Schedule field -->
                 <div class="mb-4">
                   <label
                     class="text-xs text-gray-400 uppercase tracking-wide block mb-1.5"
-                    >Dars vaqti</label
+                    >Dars kunlari</label
                   >
-                  <input
-                    v-model="form.lesson_time"
-                    type="time"
-                    class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-gray-400 transition"
-                  />
+                  <div class="flex gap-2">
+                    <button
+                      type="button"
+                      @click="form.schedule = 'odd'"
+                      :class="[
+                        'flex-1 py-2.5 rounded-xl text-sm border transition cursor-pointer',
+                        form.schedule === 'odd'
+                          ? 'bg-blue-600 text-white border-blue-600'
+                          : 'border-gray-200 text-gray-600 hover:bg-gray-50',
+                      ]"
+                    >
+                      📅 Du / Chor / Juma
+                    </button>
+                    <button
+                      type="button"
+                      @click="form.schedule = 'even'"
+                      :class="[
+                        'flex-1 py-2.5 rounded-xl text-sm border transition cursor-pointer',
+                        form.schedule === 'even'
+                          ? 'bg-blue-600 text-white border-blue-600'
+                          : 'border-gray-200 text-gray-600 hover:bg-gray-50',
+                      ]"
+                    >
+                      📅 Se / Pay / Shan
+                    </button>
+                  </div>
+                  <p class="text-xs text-gray-400 mt-2">
+                    Kunlar o'zgarsa, barcha studentlar avtomatik yangilanadi.
+                  </p>
                 </div>
 
                 <div class="mb-4">
