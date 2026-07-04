@@ -57,6 +57,7 @@ const routes = [
   {
     path: "/groups",
     component: lazy("groups"),
+    meta: { requiresAuth: true, requiresAdmin: true },
   },
   {
     path: "/excellence/products",

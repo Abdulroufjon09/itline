@@ -7,6 +7,12 @@ const API = "https://itline-django-9s85.onrender.com/api";
 
 const user = JSON.parse(localStorage.getItem("user") || "null");
 
+// ✅ ROLE-BASED ACCESS CONTROL: Hamma foydalanuvchilar (admin, excellence, student) ko'ra olishlari mumkin
+// Faqat login qilgan foydalanuvchilar uchun
+if (!user) {
+  router.push("/login");
+}
+
 // ─────────────────────────────
 // STATE
 // ─────────────────────────────
@@ -17,8 +23,7 @@ const errorMsg = ref("");
 
 // Soniyalik soat — faqat header'dagi jonli soat uchun
 const clockNow = ref(new Date());
-// 20 soniyada bir yangilanadigan "holat" vaqti — qatorlar holatini
-// qayta hisoblash uchun (sort qayta ishlamaydi, faqat status belgisi)
+// 1 soniyada bir yangilanadigan "holat" vaqti
 const statusNow = ref(new Date());
 
 let clockTimer = null;
@@ -60,9 +65,7 @@ async function fetchGroups() {
 onMounted(() => {
   fetchGroups();
   clockTimer = setInterval(() => (clockNow.value = new Date()), 1000);
-  // ✅ Sanoq (countdown) real vaqtda yurishi uchun 1 soniyaga tushirildi
   statusTimer = setInterval(() => (statusNow.value = new Date()), 1000);
-  // Jadval fon rejimida ochiq turishi mumkin — 2 daqiqada bir yangi ma'lumot
   refetchTimer = setInterval(fetchGroups, 120000);
 });
 
@@ -177,7 +180,6 @@ const todaysGroups = computed(() => {
   return [...upcoming, ...past];
 });
 
-// Qolgan darslar ichida keyingi navbatdagi (hali boshlanmagan) darsning indeksi
 // ✅ Eng yaqin kelayotgan darsning id'si (vaqtga qarab, indeksga emas)
 const nextGroupId = computed(() => {
   const nowMin = timeToMinutes(
@@ -189,8 +191,7 @@ const nextGroupId = computed(() => {
   return upcoming.length ? upcoming[0].id : null;
 });
 
-// ✅ Har bir guruh o'zining haqiqiy vaqti bo'yicha baholanadi,
-// massivdagi o'rniga (indeksiga) bog'liq emas
+// ✅ Har bir guruh o'zining haqiqiy vaqti bo'yicha baholanadi
 function rowStatus(group) {
   const nowMin = timeToMinutes(
     `${statusNow.value.getHours()}:${statusNow.value.getMinutes()}`,
@@ -415,7 +416,7 @@ const STATUS_CLASS = {
               class="shrink-0 rounded-full px-2 py-1 text-[10px] font-bold tracking-[0.05em]"
               :class="STATUS_CLASS[rowStatus(g)]"
             >
-              {{ statusText(g, i) }}
+              {{ statusText(g) }}
             </span>
           </div>
         </div>

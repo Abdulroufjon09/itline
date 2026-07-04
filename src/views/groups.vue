@@ -3,9 +3,19 @@ import { ref, onMounted, computed, watch } from "vue";
 import { useRouter } from "vue-router";
 const router = useRouter();
 const API = "https://itline-django-9s85.onrender.com/api";
-
 const user = JSON.parse(localStorage.getItem("user") || "null");
-if (!user) router.push("/login");
+
+const hasAccess = ref(false);
+const isTeacherOrAdmin = user && (user.is_admin || user.is_excellence || user.teacher_id);
+
+if (!user) {
+  router.push("/login");
+} else if (!isTeacherOrAdmin) {
+  console.log("❌ Not allowed to access Groups");
+  router.push("/");
+} else {
+  hasAccess.value = true;
+}
 
 function logout() {
   localStorage.removeItem("user");
@@ -33,7 +43,7 @@ const form = ref({
   students: [],
   lesson_time: "09:00",
   room: "",
-  schedule: "odd", // ✅ YANGI
+  schedule: "odd",
 });
 const studentSearch = ref("");
 
@@ -69,6 +79,11 @@ const searchResults = computed(() => {
 
 const selectedStudents = computed(() =>
   allStudents.value.filter((s) => form.value.students.includes(s.id)),
+);
+
+// ✅ Faqat admin va excellence guruh qo'sha olishlari mumkin
+const canCreateGroup = computed(() =>
+  ["admin", "excellence"].includes(user?.role),
 );
 
 // ─────────────────────────────
@@ -113,7 +128,9 @@ async function fetchAllStudents() {
   }
 }
 
+// ✅ FAQAT BITTA onMounted — ruxsat bo'lmasa fetch umuman ishlamaydi
 onMounted(() => {
+  if (!hasAccess.value) return;
   Promise.all([fetchGroups(), fetchTeachers(), fetchAllStudents()]);
 });
 
@@ -122,13 +139,19 @@ onMounted(() => {
 // ─────────────────────────────
 
 function openCreate() {
+  // ✅ Ruhsat tekshirish
+  if (!canCreateGroup.value) {
+    alert("Sizda guruh yaratish ruhsati yo'q");
+    return;
+  }
+
   form.value = {
     name: "",
     teacher_id: null,
     students: [],
     lesson_time: "09:00",
     room: "",
-    schedule: "odd", // ✅ YANGI: Default schedule
+    schedule: "odd",
   };
   studentSearch.value = "";
   activeGroup.value = null;
@@ -136,13 +159,19 @@ function openCreate() {
 }
 
 function openEdit(group) {
+  // ✅ Ruhsat tekshirish
+  if (!canCreateGroup.value) {
+    alert("Sizda guruhni tahrirlash ruhsati yo'q");
+    return;
+  }
+
   form.value = {
     name: group.name,
     teacher_id: group.teacher?.id || null,
     students: group.students?.map((s) => s.id) || [],
     lesson_time: group.lesson_time || "09:00",
     room: group.room || "",
-    schedule: group.schedule || "odd", // ✅ YANGI: Guruh schedule-ini olib olish
+    schedule: group.schedule || "odd",
   };
   studentSearch.value = "";
   activeGroup.value = group;
@@ -194,7 +223,7 @@ async function saveGroup() {
       students: form.value.students,
       lesson_time: form.value.lesson_time,
       room: form.value.room.trim(),
-      schedule: form.value.schedule, // ✅ YANGI: Schedule yuborish
+      schedule: form.value.schedule,
     };
 
     if (form.value.teacher_id) {
@@ -229,7 +258,6 @@ async function saveGroup() {
 }
 
 async function deleteGroup(id) {
-  // ✅ YANGI: Xavfsiz o'chirish uchun warning
   const message =
     "Guruhni o'chiriladi!\n\n⚠️ AHAMIYATLI:\n" +
     "- Studentlar o'chirilmaydi\n" +
@@ -306,7 +334,9 @@ function initials(s) {
           >
             📋 Jadval
           </RouterLink>
+          <!-- ✅ Faqat admin va excellence uchun GURUH YARATISH tugmasi -->
           <button
+            v-if="canCreateGroup"
             @click="openCreate"
             class="cursor-pointer bg-black text-white px-3 sm:px-4 py-2 rounded-full text-xs sm:text-sm hover:bg-gray-800 transition whitespace-nowrap"
           >
@@ -344,6 +374,7 @@ function initials(s) {
                 <p class="text-3xl mb-3">🗂️</p>
                 <p>Hozircha guruhlar yo'q</p>
                 <button
+                  v-if="canCreateGroup"
                   @click="openCreate"
                   class="mt-4 text-sm text-black underline"
                 >
@@ -487,7 +518,8 @@ function initials(s) {
                   </button>
                 </div>
 
-                <div class="flex gap-2 mb-5">
+                <!-- ✅ Tahrirlash va O'chirish tugmalari faqat admin/excellence uchun -->
+                <div v-if="canCreateGroup" class="flex gap-2 mb-5">
                   <button
                     @click="openEdit(activeGroup)"
                     class="flex-1 border border-gray-200 py-2.5 rounded-xl text-sm hover:bg-gray-50 transition"
@@ -585,32 +617,6 @@ function initials(s) {
                       >Xona</label
                     >
                     <input
-                      v-model="form.lesson_room"
-                      placeholder="Masalan: 204-xona"
-                      class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-gray-400 transition"
-                    />
-                  </div>
-                </div>
-
-                <div class="grid grid-cols-2 gap-3 mb-4">
-                  <div>
-                    <label
-                      class="text-xs text-gray-400 uppercase tracking-wide block mb-1.5"
-                      >Dars vaqti</label
-                    >
-                    <input
-                      v-model="form.lesson_time"
-                      type="time"
-                      class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-gray-400 transition"
-                    />
-                  </div>
-
-                  <div>
-                    <label
-                      class="text-xs text-gray-400 uppercase tracking-wide block mb-1.5"
-                      >Xona</label
-                    >
-                    <input
                       v-model="form.room"
                       placeholder="204-xona"
                       class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-gray-400 transition"
@@ -618,7 +624,7 @@ function initials(s) {
                   </div>
                 </div>
 
-                <!-- ✅ YANGI: Schedule field -->
+                <!-- Schedule field -->
                 <div class="mb-4">
                   <label
                     class="text-xs text-gray-400 uppercase tracking-wide block mb-1.5"

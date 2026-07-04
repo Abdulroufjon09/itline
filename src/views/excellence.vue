@@ -351,12 +351,6 @@ async function submitAdd() {
 
   addLoading.value = true;
   try {
-    // Backend /register/ "role" maydonini emas, balki admin_password /
-    // excellence_password maydonlarini kutadi va ularni ADMIN_PASSWORD /
-    // EXCELLENCE_PASSWORD konstantalari bilan solishtirib is_admin /
-    // is_excellence flaglarini o'zi belgilaydi. Kiritilgan parolni
-    // ikkalasiga ham yuboramiz — mos kelgani avtomatik ishlaydi,
-    // mos kelmasa student sifatida qoladi.
     const payload = {
       name: addForm.value.name,
       surname: addForm.value.surname,
