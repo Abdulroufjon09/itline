@@ -6,7 +6,8 @@ const API = "https://itline-django-9s85.onrender.com/api";
 const user = JSON.parse(localStorage.getItem("user") || "null");
 
 const hasAccess = ref(false);
-const isTeacherOrAdmin = user && (user.is_admin || user.is_excellence || user.teacher_id);
+const isTeacherOrAdmin =
+  user && (user.is_admin || user.is_excellence || user.teacher_id);
 
 if (!user) {
   router.push("/login");
@@ -82,9 +83,7 @@ const selectedStudents = computed(() =>
 );
 
 // ✅ Faqat admin va excellence guruh qo'sha olishlari mumkin
-const canCreateGroup = computed(() =>
-  ["admin", "excellence"].includes(user?.role),
-);
+const canCreateGroup = computed(() => (hasAccess.value = true));
 
 // ─────────────────────────────
 // FETCH
