@@ -358,17 +358,6 @@ function formatDate(d) {
               </div>
             </div>
 
-            <div>
-              <label class="mb-1 block text-xs font-medium text-slate-500"
-                >Muddati (ixtiyoriy)</label
-              >
-              <input
-                v-model="form.expires_at"
-                type="datetime-local"
-                class="w-full rounded-xl border border-white/70 bg-white/70 px-3.5 py-2.5 text-sm text-slate-800 outline-none backdrop-blur-md transition focus:border-indigo-300 focus:bg-white/90 focus:ring-2 focus:ring-indigo-200/60"
-              />
-            </div>
-
             <label
               class="flex items-center gap-2 text-sm font-medium text-slate-600"
             >
