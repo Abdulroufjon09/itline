@@ -111,12 +111,13 @@ async function submitForm() {
   const payload = {
     ...form.value,
     expires_at: form.value.expires_at || null,
+    user_id: user?.id,
   };
 
   try {
     const url = editingId.value
-      ? `${API}/news/${editingId.value}/`
-      : `${API}/news/`;
+      ? `${API}/news/${editingId.value}/update/`
+      : `${API}/news/create/`;
     const method = editingId.value ? "PATCH" : "POST";
 
     const res = await fetch(url, {
@@ -125,7 +126,11 @@ async function submitForm() {
       body: JSON.stringify(payload),
     });
 
-    if (!res.ok) throw new Error();
+    if (!res.ok) {
+      const errText = await res.text();
+      console.error("Backend xatosi:", res.status, errText);
+      throw new Error(errText || `HTTP ${res.status}`);
+    }
 
     successMsg.value = editingId.value
       ? "Yangilik tahrirlandi ✅"
@@ -135,7 +140,7 @@ async function submitForm() {
     showForm.value = false;
     await fetchNews();
   } catch (e) {
-    errorMsg.value = "Saqlashda xatolik yuz berdi.";
+    errorMsg.value = `Saqlashda xatolik: ${e.message || "noma'lum xato"}`;
   } finally {
     saving.value = false;
   }
@@ -143,10 +148,10 @@ async function submitForm() {
 
 async function toggleActive(item) {
   try {
-    await fetch(`${API}/news/${item.id}/`, {
+    await fetch(`${API}/news/${item.id}/update/`, {
       method: "PATCH",
       headers: authHeaders(),
-      body: JSON.stringify({ is_active: !item.is_active }),
+      body: JSON.stringify({ is_active: !item.is_active, user_id: user?.id }),
     });
     item.is_active = !item.is_active;
   } catch (e) {
@@ -157,7 +162,7 @@ async function toggleActive(item) {
 async function deleteNews(id) {
   if (!confirm("Yangilikni o'chirishni tasdiqlaysizmi?")) return;
   try {
-    const res = await fetch(`${API}/news/${id}/`, {
+    const res = await fetch(`${API}/news/${id}/delete/`, {
       method: "DELETE",
       headers: authHeaders(),
     });
