@@ -7,6 +7,7 @@ import Coin_settings from "./coin_settings.vue";
 import { normalizePhone } from "../utils/phone.js";
 import Groups from "./groups.vue";
 import LessonsPlans from "./LessonsPlans.vue";
+import NewsManager from "./NewsManager.vue";
 
 const router = useRouter();
 const API = "https://itline-django-9s85.onrender.com/api";
@@ -430,6 +431,7 @@ const inputClass = (field) => [
           { key: 'orders', label: '📦 Buyurtmalar' },
           { key: 'settings', label: '⚙️ Coin Settings' },
           { key: 'groups', label: '🗂️ Groups' },
+          { key: 'news', label: '📩 News' },
         ]"
         :key="tab.key"
         @click="activeTab = tab.key"
@@ -1052,10 +1054,11 @@ const inputClass = (field) => [
     <div class="" v-if="activeTab === 'settings'">
       <Coin_settings />
     </div>
-    <div
-      v-if="activeTab === 'groups'"
-    >
-      <Groups/>
+    <div class="" v-if="activeTab === 'news'">
+      <NewsManager />
+    </div>
+    <div v-if="activeTab === 'groups'">
+      <Groups />
     </div>
   </div>
 </template>

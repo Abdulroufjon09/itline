@@ -127,7 +127,6 @@ async function fetchAllStudents() {
   }
 }
 
-// ✅ FAQAT BITTA onMounted — ruxsat bo'lmasa fetch umuman ishlamaydi
 onMounted(() => {
   if (!hasAccess.value) return;
   Promise.all([fetchGroups(), fetchTeachers(), fetchAllStudents()]);
@@ -138,7 +137,6 @@ onMounted(() => {
 // ─────────────────────────────
 
 function openCreate() {
-  // ✅ Ruhsat tekshirish
   if (!canCreateGroup.value) {
     alert("Sizda guruh yaratish ruhsati yo'q");
     return;
@@ -333,7 +331,6 @@ function initials(s) {
           >
             📋 Jadval
           </RouterLink>
-          <!-- ✅ Faqat admin va excellence uchun GURUH YARATISH tugmasi -->
           <button
             v-if="canCreateGroup"
             @click="openCreate"
