@@ -1,8 +1,8 @@
 <template>
     <div class="p-6">
         <div class="mb-6">
-            <h1 class="text-2xl font-bold text-gray-900">Guruhlar / Kurslar</h1>
-            <p class="text-gray-400 mt-1">Kurs narxlarini belgilash, guruh yaratish va o'quvchilarni biriktirish</p>
+            <h1 class="text-2xl font-bold text-gray-900">Kurslar</h1>
+            <p class="text-gray-400 mt-1">Kurs narxlarini belgilash va kursga oid to'lov ma'lumotlarini boshqarish</p>
         </div>
 
         <!-- ══════════ KURSLAR (narx shu yerda belgilanadi) ══════════ -->
@@ -55,107 +55,11 @@
             </div>
         </div>
 
-        <!-- Boshqaruv qatori -->
-        <div class="flex flex-wrap items-end gap-3 mb-6">
-            <div>
-                <label class="block text-sm text-gray-400 mb-1">Oy</label>
-                <input type="month" v-model="selectedMonth"
-                    class="border border-gray-200 rounded-xl px-4 py-2.5 text-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-900/10" />
-            </div>
 
-            <div>
-                <label class="block text-sm text-gray-400 mb-1">O'qituvchi</label>
-                <select v-model="selectedTeacher"
-                    class="border border-gray-200 rounded-xl px-4 py-2.5 text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-gray-900/10">
-                    <option value="">Barchasi</option>
-                    <option v-for="t in teachers" :key="t.id" :value="t.id">{{ t.name }}</option>
-                </select>
-            </div>
 
-            <button @click="openCreateGroupModal"
-                class="bg-gray-900 hover:bg-gray-800 text-white rounded-xl px-5 py-2.5 font-medium transition">
-                + Yangi guruh yaratish
-            </button>
-        </div>
+        <!-- Statistika kartalari olib tashlandi -->
 
-        <!-- Statistika kartalari -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <div class="bg-gray-50 rounded-2xl p-6">
-                <p class="text-gray-400 text-sm">Jami oylik summa</p>
-                <p class="text-2xl font-bold text-gray-900 mt-1">{{ formatSum(stats.total) }} so'm</p>
-            </div>
-            <div class="bg-green-50 rounded-2xl p-6">
-                <p class="text-green-600 text-sm">Yig'ilgan</p>
-                <p class="text-2xl font-bold text-green-600 mt-1">{{ formatSum(stats.paid) }} so'm</p>
-            </div>
-            <div class="bg-red-50 rounded-2xl p-6">
-                <p class="text-red-500 text-sm">Qolgan</p>
-                <p class="text-2xl font-bold text-red-600 mt-1">{{ formatSum(stats.remaining) }} so'm</p>
-            </div>
-        </div>
-
-        <!-- Guruhlar jadvali -->
-        <div class="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-            <table class="w-full text-left">
-                <thead class="bg-gray-50 text-gray-400 text-sm">
-                    <tr>
-                        <th class="px-6 py-3 font-medium">Guruh nomi</th>
-                        <th class="px-6 py-3 font-medium">Kurs</th>
-                        <th class="px-6 py-3 font-medium">O'qituvchi</th>
-                        <th class="px-6 py-3 font-medium">Oylik summa</th>
-                        <th class="px-6 py-3 font-medium">O'quvchilar</th>
-                        <th class="px-6 py-3 font-medium">Yig'ilgan / Qolgan</th>
-                        <th class="px-6 py-3 font-medium">Amallar</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr v-if="loadingGroups">
-                        <td colspan="7" class="px-6 py-8 text-center text-gray-400">Yuklanmoqda...</td>
-                    </tr>
-                    <tr v-else-if="filteredGroups.length === 0">
-                        <td colspan="7" class="px-6 py-8 text-center text-gray-400">Hozircha guruh yo'q</td>
-                    </tr>
-                    <tr v-for="g in filteredGroups" :key="g.id" class="border-t border-gray-100 hover:bg-gray-50/60">
-                        <td class="px-6 py-4 font-semibold text-gray-900">{{ g.name }}</td>
-                        <td class="px-6 py-4 text-gray-600">{{ g.course_name || '-' }}</td>
-                        <td class="px-6 py-4 text-gray-600">{{ g.teacher_name || '-' }}</td>
-
-                        <!-- Oylik summa endi kursga tegishli - shu yerda faqat ko'rsatiladi -->
-                        <td class="px-6 py-4 text-gray-600">
-                            {{ formatSum(g.monthly_fee) }} so'm
-                        </td>
-
-                        <td class="px-6 py-4 text-gray-600">{{ groupStudentsList(g).length }}</td>
-
-                        <td class="px-6 py-4">
-                            <span class="text-green-600 font-medium">+{{ formatSum(groupLedger(g).paid) }}</span>
-                            <span class="mx-1 text-gray-300">/</span>
-                            <span :class="groupLedger(g).remaining > 0 ? 'text-red-600' : 'text-green-600'"
-                                class="font-medium">
-                                {{ groupLedger(g).remaining > 0 ? '-' : '+' }}{{ formatSum(Math.abs(groupLedger(g).remaining)) }}
-                            </span>
-                        </td>
-
-                        <td class="px-6 py-4">
-                            <div class="flex items-center gap-2 flex-wrap">
-                                <button @click="openGroupModal(g)"
-                                    class="text-sm px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 text-gray-700">
-                                    Ko'rish
-                                </button>
-                                <button @click="openAddStudentModal(g)"
-                                    class="text-sm px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 text-gray-700">
-                                    O'quvchi qo'shish
-                                </button>
-                                <button @click="removeGroup(g)"
-                                    class="text-sm px-3 py-1.5 rounded-lg border border-red-200 hover:bg-red-50 text-red-500">
-                                    O'chirish
-                                </button>
-                            </div>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
+        <!-- Guruhlar ko'rsatilmaydi; sahifa faqat kurslarga oid ma'lumotlarni beradi -->
 
         <!-- MODAL: Yangi kurs qo'shish -->
         <div v-if="showCreateCourseModal" class="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
@@ -183,174 +87,7 @@
             </div>
         </div>
 
-        <!-- MODAL: Yangi guruh yaratish -->
-        <div v-if="showCreateGroupModal" class="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-            <div class="bg-white rounded-2xl w-full max-w-md p-6">
-                <h2 class="text-lg font-bold text-gray-900 mb-4">Yangi guruh yaratish</h2>
-
-                <label class="block text-sm text-gray-400 mb-1">Guruh nomi</label>
-                <input v-model="createGroupForm.name" type="text" placeholder="Masalan: Matematika - kunduzgi"
-                    class="w-full border border-gray-200 rounded-xl px-4 py-2.5 mb-4 focus:outline-none focus:ring-2 focus:ring-gray-900/10" />
-
-                <label class="block text-sm text-gray-400 mb-1">Kurs</label>
-                <select v-model="createGroupForm.course_id"
-                    class="w-full border border-gray-200 rounded-xl px-4 py-2.5 mb-4 bg-white focus:outline-none focus:ring-2 focus:ring-gray-900/10">
-                    <option value="" disabled>Tanlang</option>
-                    <option v-for="c in courses" :key="c.id" :value="c.id">{{ c.name }} ({{ formatSum(c.monthly_fee) }}
-                        so'm)</option>
-                </select>
-
-                <label class="block text-sm text-gray-400 mb-1">O'qituvchi</label>
-                <select v-model="createGroupForm.teacher_id"
-                    class="w-full border border-gray-200 rounded-xl px-4 py-2.5 mb-4 bg-white focus:outline-none focus:ring-2 focus:ring-gray-900/10">
-                    <option value="" disabled>Tanlang</option>
-                    <option v-for="t in teachers" :key="t.id" :value="t.id">{{ t.name }}</option>
-                </select>
-
-                <label class="block text-sm text-gray-400 mb-1">Dars vaqti</label>
-                <input v-model="createGroupForm.lesson_time" type="time"
-                    class="w-full border border-gray-200 rounded-xl px-4 py-2.5 mb-4 focus:outline-none focus:ring-2 focus:ring-gray-900/10" />
-
-                <label class="block text-sm text-gray-400 mb-1">Xona</label>
-                <input v-model="createGroupForm.room" type="text" placeholder="Masalan: 3-xona"
-                    class="w-full border border-gray-200 rounded-xl px-4 py-2.5 mb-4 focus:outline-none focus:ring-2 focus:ring-gray-900/10" />
-
-                <label class="block text-sm text-gray-400 mb-1">Dars kuni</label>
-                <div class="flex gap-2 mb-6">
-                    <button type="button" @click="createGroupForm.schedule = 'odd'" :class="[
-                        'flex-1 py-2 rounded-xl text-sm border transition',
-                        createGroupForm.schedule === 'odd'
-                            ? 'bg-gray-900 text-white border-gray-900'
-                            : 'border-gray-200 text-gray-600 hover:bg-gray-50',
-                    ]">
-                        Du / Chor / Juma
-                    </button>
-                    <button type="button" @click="createGroupForm.schedule = 'even'" :class="[
-                        'flex-1 py-2 rounded-xl text-sm border transition',
-                        createGroupForm.schedule === 'even'
-                            ? 'bg-gray-900 text-white border-gray-900'
-                            : 'border-gray-200 text-gray-600 hover:bg-gray-50',
-                    ]">
-                        Se / Pay / Shan
-                    </button>
-                </div>
-
-                <div class="flex justify-end gap-3">
-                    <button @click="showCreateGroupModal = false"
-                        class="px-4 py-2 rounded-xl text-gray-500 hover:bg-gray-50">
-                        Bekor qilish
-                    </button>
-                    <button @click="createGroup" :disabled="creatingGroup"
-                        class="px-5 py-2 rounded-xl bg-gray-900 hover:bg-gray-800 text-white font-medium disabled:opacity-50">
-                        {{ creatingGroup ? 'Saqlanmoqda...' : 'Yaratish' }}
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <!-- MODAL: Guruh tafsilotlari + hisob-kitob -->
-        <div v-if="showGroupModal" class="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-            <div class="bg-white rounded-2xl w-full max-w-3xl p-6 max-h-[85vh] overflow-y-auto">
-                <div class="flex items-center justify-between mb-4">
-                    <div>
-                        <h2 class="text-lg font-bold text-gray-900">{{ activeGroup?.name }}</h2>
-                        <p class="text-gray-400 text-sm">
-                            Kurs: {{ activeGroup?.course_name || '-' }} · Oylik summa:
-                            {{ formatSum(activeGroup?.monthly_fee) }} so'm
-                        </p>
-                    </div>
-                    <button @click="showGroupModal = false"
-                        class="text-gray-400 hover:text-gray-700 text-xl leading-none">
-                        &times;
-                    </button>
-                </div>
-
-                <table class="w-full text-left">
-                    <thead class="bg-gray-50 text-gray-400 text-sm">
-                        <tr>
-                            <th class="px-4 py-2 font-medium">Student</th>
-                            <th class="px-4 py-2 font-medium">Telefon</th>
-                            <th class="px-4 py-2 font-medium">Jami</th>
-                            <th class="px-4 py-2 font-medium">To'langan</th>
-                            <th class="px-4 py-2 font-medium">Qolgan</th>
-                            <th class="px-4 py-2 font-medium">Holat</th>
-                            <th class="px-4 py-2 font-medium"></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr v-if="activeGroupStudents.length === 0">
-                            <td colspan="7" class="px-4 py-6 text-center text-gray-400">Bu guruhda o'quvchi yo'q</td>
-                        </tr>
-                        <tr v-for="s in activeGroupStudents" :key="s.id" class="border-t border-gray-100">
-                            <td class="px-4 py-3 font-medium text-gray-900">{{ s.name }} {{ s.surname }}</td>
-                            <td class="px-4 py-3 text-gray-500">{{ s.phone }}</td>
-                            <td class="px-4 py-3 text-gray-600">{{ formatSum(activeGroup?.monthly_fee) }}</td>
-                            <td class="px-4 py-3">
-                                <input type="number" v-model.number="s.paid_amount"
-                                    class="w-28 border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-gray-900/10" />
-                            </td>
-                            <td class="px-4 py-3 font-medium"
-                                :class="studentRemaining(s) > 0 ? 'text-red-600' : 'text-green-600'">
-                                {{ studentRemaining(s) > 0 ? '-' : '+' }}{{ formatSum(Math.abs(studentRemaining(s))) }}
-                            </td>
-                            <td class="px-4 py-3">
-                                <span class="px-2 py-1 rounded-full text-xs font-medium"
-                                    :class="studentRemaining(s) <= 0 ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-500'">
-                                    {{ studentRemaining(s) <= 0 ? "To'langan" : "To'lanmagan" }}
-                                </span>
-                            </td>
-                            <td class="px-4 py-3">
-                                <button @click="savePayment(s)"
-                                    class="text-sm px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 text-gray-700">
-                                    Saqlash
-                                </button>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- MODAL: O'quvchilarni guruhga qo'shish -->
-        <div v-if="showAddStudentModal" class="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-            <div class="bg-white rounded-2xl w-full max-w-lg p-6 max-h-[85vh] overflow-y-auto">
-                <h2 class="text-lg font-bold text-gray-900 mb-1">O'quvchi qo'shish</h2>
-                <p class="text-gray-400 text-sm mb-4">{{ activeGroup?.name }} guruhiga qo'shiladigan o'quvchilarni
-                    belgilang</p>
-
-                <input v-model="studentSearch" type="text" placeholder="Ism yoki telefon bo'yicha qidirish"
-                    class="w-full border border-gray-200 rounded-xl px-4 py-2.5 mb-4 focus:outline-none focus:ring-2 focus:ring-gray-900/10" />
-
-                <div class="max-h-72 overflow-y-auto border border-gray-100 rounded-xl divide-y divide-gray-100 mb-6">
-                    <label v-for="s in filteredStudentsToAdd" :key="s.id"
-                        class="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 cursor-pointer">
-                        <input type="checkbox" :value="s.id" v-model="selectedStudentIds" class="w-4 h-4" />
-                        <div>
-                            <p class="text-gray-900 font-medium">{{ s.name }} {{ s.surname }}</p>
-                            <p class="text-gray-400 text-sm">{{ s.phone }}</p>
-                        </div>
-                    </label>
-                    <p v-if="filteredStudentsToAdd.length === 0" class="px-4 py-6 text-center text-gray-400">
-                        Mos o'quvchi topilmadi
-                    </p>
-                </div>
-
-                <div class="flex justify-between items-center">
-                    <span class="text-sm text-gray-400">{{ selectedStudentIds.length }} ta belgilandi</span>
-                    <div class="flex gap-3">
-                        <button @click="showAddStudentModal = false"
-                            class="px-4 py-2 rounded-xl text-gray-500 hover:bg-gray-50">
-                            Bekor qilish
-                        </button>
-                        <button @click="addSelectedStudents"
-                            :disabled="selectedStudentIds.length === 0 || addingStudents"
-                            class="px-5 py-2 rounded-xl bg-gray-900 hover:bg-gray-800 text-white font-medium disabled:opacity-50">
-                            {{ addingStudents ? "Qo'shilmoqda..." : "Guruhga qo'shish" }}
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
+        <!-- Guruh bilan bog'liq modallar olib tashlandi; sahifa faqat kurslar bilan ishlaydi -->
     </div>
 </template>
 
@@ -469,18 +206,7 @@ function groupLedger(group) {
     return { total, paid, remaining: total - paid };
 }
 
-const stats = computed(() => {
-    return filteredGroups.value.reduce(
-        (acc, g) => {
-            const l = groupLedger(g);
-            acc.total += l.total;
-            acc.paid += l.paid;
-            acc.remaining += l.remaining;
-            return acc;
-        },
-        { total: 0, paid: 0, remaining: 0 }
-    );
-});
+// stats removed — page focuses on courses only
 
 const filteredStudentsToAdd = computed(() => {
     const q = studentSearch.value.trim().toLowerCase();
@@ -558,7 +284,7 @@ async function loadGroups() {
         groups.value = (data || []).map((g) => ({
             ...g,
             students: g.students?.length
-                ? g.students
+                ? g.students.map((s) => (typeof s === 'number' ? { id: s } : s))
                 : (students.value || []).filter((s) => s.group === g.id || s.group_id === g.id),
         }));
     } catch (e) {

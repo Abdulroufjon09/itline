@@ -212,7 +212,7 @@ const selectedSchedule = computed(() =>
 const selectedGroupStudentIds = computed(() => {
   if (!selectedGroupId.value) return null;
   const group = groups.value.find((g) => g.id === selectedGroupId.value);
-  return group ? new Set(group.students?.map((s) => s.id) || []) : null;
+  return group ? new Set(group.students?.map((s) => s.id ?? s) || []) : null;
 });
 
 const filteredAttendances = computed(() =>
@@ -232,7 +232,7 @@ const absentCount = computed(
 );
 
 function groupAttendanceCount(group) {
-  const ids = new Set(group.students?.map((s) => s.id) || []);
+  const ids = new Set(group.students?.map((s) => s.id ?? s) || []);
   return attendances.value.filter((a) => ids.has(a.student_id)).length;
 }
 

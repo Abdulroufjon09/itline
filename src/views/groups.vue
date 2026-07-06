@@ -30,6 +30,7 @@ function logout() {
 const groups = ref([]);
 const teachers = ref([]);
 const allStudents = ref([]);
+const courses = ref([]);
 
 const loadingGroups = ref(true);
 const savingGroup = ref(false);
@@ -40,6 +41,7 @@ const activeGroup = ref(null);
 
 const form = ref({
   name: "",
+  course_id: null,
   teacher_id: null,
   students: [],
   lesson_time: "09:00",
@@ -117,6 +119,25 @@ async function fetchTeachers() {
   }
 }
 
+async function fetchCourses() {
+  try {
+    const res = await fetch(`${API}/courses/`);
+    if (!res.ok) throw new Error("Kurslarni yuklashda xatolik");
+    courses.value = await res.json();
+  } catch (e) {
+    console.error("Fetch Courses Error:", e);
+  }
+}
+
+function groupCourse(group) {
+  if (!group) return null;
+  if (group.course && typeof group.course === "object" && group.course.id) {
+    return group.course;
+  }
+  const courseId = group.course_id || group.course?.id || group.course;
+  return courses.value.find((c) => c.id === courseId) || null;
+}
+
 async function fetchAllStudents() {
   try {
     const res = await fetch(`${API}/students/`);
@@ -127,8 +148,17 @@ async function fetchAllStudents() {
   }
 }
 
-onMounted(() => {
-  Promise.all([fetchGroups(), fetchTeachers(), fetchAllStudents()]);
+onMounted(async () => {
+  await Promise.all([fetchGroups(), fetchTeachers(), fetchAllStudents(), fetchCourses()]);
+  // Normalize groups' students entries to objects with `id` when backend returns numeric IDs
+  if (allStudents.value.length && groups.value.length) {
+    groups.value = groups.value.map((g) => ({
+      ...g,
+      students: g.students?.length
+        ? g.students.map((s) => (typeof s === "number" ? { id: s } : s))
+        : allStudents.value.filter((s) => s.group === g.id || s.group_id === g.id),
+    }));
+  }
 });
 
 // ─────────────────────────────
@@ -143,6 +173,7 @@ function openCreate() {
 
   form.value = {
     name: "",
+    course_id: null,
     teacher_id: null,
     students: [],
     lesson_time: "09:00",
@@ -163,8 +194,9 @@ function openEdit(group) {
 
   form.value = {
     name: group.name,
+    course_id: group.course?.id || group.course_id || null,
     teacher_id: group.teacher?.id || null,
-    students: group.students?.map((s) => s.id) || [],
+    students: group.students?.map((s) => s.id ?? s) || [],
     lesson_time: group.lesson_time || "09:00",
     room: group.room || "",
     schedule: group.schedule || "odd",
@@ -221,6 +253,10 @@ async function saveGroup() {
       room: form.value.room.trim(),
       schedule: form.value.schedule,
     };
+
+    if (form.value.course_id) {
+      payload.course_id = Number(form.value.course_id);
+    }
 
     if (form.value.teacher_id) {
       payload.teacher_id = Number(form.value.teacher_id);
@@ -286,6 +322,11 @@ async function deleteGroup(id) {
 
 function initials(s) {
   return ((s.name?.[0] || "") + (s.surname?.[0] || "")).toUpperCase();
+}
+
+function formatSum(n) {
+  const val = Number(n) || 0;
+  return val.toLocaleString("ru-RU");
 }
 </script>
 
@@ -376,6 +417,10 @@ function initials(s) {
                           · {{ group.lesson_time.slice(0, 5) }}
                         </span>
                       </p>
+                      <p v-if="groupCourse(group)" class="text-xs text-gray-400 mt-1 truncate">
+                        Kurs: {{ groupCourse(group).name }} · Oylik: {{ formatSum(groupCourse(group).monthly_fee) }}
+                        so'm
+                      </p>
                     </div>
                     <div class="flex shrink-0 items-center">
                       <div v-for="(s, i) in (group.students || []).slice(0, 3)" :key="s.id"
@@ -431,8 +476,8 @@ function initials(s) {
                         📅 {{ SCHEDULE_LABEL[activeGroup.schedule] }}
                       </span>
                       <span class="text-xs px-2.5 py-1 rounded-full" :class="activeGroup.room
-                          ? 'bg-amber-50 text-amber-700'
-                          : 'bg-gray-100 text-gray-400'
+                        ? 'bg-amber-50 text-amber-700'
+                        : 'bg-gray-100 text-gray-400'
                         ">
                         🚪 {{ activeGroup.room || "Xona belgilanmagan" }}
                       </span>
@@ -459,6 +504,13 @@ function initials(s) {
                   O'quvchilar — {{ activeGroup.students?.length || 0 }} ta
                 </p>
 
+                <div class="space-y-3 mb-4">
+                  <div v-if="groupCourse(activeGroup)" class="text-sm text-gray-500">
+                    <p class="font-medium">Kurs: {{ groupCourse(activeGroup).name }}</p>
+                    <p class="text-xs">Oylik: {{ formatSum(groupCourse(activeGroup).monthly_fee) }} so'm</p>
+                  </div>
+                  <div v-else class="text-sm text-gray-500">Kurs belgilanmagan</div>
+                </div>
                 <div v-if="activeGroup.students?.length > 0" class="space-y-2">
                   <div v-for="(s, i) in activeGroup.students" :key="s.id"
                     class="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50">
@@ -539,6 +591,17 @@ function initials(s) {
                   <p class="text-xs text-gray-400 mt-2">
                     Kunlar o'zgarsa, barcha studentlar avtomatik yangilanadi.
                   </p>
+                </div>
+
+                <div class="mb-4">
+                  <label class="text-xs text-gray-400 uppercase tracking-wide block mb-1.5">Kurs</label>
+                  <select v-model.number="form.course_id"
+                    class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-gray-400 bg-white transition">
+                    <option :value="null">— Tanlang</option>
+                    <option v-for="c in courses" :key="c.id" :value="c.id">
+                      {{ c.name }} ({{ formatSum(c.monthly_fee) }} so'm)
+                    </option>
+                  </select>
                 </div>
 
                 <div class="mb-4">

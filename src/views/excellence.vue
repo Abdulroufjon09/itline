@@ -26,6 +26,8 @@ const activeTab = ref("payments");
 const teachers = ref([]);
 const stagePrices = ref([]);
 const payments = ref([]);
+const groups = ref([]);
+const courses = ref([]);
 const loading = ref(false);
 const generating = ref(false);
 
@@ -89,36 +91,80 @@ const roleLabel = computed(() => {
 });
 
 async function fetchTeachers() {
-  const res = await fetch(`${API}/teachers/`);
-  if (res.ok) {
+  try {
+    const res = await fetch(`${API}/teachers/`);
+    if (!res.ok) {
+      const res2 = await fetch(`${API}/teachers/create/`);
+      teachers.value = res2.ok ? await res2.json() : [];
+      return;
+    }
     teachers.value = await res.json();
-  } else {
-    const res2 = await fetch(`${API}/teachers/create/`);
-    teachers.value = await res2.json();
+  } catch (e) {
+    console.error("Fetch Teachers Error:", e);
+    teachers.value = [];
   }
 }
 
 async function fetchStagePrices() {
-  const res = await fetch(`${API}/stage-prices/`);
-  stagePrices.value = await res.json();
+  try {
+    const res = await fetch(`${API}/stage-prices/`);
+    if (!res.ok) throw new Error("Bosqich narxlarini yuklashda xatolik");
+    stagePrices.value = await res.json();
+  } catch (e) {
+    console.error("Fetch Stage Prices Error:", e);
+    stagePrices.value = [];
+  }
+}
+
+async function fetchCourses() {
+  try {
+    const res = await fetch(`${API}/courses/`);
+    if (!res.ok) throw new Error("Kurslarni yuklashda xatolik");
+    courses.value = await res.json();
+  } catch (e) {
+    console.error("Fetch Courses Error:", e);
+    courses.value = [];
+  }
+}
+
+async function fetchGroups() {
+  try {
+    const res = await fetch(`${API}/groups/`);
+    if (!res.ok) throw new Error("Guruhlarni yuklashda xatolik");
+    groups.value = await res.json();
+  } catch (e) {
+    console.error("Fetch Groups Error:", e);
+    groups.value = [];
+  }
 }
 
 async function fetchPayments() {
   loading.value = true;
   try {
     let url = `${API}/payments/?month=${selectedMonth.value}`;
-    if (selectedTeacherId.value)
+    if (selectedTeacherId.value) {
       url += `&teacher_id=${selectedTeacherId.value}`;
+    }
     const res = await fetch(url);
+    if (!res.ok) throw new Error("To'lovlarni yuklashda xatolik");
     payments.value = await res.json();
+  } catch (e) {
+    console.error("Fetch Payments Error:", e);
+    payments.value = [];
   } finally {
     loading.value = false;
   }
 }
 
 async function fetchAttPayments() {
-  const res = await fetch(`${API}/payments/?month=${selectedAttMonth.value}`);
-  attPayments.value = await res.json();
+  try {
+    const res = await fetch(`${API}/payments/?month=${selectedAttMonth.value}`);
+    if (!res.ok) throw new Error("Davomat to'lovlarini yuklashda xatolik");
+    attPayments.value = await res.json();
+  } catch (e) {
+    console.error("Fetch Attendance Payments Error:", e);
+    attPayments.value = [];
+  }
 }
 
 async function fetchHistoryPayments() {
@@ -127,14 +173,23 @@ async function fetchHistoryPayments() {
   try {
     const url = `${API}/payments/?month=${historyMonth.value}&teacher_id=${historyTeacherId.value}`;
     const res = await fetch(url);
+    if (!res.ok) throw new Error("Tarix to'lovlarini yuklashda xatolik");
     historyPayments.value = await res.json();
+  } catch (e) {
+    console.error("Fetch History Payments Error:", e);
+    historyPayments.value = [];
   } finally {
     loadingHistory.value = false;
   }
 }
 
 onMounted(async () => {
-  await Promise.all([fetchTeachers(), fetchStagePrices()]);
+  await Promise.allSettled([
+    fetchTeachers(),
+    fetchStagePrices(),
+    fetchCourses(),
+    fetchGroups(),
+  ]);
   await fetchPayments();
   await fetchAttPayments();
 });
@@ -290,12 +345,75 @@ function money(val) {
   return Number(val).toLocaleString("uz-UZ") + " so'm";
 }
 
+function findPaymentGroup(payment) {
+  if (!payment) return null;
+  if (payment.group && typeof payment.group === "object") return payment.group;
+  if (payment.group_id != null) {
+    return groups.value.find((g) => g.id === payment.group_id || g.group_id === payment.group_id) || null;
+  }
+
+  const phone = normalizePhone(payment.student_phone);
+  const name = String(payment.student_name || "").trim().toLowerCase();
+
+  return groups.value.find((g) =>
+    Array.isArray(g.students) &&
+    g.students.some((s) => {
+      if (!s) return false;
+      if (s.id != null && s.id === payment.student_id) return true;
+      if (phone && normalizePhone(s.phone) === phone) return true;
+      if (name && `${s.name || ""} ${s.surname || ""}`.trim().toLowerCase() === name) return true;
+      return false;
+    }),
+  ) || null;
+}
+
+function getPaymentCourse(payment) {
+  if (!payment) return null;
+  if (payment.course && typeof payment.course === "object") return payment.course;
+  if (payment.group?.course && typeof payment.group.course === "object") {
+    return payment.group.course;
+  }
+
+  const group = findPaymentGroup(payment);
+  if (group) {
+    if (group.course && typeof group.course === "object") return group.course;
+    const courseId = group.course || payment.course_id || payment.group?.course_id;
+    const courseObj = courses.value.find((c) => c.id === courseId);
+    if (courseObj) return courseObj;
+    return {
+      name: group.course_name || group.name,
+      monthly_fee: group.monthly_fee,
+      fee: group.monthly_fee,
+    };
+  }
+
+  const courseId = payment.course_id || payment.group?.course_id || payment.group?.course?.id;
+  return courses.value.find((c) => c.id === courseId) || null;
+}
+
 function courseLabel(payment) {
+  const course = getPaymentCourse(payment);
   return (
-    payment.group_name ||
     payment.course_name ||
+    payment.group?.course_name ||
+    payment.group_name ||
+    course?.name ||
+    course?.title ||
+    course?.course_name ||
     payment.group?.name ||
     "—"
+  );
+}
+
+function paymentCourseFee(payment) {
+  const course = getPaymentCourse(payment);
+  return (
+    Number(course?.monthly_fee || course?.price || course?.fee) ||
+    payment.monthly_fee ||
+    payment.group?.monthly_fee ||
+    payment.group?.course?.monthly_fee ||
+    payment.group?.course?.fee ||
+    0
   );
 }
 
@@ -310,12 +428,35 @@ function paymentPaidAmount(payment) {
 }
 
 function paymentAmountDue(payment) {
+  const course = getPaymentCourse(payment);
+  const courseFee = Number(course?.monthly_fee ?? course?.price ?? course?.fee) || 0;
+  const explicitDue = payment.amount_due;
+
+  if (explicitDue != null && explicitDue !== 0) {
+    return explicitDue;
+  }
+  if (courseFee) {
+    return courseFee;
+  }
   return (
-    payment.amount_due ??
     payment.monthly_fee ??
+    payment.monthly_price ??
+    payment.price ??
+    payment.amount ??
     payment.group?.monthly_fee ??
+    payment.group?.price ??
+    payment.group?.amount ??
+    payment.group?.course_monthly_fee ??
+    payment.group?.course?.monthly_fee ??
+    payment.group?.course?.monthly_price ??
+    payment.group?.course?.price ??
+    payment.group?.course?.fee ??
     payment.course_monthly_fee ??
     payment.course?.monthly_fee ??
+    payment.course?.monthly_price ??
+    payment.course?.price ??
+    payment.course?.fee ??
+    (course && typeof course === "object" ? course.monthly_fee ?? course.price ?? course.fee : null) ??
     0
   );
 }
@@ -457,6 +598,8 @@ const inputClass = (field) => [
     ? "border-red-300 bg-red-50"
     : "border-gray-200 focus:border-gray-400",
 ];
+console.log(payments.value[0])
+console.log(groups.value[0])
 </script>
 
 <template>
@@ -478,6 +621,7 @@ const inputClass = (field) => [
     <div class="flex gap-2 mb-6 overflow-x-auto pb-1">
       <button v-for="tab in [
         { key: 'payments', label: '💳 To\'lovlar' },
+        { key: 'fee', label: '💼 Kurslar' },
 
         { key: 'history', label: '📊 Tarix' },
         { key: 'attendance', label: '📋 Davomat' },
@@ -488,11 +632,11 @@ const inputClass = (field) => [
         { key: 'groups', label: '🗂️ Groups' },
         { key: 'news', label: '📩 News' },
       ]" :key="tab.key" @click="activeTab = tab.key" :class="[
-          'cursor-pointer px-4 py-2 rounded-full text-sm border transition whitespace-nowrap',
-          activeTab === tab.key
-            ? 'bg-gray-900 text-white border-gray-900'
-            : 'border-gray-200 text-gray-500 hover:bg-gray-50',
-        ]">
+        'cursor-pointer px-4 py-2 rounded-full text-sm border transition whitespace-nowrap',
+        activeTab === tab.key
+          ? 'bg-gray-900 text-white border-gray-900'
+          : 'border-gray-200 text-gray-500 hover:bg-gray-50',
+      ]">
         {{ tab.label }}
       </button>
       <router-link
@@ -508,6 +652,7 @@ const inputClass = (field) => [
           <input type="month" v-model="selectedMonth" @change="fetchPayments"
             class="border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none" />
         </div>
+
         <div>
           <label class="block text-xs text-gray-400 mb-1">O'qituvchi</label>
           <select v-model="selectedTeacherId" @change="fetchPayments"
@@ -518,6 +663,7 @@ const inputClass = (field) => [
             </option>
           </select>
         </div>
+
         <div class="flex items-end">
           <button @click="generatePayments" :disabled="generating"
             class="px-4 py-2 bg-gray-900 text-white rounded-xl text-sm hover:bg-gray-700 transition disabled:opacity-50">
@@ -590,7 +736,7 @@ const inputClass = (field) => [
               </td>
               <td class="px-4 py-3 text-gray-600">{{ courseLabel(payment) }}</td>
               <td class="px-4 py-3">
-                {{ money(paymentAmountDue(payment)) }}</td>
+                {{ money(paymentCourseFee(payment)) }}</td>
               <td class="px-4 py-3">
                 <input type="number" v-model.number="payment.paid_amount" @change="savePaymentRow(payment)"
                   placeholder="0"
@@ -720,7 +866,7 @@ const inputClass = (field) => [
                 </td>
                 <td class="px-4 py-3 text-gray-500">{{ courseLabel(payment) }}</td>
                 <td class="px-4 py-3 font-medium">
-                  {{ money(paymentAmountDue(payment)) }}
+                  {{ money(paymentCourseFee(payment)) }}
                 </td>
                 <td class="px-4 py-3 text-gray-700">
                   {{ money(paymentPaidAmount(payment)) }}
@@ -915,12 +1061,7 @@ const inputClass = (field) => [
         </div>
         <div v-if="detectedRole === 'student' || !detectedRole">
           <label class="block text-xs text-gray-400 mb-1.5">Familiya</label>
-
-          <input type="text" v-model="studentForm.surname" placeholder="Familiyangiz" :class="inputClass('surname')" />
-        </div>
-        <div>
-          <label class="block text-xs text-gray-400 mb-1.5">Telefon</label>
-          <input type="tel" v-model="studentForm.phone" placeholder="+998 90 000 00 00" :class="inputClass('phone')" />
+          <input type="text" v-model="addForm.surname" placeholder="Familiyangiz" :class="inputClass('surname')" />
         </div>
         <div>
           <label class="block text-xs text-gray-400 mb-1.5">Telefon</label>
@@ -974,7 +1115,6 @@ const inputClass = (field) => [
         <button @click="submitAdd" :disabled="addLoading"
           class="w-full py-2.5 rounded-xl bg-gray-900 text-white text-sm hover:bg-gray-700 transition cursor-pointer disabled:opacity-50">
           {{ addLoading ? "Saqlanmoqda..." : "Qo'shish" }}
-          >>>>>>> c3b59e13e5549a2bca08fa790ca4a9f0d6ee570d
         </button>
       </div>
     </div>
@@ -982,19 +1122,20 @@ const inputClass = (field) => [
     <div class="" v-if="activeTab === 'mahsulotlar'">
       <AdminProducts />
     </div>
-    <Adminorders />
-  </div>
-  <div class="" v-if="activeTab === 'fee'">
-    <DefaultFee />
-  </div>
-  <div class="" v-if="activeTab === 'settings'">
-    <Coin_settings />
-  </div>
-  <div class="" v-if="activeTab === 'news'">
-    <NewsManager />
-  </div>
-  <div v-if="activeTab === 'groups'">
-    <Groups />
-  </div>
+    <div class="" v-if="activeTab === 'orders'">
+      <Adminorders />
+    </div>
+    <div class="" v-if="activeTab === 'fee'">
+      <DefaultFee />
+    </div>
+    <div class="" v-if="activeTab === 'settings'">
+      <Coin_settings />
+    </div>
+    <div class="" v-if="activeTab === 'news'">
+      <NewsManager />
+    </div>
+    <div v-if="activeTab === 'groups'">
+      <Groups />
+    </div>
   </div>
 </template>

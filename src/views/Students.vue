@@ -211,7 +211,7 @@ const filteredStudents = computed(() => {
   if (!selectedGroupId.value) return students.value;
   const group = groups.value.find((g) => g.id === selectedGroupId.value);
   if (!group) return students.value;
-  const ids = new Set(group.students?.map((s) => s.id) || []);
+  const ids = new Set(group.students?.map((s) => s.id ?? s) || []);
   return students.value.filter((s) => ids.has(s.id));
 });
 
@@ -360,7 +360,7 @@ const stageStyle = (stage) => {
         ]">
           🗂️ {{ g.name }}
           <span class="opacity-50 ml-0.5">({{
-            g.students?.filter((s) => students.some((st) => st.id === s.id))
+            g.students?.filter((s) => students.some((st) => st.id === (s.id ?? s)))
               .length || 0
           }})</span>
         </button>
