@@ -1,12 +1,22 @@
 <script setup>
-import { ref, onMounted, computed } from "vue";
+import { ref, onMounted, computed, watch } from "vue";
 import { useRouter } from "vue-router";
 const router = useRouter();
 const API = "https://itline-django-9s85.onrender.com/api";
-
 const user = JSON.parse(localStorage.getItem("user") || "null");
-if (!user) router.push("/login");
-if (user && !user.is_admin) router.push("/");
+
+const hasAccess = ref(false);
+const isTeacherOrAdmin =
+  user && (user.is_admin || user.is_excellence || user.teacher_id);
+
+if (!user) {
+  router.push("/login");
+} else if (!isTeacherOrAdmin) {
+  console.log("❌ Not allowed to access Groups");
+  router.push("/");
+} else {
+  hasAccess.value = true;
+}
 
 function logout() {
   localStorage.removeItem("user");
@@ -33,7 +43,8 @@ const form = ref({
   teacher_id: null,
   students: [],
   lesson_time: "09:00",
-  lesson_room: "",
+  room: "",
+  schedule: "odd",
 });
 const studentSearch = ref("");
 
@@ -44,6 +55,11 @@ const avatarColors = [
   { backgroundColor: "#E6F1FB", color: "#0C447C" },
   { backgroundColor: "#FAEEDA", color: "#633806" },
 ];
+
+const SCHEDULE_LABEL = {
+  odd: "Du / Chor / Juma",
+  even: "Se / Pay / Shan",
+};
 
 // ─────────────────────────────
 // COMPUTED
@@ -65,6 +81,9 @@ const searchResults = computed(() => {
 const selectedStudents = computed(() =>
   allStudents.value.filter((s) => form.value.students.includes(s.id)),
 );
+
+// ✅ Faqat admin va excellence guruh qo'sha olishlari mumkin
+const canCreateGroup = computed(() => (hasAccess.value = true));
 
 // ─────────────────────────────
 // FETCH
@@ -108,17 +127,8 @@ async function fetchAllStudents() {
   }
 }
 
-onMounted(async () => {
-  await Promise.all([fetchGroups(), fetchTeachers(), fetchAllStudents()]);
-  // Ensure each group has a `students` array derived from allStudents when backend omits it
-  if (allStudents.value.length && groups.value.length) {
-    groups.value = groups.value.map((g) => ({
-      ...g,
-      students: g.students?.length
-        ? g.students
-        : allStudents.value.filter((s) => s.group === g.id || s.group_id === g.id),
-    }));
-  }
+onMounted(() => {
+  Promise.all([fetchGroups(), fetchTeachers(), fetchAllStudents()]);
 });
 
 // ─────────────────────────────
@@ -126,12 +136,18 @@ onMounted(async () => {
 // ─────────────────────────────
 
 function openCreate() {
+  if (!canCreateGroup.value) {
+    alert("Sizda guruh yaratish ruhsati yo'q");
+    return;
+  }
+
   form.value = {
     name: "",
     teacher_id: null,
     students: [],
     lesson_time: "09:00",
-    lesson_room: "",
+    room: "",
+    schedule: "odd",
   };
   studentSearch.value = "";
   activeGroup.value = null;
@@ -139,12 +155,19 @@ function openCreate() {
 }
 
 function openEdit(group) {
+  // ✅ Ruhsat tekshirish
+  if (!canCreateGroup.value) {
+    alert("Sizda guruhni tahrirlash ruhsati yo'q");
+    return;
+  }
+
   form.value = {
     name: group.name,
     teacher_id: group.teacher?.id || null,
     students: group.students?.map((s) => s.id) || [],
     lesson_time: group.lesson_time || "09:00",
-    lesson_room: group.lesson_room || "",
+    room: group.room || "",
+    schedule: group.schedule || "odd",
   };
   studentSearch.value = "";
   activeGroup.value = group;
@@ -195,7 +218,8 @@ async function saveGroup() {
       name: form.value.name.trim(),
       students: form.value.students,
       lesson_time: form.value.lesson_time,
-      lesson_room: form.value.lesson_room.trim(),
+      room: form.value.room.trim(),
+      schedule: form.value.schedule,
     };
 
     if (form.value.teacher_id) {
@@ -230,7 +254,15 @@ async function saveGroup() {
 }
 
 async function deleteGroup(id) {
-  if (!confirm("Guruhni o'chirmoqchimisiz?")) return;
+  const message =
+    "Guruhni o'chiriladi!\n\n⚠️ AHAMIYATLI:\n" +
+    "- Studentlar o'chirilmaydi\n" +
+    "- Faqat guruhdan olib tashlanadi\n" +
+    "- Ularning ma'lumotlari saqlanib qoladi\n\n" +
+    "Davom etmoqchimisiz?";
+
+  if (!confirm(message)) return;
+
   try {
     const res = await fetch(`${API}/groups/delete/${id}/`, {
       method: "DELETE",
@@ -242,6 +274,7 @@ async function deleteGroup(id) {
     }
     closePanel();
     await fetchGroups();
+    alert("Guruh o'chirildi. Studentlar olib tashlanildi.");
   } catch (e) {
     alert("Server bilan aloqa yo'q");
   }
@@ -278,13 +311,13 @@ function initials(s) {
           </div>
         </div>
         <div class="flex gap-2 shrink-0">
-          <button @click="openCreate"
-            class="bg-black text-white px-3 sm:px-4 py-2 rounded-full text-xs sm:text-sm hover:bg-gray-800 transition whitespace-nowrap">
+          <RouterLink to="/groups/board"
+            class="border border-gray-200 px-3 sm:px-4 py-2 rounded-full text-xs sm:text-sm hover:bg-gray-100 transition bg-white whitespace-nowrap">
+            📋 Jadval
+          </RouterLink>
+          <button v-if="canCreateGroup" @click="openCreate"
+            class="cursor-pointer bg-black text-white px-3 sm:px-4 py-2 rounded-full text-xs sm:text-sm hover:bg-gray-800 transition whitespace-nowrap">
             + Guruh
-          </button>
-          <button @click="logout"
-            class="border border-gray-200 px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm hover:bg-gray-100 transition bg-white whitespace-nowrap hidden sm:block">
-            Chiqish
           </button>
         </div>
       </div>
@@ -307,7 +340,7 @@ function initials(s) {
               <div v-else-if="groups.length === 0" class="text-center py-12 text-gray-400 text-sm">
                 <p class="text-3xl mb-3">🗂️</p>
                 <p>Hozircha guruhlar yo'q</p>
-                <button @click="openCreate" class="mt-4 text-sm text-black underline">
+                <button v-if="canCreateGroup" @click="openCreate" class="mt-4 text-sm text-black underline">
                   Birinchi guruhni yarating
                 </button>
               </div>
@@ -328,13 +361,20 @@ function initials(s) {
                         <span class="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full shrink-0">
                           {{ group.students?.length || 0 }} ta
                         </span>
+                        <span v-if="group.schedule"
+                          class="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full shrink-0">
+                          📅 {{ SCHEDULE_LABEL[group.schedule] }}
+                        </span>
+                        <span v-if="group.room"
+                          class="text-xs bg-amber-50 text-amber-700 px-2 py-0.5 rounded-full shrink-0">
+                          🚪 {{ group.room }}
+                        </span>
                       </div>
                       <p class="text-xs text-gray-400 mt-0.5 truncate">
                         {{ group.teacher?.name || "O'qituvchi yo'q" }}
                         <span v-if="group.lesson_time">
-                          · {{ group.lesson_time }}</span>
-                        <span v-if="group.lesson_room">
-                          · {{ group.lesson_room }}-xona</span>
+                          · {{ group.lesson_time.slice(0, 5) }}
+                        </span>
                       </p>
                     </div>
                     <div class="flex shrink-0 items-center">
@@ -381,23 +421,30 @@ function initials(s) {
                         "O'qituvchi biriktirilmagan"
                       }}
                     </p>
-                    <p v-if="activeGroup.lesson_time || activeGroup.lesson_room"
-                      class="text-sm text-gray-400 mt-0.5 truncate">
-                      <span v-if="activeGroup.lesson_time">{{
-                        activeGroup.lesson_time
-                      }}</span>
-                      <span v-if="activeGroup.lesson_time && activeGroup.lesson_room">
-                        ·
+                    <div class="flex items-center gap-2 mt-2 flex-wrap">
+                      <span v-if="activeGroup.lesson_time"
+                        class="text-xs bg-gray-100 text-gray-600 px-2.5 py-1 rounded-full">
+                        🕒 {{ activeGroup.lesson_time.slice(0, 5) }}
                       </span>
-                      <span v-if="activeGroup.lesson_room">{{ activeGroup.lesson_room }}-xona</span>
-                    </p>
+                      <span v-if="activeGroup.schedule"
+                        class="text-xs bg-blue-50 text-blue-700 px-2.5 py-1 rounded-full">
+                        📅 {{ SCHEDULE_LABEL[activeGroup.schedule] }}
+                      </span>
+                      <span class="text-xs px-2.5 py-1 rounded-full" :class="activeGroup.room
+                          ? 'bg-amber-50 text-amber-700'
+                          : 'bg-gray-100 text-gray-400'
+                        ">
+                        🚪 {{ activeGroup.room || "Xona belgilanmagan" }}
+                      </span>
+                    </div>
                   </div>
                   <button @click="closePanel" class="text-gray-300 hover:text-gray-600 text-2xl leading-none shrink-0">
                     ×
                   </button>
                 </div>
 
-                <div class="flex gap-2 mb-5">
+                <!-- ✅ Tahrirlash va O'chirish tugmalari faqat admin/excellence uchun -->
+                <div v-if="canCreateGroup" class="flex gap-2 mb-5">
                   <button @click="openEdit(activeGroup)"
                     class="flex-1 border border-gray-200 py-2.5 rounded-xl text-sm hover:bg-gray-50 transition">
                     ✏️ Tahrirlash
@@ -463,9 +510,35 @@ function initials(s) {
                   </div>
                   <div>
                     <label class="text-xs text-gray-400 uppercase tracking-wide block mb-1.5">Xona</label>
-                    <input v-model="form.lesson_room" placeholder="Masalan: 204-xona"
+                    <input v-model="form.room" placeholder="204-xona"
                       class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-gray-400 transition" />
                   </div>
+                </div>
+
+                <!-- Schedule field -->
+                <div class="mb-4">
+                  <label class="text-xs text-gray-400 uppercase tracking-wide block mb-1.5">Dars kunlari</label>
+                  <div class="flex gap-2">
+                    <button type="button" @click="form.schedule = 'odd'" :class="[
+                      'flex-1 py-2.5 rounded-xl text-sm border transition cursor-pointer',
+                      form.schedule === 'odd'
+                        ? 'bg-blue-600 text-white border-blue-600'
+                        : 'border-gray-200 text-gray-600 hover:bg-gray-50',
+                    ]">
+                      📅 Du / Chor / Juma
+                    </button>
+                    <button type="button" @click="form.schedule = 'even'" :class="[
+                      'flex-1 py-2.5 rounded-xl text-sm border transition cursor-pointer',
+                      form.schedule === 'even'
+                        ? 'bg-blue-600 text-white border-blue-600'
+                        : 'border-gray-200 text-gray-600 hover:bg-gray-50',
+                    ]">
+                      📅 Se / Pay / Shan
+                    </button>
+                  </div>
+                  <p class="text-xs text-gray-400 mt-2">
+                    Kunlar o'zgarsa, barcha studentlar avtomatik yangilanadi.
+                  </p>
                 </div>
 
                 <div class="mb-4">

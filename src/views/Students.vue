@@ -3,6 +3,7 @@ import Leaderboard from "@/components/Leaderboard.vue";
 import Magazine from "./Magazine.vue";
 import { ref, onMounted, computed } from "vue";
 import { useRouter } from "vue-router";
+import LessonsPlans from "./LessonsPlans.vue";
 
 const router = useRouter();
 const API = "https://itline-django-9s85.onrender.com/api";
