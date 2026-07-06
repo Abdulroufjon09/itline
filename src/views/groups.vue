@@ -108,8 +108,17 @@ async function fetchAllStudents() {
   }
 }
 
-onMounted(() => {
-  Promise.all([fetchGroups(), fetchTeachers(), fetchAllStudents()]);
+onMounted(async () => {
+  await Promise.all([fetchGroups(), fetchTeachers(), fetchAllStudents()]);
+  // Ensure each group has a `students` array derived from allStudents when backend omits it
+  if (allStudents.value.length && groups.value.length) {
+    groups.value = groups.value.map((g) => ({
+      ...g,
+      students: g.students?.length
+        ? g.students
+        : allStudents.value.filter((s) => s.group === g.id || s.group_id === g.id),
+    }));
+  }
 });
 
 // ─────────────────────────────

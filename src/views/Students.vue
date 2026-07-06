@@ -88,7 +88,7 @@ async function fetchGroups() {
   try {
     const res = await fetch(`${API}/groups/`);
     const all = await res.json();
-    groups.value = all.filter((g) => g.teacher === user.teacher_id);
+    groups.value = all.filter((g) => g.teacher === user.teacher_id || g.teacher?.id === user.teacher_id);
     if (!user.is_admin && user.id) {
       myGroup.value =
         all.find((g) => g.students?.some((s) => s.phone === user.phone)) ||
@@ -118,7 +118,17 @@ async function fetchBonusStatuses() {
 }
 
 onMounted(async () => {
+  // Fetch students and groups, then ensure groups have `students` arrays
   await Promise.all([fetchStudents(), fetchPayments(), fetchGroups()]);
+  // If groups from backend don't include students list, populate from students we fetched
+  if (students.value.length && groups.value.length) {
+    groups.value = groups.value.map((g) => ({
+      ...g,
+      students: g.students?.length
+        ? g.students
+        : students.value.filter((s) => s.group === g.id || s.group_id === g.id),
+    }));
+  }
   fetchBonusStatuses();
 });
 
@@ -246,26 +256,12 @@ const stageStyle = (stage) => {
     <!-- HEADER -->
     <div class="flex items-center justify-between mb-6">
       <div class="flex items-center gap-3 min-w-0">
-        <RouterLink
-          v-if="user.is_admin"
-          to="/admin"
-          class="text-gray-400 hover:text-gray-700 transition shrink-0"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="1.4em"
-            height="1.4em"
-            viewBox="0 0 48 48"
-          >
+        <RouterLink v-if="user.is_admin" to="/admin" class="text-gray-400 hover:text-gray-700 transition shrink-0">
+          <svg xmlns="http://www.w3.org/2000/svg" width="1.4em" height="1.4em" viewBox="0 0 48 48">
             <path d="M0 0h48v48H0z" fill="none" />
-            <path
-              fill="none"
-              stroke="currentColor"
-              stroke-linejoin="round"
-              stroke-width="4"
+            <path fill="none" stroke="currentColor" stroke-linejoin="round" stroke-width="4"
               d="M44 40.836q-7.34-8.96-13.036-10.168t-10.846-.365V41L4 23.545L20.118 7v10.167q9.523.075 16.192 6.833q6.668 6.758 7.69 16.836Z"
-              clip-rule="evenodd"
-            />
+              clip-rule="evenodd" />
           </svg>
         </RouterLink>
         <div class="min-w-0">
@@ -273,22 +269,17 @@ const stageStyle = (stage) => {
           <p class="text-xs text-gray-400">Xush kelibsiz, {{ user.name }}</p>
         </div>
       </div>
-      <button
-        @click="logout"
-        class="shrink-0 border border-gray-200 px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm hover:bg-gray-50 transition"
-      >
+      <button @click="logout"
+        class="shrink-0 border border-gray-200 px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm hover:bg-gray-50 transition">
         Chiqish
       </button>
     </div>
 
     <!-- PROFILE CARD -->
-    <div
-      class="bg-white border border-gray-100 rounded-2xl p-4 mb-5 flex items-center gap-3 shadow-sm"
-    >
+    <div class="bg-white border border-gray-100 rounded-2xl p-4 mb-5 flex items-center gap-3 shadow-sm">
       <div
         class="w-11 h-11 sm:w-13 sm:h-13 rounded-full flex items-center justify-center font-semibold text-sm shrink-0"
-        :style="AVATAR_COLORS[0]"
-      >
+        :style="AVATAR_COLORS[0]">
         {{ (user.name?.[0] || "").toUpperCase() }}
       </div>
       <div class="flex-1 min-w-0">
@@ -298,67 +289,49 @@ const stageStyle = (stage) => {
         </p>
         <p class="text-xs text-gray-400 truncate">{{ user.phone }}</p>
         <div class="mt-1.5">
-          <span
-            v-if="!user.is_admin && myGroup"
-            class="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600"
-          >
+          <span v-if="!user.is_admin && myGroup"
+            class="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">
             🗂️ {{ myGroup.name }}
           </span>
-          <span
-            v-else-if="!user.is_admin && !myGroup"
-            class="text-xs text-gray-300"
-            >Guruhga biriktirilmagan</span
-          >
+          <span v-else-if="!user.is_admin && !myGroup" class="text-xs text-gray-300">Guruhga biriktirilmagan</span>
         </div>
       </div>
     </div>
 
     <!-- TABS -->
     <div class="flex gap-1.5 mb-5 overflow-x-auto pb-1 no-scrollbar">
-      <button
-        @click="activeTab = 'students'"
-        :class="[
-          'shrink-0 px-3.5 sm:px-4 py-2 rounded-full border text-xs sm:text-sm transition',
-          activeTab === 'students'
-            ? 'bg-black text-white border-black'
-            : 'border-gray-200 text-gray-600 hover:bg-gray-50',
-        ]"
-      >
+      <button @click="activeTab = 'students'" :class="[
+        'shrink-0 px-3.5 sm:px-4 py-2 rounded-full border text-xs sm:text-sm transition',
+        activeTab === 'students'
+          ? 'bg-black text-white border-black'
+          : 'border-gray-200 text-gray-600 hover:bg-gray-50',
+      ]">
         👥 Guruh
       </button>
 
       <template v-if="!user.is_admin">
-        <button
-          @click="activeTab = 'payments'"
-          :class="[
-            'shrink-0 px-3.5 sm:px-4 py-2 rounded-full border text-xs sm:text-sm transition',
-            activeTab === 'payments'
-              ? 'bg-black text-white border-black'
-              : 'border-gray-200 text-gray-600 hover:bg-gray-50',
-          ]"
-        >
+        <button @click="activeTab = 'payments'" :class="[
+          'shrink-0 px-3.5 sm:px-4 py-2 rounded-full border text-xs sm:text-sm transition',
+          activeTab === 'payments'
+            ? 'bg-black text-white border-black'
+            : 'border-gray-200 text-gray-600 hover:bg-gray-50',
+        ]">
           💳 To'lovlar
         </button>
-        <button
-          @click="activeTab = 'leader'"
-          :class="[
-            'shrink-0 px-3.5 sm:px-4 py-2 rounded-full border text-xs sm:text-sm transition',
-            activeTab === 'leader'
-              ? 'bg-black text-white border-black'
-              : 'border-gray-200 text-gray-600 hover:bg-gray-50',
-          ]"
-        >
+        <button @click="activeTab = 'leader'" :class="[
+          'shrink-0 px-3.5 sm:px-4 py-2 rounded-full border text-xs sm:text-sm transition',
+          activeTab === 'leader'
+            ? 'bg-black text-white border-black'
+            : 'border-gray-200 text-gray-600 hover:bg-gray-50',
+        ]">
           ⍟ Leaderboard
         </button>
-        <button
-          @click="activeTab = 'market'"
-          :class="[
-            'shrink-0 px-3.5 sm:px-4 py-2 rounded-full border text-xs sm:text-sm transition',
-            activeTab === 'market'
-              ? 'bg-black text-white border-black'
-              : 'border-gray-200 text-gray-600 hover:bg-gray-50',
-          ]"
-        >
+        <button @click="activeTab = 'market'" :class="[
+          'shrink-0 px-3.5 sm:px-4 py-2 rounded-full border text-xs sm:text-sm transition',
+          activeTab === 'market'
+            ? 'bg-black text-white border-black'
+            : 'border-gray-200 text-gray-600 hover:bg-gray-50',
+        ]">
           🛒 Magazine
         </button>
       </template>
@@ -369,79 +342,54 @@ const stageStyle = (stage) => {
     ═══════════════════════════════════════ -->
     <div v-if="activeTab === 'students'">
       <!-- Guruh filtri -->
-      <div
-        v-if="user.is_admin && groups.length > 0"
-        class="mb-4 flex gap-1.5 flex-wrap"
-      >
-        <button
-          @click="selectedGroupId = null"
-          :class="[
-            'px-3 py-1.5 rounded-full text-xs border transition',
-            selectedGroupId === null
-              ? 'bg-black text-white border-black'
-              : 'border-gray-200 text-gray-500 hover:bg-gray-50',
-          ]"
-        >
+      <div v-if="user.is_admin && groups.length > 0" class="mb-4 flex gap-1.5 flex-wrap">
+        <button @click="selectedGroupId = null" :class="[
+          'px-3 py-1.5 rounded-full text-xs border transition',
+          selectedGroupId === null
+            ? 'bg-black text-white border-black'
+            : 'border-gray-200 text-gray-500 hover:bg-gray-50',
+        ]">
           Barchasi ({{ students.length }})
         </button>
-        <button
-          v-for="g in groups"
-          :key="g.id"
-          @click="selectedGroupId = g.id"
-          :class="[
-            'px-3 py-1.5 rounded-full text-xs border transition',
-            selectedGroupId === g.id
-              ? 'bg-black text-white border-black'
-              : 'border-gray-200 text-gray-500 hover:bg-gray-50',
-          ]"
-        >
+        <button v-for="g in groups" :key="g.id" @click="selectedGroupId = g.id" :class="[
+          'px-3 py-1.5 rounded-full text-xs border transition',
+          selectedGroupId === g.id
+            ? 'bg-black text-white border-black'
+            : 'border-gray-200 text-gray-500 hover:bg-gray-50',
+        ]">
           🗂️ {{ g.name }}
-          <span class="opacity-50 ml-0.5"
-            >({{
-              g.students?.filter((s) => students.some((st) => st.id === s.id))
-                .length || 0
-            }})</span
-          >
+          <span class="opacity-50 ml-0.5">({{
+            g.students?.filter((s) => students.some((st) => st.id === s.id))
+              .length || 0
+          }})</span>
         </button>
       </div>
 
       <p class="text-xs text-gray-400 mb-3">
         {{ filteredStudents.length }} ta o'quvchi
-        <span v-if="selectedGroupId" class="text-gray-500"
-          >— {{ groups.find((g) => g.id === selectedGroupId)?.name }}</span
-        >
+        <span v-if="selectedGroupId" class="text-gray-500">—
+          {{groups.find((g) => g.id === selectedGroupId)?.name}}</span>
       </p>
 
       <!-- Loading -->
-      <div
-        v-if="loadingStudents"
-        class="text-center py-10 text-gray-400 text-sm"
-      >
+      <div v-if="loadingStudents" class="text-center py-10 text-gray-400 text-sm">
         Yuklanmoqda...
       </div>
 
       <!-- Empty -->
-      <div
-        v-else-if="!filteredStudents.length"
-        class="text-center py-10 text-gray-400 text-sm"
-      >
+      <div v-else-if="!filteredStudents.length" class="text-center py-10 text-gray-400 text-sm">
         O'quvchilar yo'q
       </div>
 
       <!-- Card list -->
       <div v-else class="space-y-2">
-        <div
-          v-for="(student, index) in filteredStudents"
-          :key="student.id"
-          class="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden"
-        >
+        <div v-for="(student, index) in filteredStudents" :key="student.id"
+          class="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
           <!-- Student row -->
           <div class="flex items-center gap-3 px-4 py-3.5">
             <!-- Avatar -->
-            <div
-              class="w-9 h-9 rounded-full flex items-center justify-center text-xs font-semibold shrink-0"
-              :style="AVATAR_COLORS[index % AVATAR_COLORS.length]"
-            >
+            <div class="w-9 h-9 rounded-full flex items-center justify-center text-xs font-semibold shrink-0"
+              :style="AVATAR_COLORS[index % AVATAR_COLORS.length]">
               {{ initials(student) }}
             </div>
 
@@ -450,22 +398,13 @@ const stageStyle = (stage) => {
               <p class="font-medium text-sm truncate">
                 {{ student.name }} {{ student.surname }}
               </p>
-              <span
-                v-if="user.is_admin"
-                class="text-xs text-gray-400 truncate"
-                >{{ student.phone }}</span
-              >
+              <span v-if="user.is_admin" class="text-xs text-gray-400 truncate">{{ student.phone }}</span>
               <div class="flex flex-wrap items-center gap-1.5 mt-1">
-                <span
-                  class="text-xs px-2 py-0.5 rounded-full font-medium"
-                  :style="stageStyle(student.stage)"
-                >
+                <span class="text-xs px-2 py-0.5 rounded-full font-medium" :style="stageStyle(student.stage)">
                   {{ student.stage }}-etap
                 </span>
-                <span
-                  v-if="getStudentGroup(student.id)"
-                  class="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-500"
-                >
+                <span v-if="getStudentGroup(student.id)"
+                  class="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-500">
                   🗂️ {{ getStudentGroup(student.id).name }}
                 </span>
               </div>
@@ -473,43 +412,31 @@ const stageStyle = (stage) => {
 
             <!-- Coin + action -->
             <div class="flex items-center gap-2 shrink-0">
-              <span
-                class="text-xs px-2.5 py-1 rounded-full bg-yellow-50 text-yellow-700 font-medium whitespace-nowrap"
-              >
+              <span class="text-xs px-2.5 py-1 rounded-full bg-yellow-50 text-yellow-700 font-medium whitespace-nowrap">
                 🪙 {{ student.coin_balance || 0 }}
               </span>
-              <button
-                v-if="user.is_admin"
-                @click="togglePanel(student.id)"
-                class="cursor-pointer w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-gray-100 transition text-sm"
-              >
+              <button v-if="user.is_admin" @click="togglePanel(student.id)"
+                class="cursor-pointer w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-gray-100 transition text-sm">
                 {{ expandedStudentId === student.id ? "✕" : "⚙️" }}
               </button>
             </div>
           </div>
 
-          <div
-            v-if="user.is_admin && expandedStudentId === student.id"
-            class="border-t border-gray-100 bg-gray-50/60 px-4 py-4"
-          >
+          <div v-if="user.is_admin && expandedStudentId === student.id"
+            class="border-t border-gray-100 bg-gray-50/60 px-4 py-4">
             <p class="text-xs font-medium text-gray-500 mb-3">
               {{ student.name }} {{ student.surname }} uchun coin bering
             </p>
 
             <!-- Quick actions — 2x2 grid on mobile, 4 columns on sm+ -->
             <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              <button
-                v-for="action in QUICK_ACTIONS"
-                :key="action.reason"
-                @click="giveCoin(student.id, action.reason)"
-                :disabled="givingCoin[student.id]"
-                :class="[
+              <button v-for="action in QUICK_ACTIONS" :key="action.reason" @click="giveCoin(student.id, action.reason)"
+                :disabled="givingCoin[student.id]" :class="[
                   'flex flex-col items-center justify-center gap-1 rounded-xl border px-2 py-3 text-xs font-medium transition disabled:opacity-40',
                   action.amount > 0
                     ? 'bg-emerald-50 text-emerald-700 border-emerald-100 hover:bg-emerald-100'
                     : 'bg-rose-50 text-rose-600 border-rose-100 hover:bg-rose-100',
-                ]"
-              >
+                ]">
                 <span class="text-base leading-none">{{ action.icon }}</span>
                 <span class="leading-tight text-center">{{
                   action.label
@@ -527,27 +454,18 @@ const stageStyle = (stage) => {
                 <span class="text-gray-400">(1 marta)</span>
               </p>
               <div class="flex items-center gap-2 flex-wrap">
-                <input
-                  v-model.number="manualAmount[student.id]"
-                  type="number"
-                  placeholder="Miqdor"
+                <input v-model.number="manualAmount[student.id]" type="number" placeholder="Miqdor"
                   :disabled="bonusUsed[student.id] || givingCoin[student.id]"
-                  class="w-24 border border-gray-200 rounded-lg px-3 py-1.5 text-xs outline-none focus:border-gray-400 disabled:bg-gray-50 disabled:text-gray-300 transition"
-                />
-                <button
-                  @click="giveManualBonus(student.id)"
-                  :disabled="
-                    bonusUsed[student.id] ||
-                    !manualAmount[student.id] ||
-                    givingCoin[student.id]
-                  "
-                  :class="[
+                  class="w-24 border border-gray-200 rounded-lg px-3 py-1.5 text-xs outline-none focus:border-gray-400 disabled:bg-gray-50 disabled:text-gray-300 transition" />
+                <button @click="giveManualBonus(student.id)" :disabled="bonusUsed[student.id] ||
+                  !manualAmount[student.id] ||
+                  givingCoin[student.id]
+                  " :class="[
                     'px-3 py-1.5 rounded-lg text-xs font-medium border transition',
                     bonusUsed[student.id]
                       ? 'border-gray-200 text-gray-300 cursor-not-allowed'
                       : 'border-gray-800 text-gray-800 hover:bg-gray-800 hover:text-white',
-                  ]"
-                >
+                  ]">
                   {{
                     bonusUsed[student.id] ? "Bu oy ishlatilgan" : "Bonus berish"
                   }}
@@ -556,15 +474,12 @@ const stageStyle = (stage) => {
             </div>
 
             <!-- Feedback -->
-            <p
-              v-if="actionFeedback[student.id]"
-              :class="[
-                'text-xs mt-2.5 font-medium',
-                actionFeedback[student.id].type === 'success'
-                  ? 'text-emerald-600'
-                  : 'text-rose-600',
-              ]"
-            >
+            <p v-if="actionFeedback[student.id]" :class="[
+              'text-xs mt-2.5 font-medium',
+              actionFeedback[student.id].type === 'success'
+                ? 'text-emerald-600'
+                : 'text-rose-600',
+            ]">
               {{ actionFeedback[student.id].text }}
             </p>
           </div>
@@ -576,18 +491,12 @@ const stageStyle = (stage) => {
          PAYMENTS TAB
     ═══════════════════════════════════════ -->
     <div v-if="activeTab === 'payments'">
-      <div
-        v-if="loadingPayments"
-        class="text-center py-10 text-gray-400 text-sm"
-      >
+      <div v-if="loadingPayments" class="text-center py-10 text-gray-400 text-sm">
         Yuklanmoqda...
       </div>
       <div v-else-if="payments.length" class="space-y-3">
-        <div
-          v-for="payment in payments"
-          :key="payment.id"
-          class="bg-white border border-gray-100 rounded-2xl p-4 sm:p-5 shadow-sm"
-        >
+        <div v-for="payment in payments" :key="payment.id"
+          class="bg-white border border-gray-100 rounded-2xl p-4 sm:p-5 shadow-sm">
           <div class="flex items-start justify-between gap-3 mb-4">
             <div>
               <p class="font-semibold text-base">
@@ -598,17 +507,14 @@ const stageStyle = (stage) => {
               </p>
             </div>
             <div class="text-right shrink-0">
-              <span
-                :class="[
-                  'px-2.5 py-1 rounded-full text-xs font-medium',
-                  payment.is_paid
-                    ? 'bg-green-100 text-green-700'
-                    : 'bg-red-100 text-red-600',
-                ]"
-                >{{
-                  payment.is_paid ? "To'lov qilingan ✓" : "To'lov qilinmagan"
-                }}</span
-              >
+              <span :class="[
+                'px-2.5 py-1 rounded-full text-xs font-medium',
+                payment.is_paid
+                  ? 'bg-green-100 text-green-700'
+                  : 'bg-red-100 text-red-600',
+              ]">{{
+                payment.is_paid ? "To'lov qilingan ✓" : "To'lov qilinmagan"
+              }}</span>
               <p v-if="payment.paid_at" class="text-xs text-gray-400 mt-1.5">
                 {{ formatDate(payment.paid_at) }}
               </p>
@@ -625,8 +531,12 @@ const stageStyle = (stage) => {
       </div>
     </div>
 
-    <div class="mt-4" v-if="activeTab === 'leader'"><Leaderboard /></div>
-    <div class="mt-4" v-if="activeTab === 'market'"><Magazine /></div>
+    <div class="mt-4" v-if="activeTab === 'leader'">
+      <Leaderboard />
+    </div>
+    <div class="mt-4" v-if="activeTab === 'market'">
+      <Magazine />
+    </div>
   </div>
 </template>
 
@@ -634,6 +544,7 @@ const stageStyle = (stage) => {
 .no-scrollbar {
   scrollbar-width: none;
 }
+
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
