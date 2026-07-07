@@ -147,7 +147,12 @@ async function fetchPayments() {
     }
     const res = await fetch(url);
     if (!res.ok) throw new Error("To'lovlarni yuklashda xatolik");
-    payments.value = await res.json();
+    const data = await res.json();
+    payments.value = (Array.isArray(data) ? data : []).map((payment) => ({
+      ...payment,
+      is_checked: Boolean(payment.is_checked ?? payment.is_selected ?? payment.checked ?? payment.is_paid),
+      is_paid: Boolean(payment.is_paid ?? payment.is_checked ?? payment.is_selected ?? payment.checked),
+    }));
   } catch (e) {
     console.error("Fetch Payments Error:", e);
     payments.value = [];
@@ -468,22 +473,45 @@ function remainingAmount(payment) {
   return due - paid;
 }
 
-// Summa yoki to'langan input o'zgarganda - ikkalasini ham backendga saqlaydi
+// Checkbox yoki input o'zgarganda statusni backendga saqlaydi
 async function savePaymentRow(payment) {
+  const shouldBePaid = Boolean(payment.is_checked || payment.is_paid || Number(payment.paid_amount || 0) > 0 || remainingAmount(payment) <= 0);
+
   try {
-    const res = await fetch(`${API}/payments/update/${payment.id}/`, {
+    const res = await fetch(`${API}/payments/confirm/${payment.id}/`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        amount_due: payment.amount_due ?? paymentAmountDue(payment),
-        paid_amount: payment.paid_amount,
-        is_paid: remainingAmount(payment) <= 0,
+        is_paid: shouldBePaid,
+        is_checked: Boolean(payment.is_checked),
       }),
     });
+
     const data = await res.json().catch(() => ({}));
-    payment.is_paid = data.is_paid ?? remainingAmount(payment) <= 0;
+    payment.is_paid = data.is_paid ?? shouldBePaid;
+    payment.is_checked = data.is_checked ?? payment.is_paid;
+
+    if (!res.ok) {
+      throw new Error("Confirm endpoint failed");
+    }
   } catch (e) {
-    console.error("To'lovni saqlashda xatolik:", e);
+    try {
+      const fallbackRes = await fetch(`${API}/payments/update/${payment.id}/`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          amount_due: payment.amount_due ?? paymentAmountDue(payment),
+          paid_amount: payment.paid_amount,
+          is_checked: Boolean(payment.is_checked),
+          is_paid: shouldBePaid,
+        }),
+      });
+      const fallbackData = await fallbackRes.json().catch(() => ({}));
+      payment.is_paid = fallbackData.is_paid ?? shouldBePaid;
+      payment.is_checked = fallbackData.is_checked ?? payment.is_paid;
+    } catch (fallbackError) {
+      console.error("To'lovni saqlashda xatolik:", fallbackError);
+    }
   }
 }
 
@@ -720,6 +748,9 @@ console.log(groups.value[0])
                 Qolgan
               </th>
               <th class="text-left px-4 py-3 text-xs text-gray-400 font-medium">
+                Tanlash
+              </th>
+              <th class="text-left px-4 py-3 text-xs text-gray-400 font-medium">
                 Holat
               </th>
             </tr>
@@ -745,6 +776,12 @@ console.log(groups.value[0])
               <td class="px-4 py-3 font-medium"
                 :class="remainingAmount(payment) > 0 ? 'text-red-600' : 'text-green-600'">
                 {{ remainingAmount(payment) > 0 ? "-" : "+" }}{{ money(Math.abs(remainingAmount(payment))) }}
+              </td>
+              <td class="px-4 py-3">
+                <label class="inline-flex items-center cursor-pointer">
+                  <input type="checkbox" v-model="payment.is_checked" @change="savePaymentRow(payment)"
+                    class="h-4 w-4 rounded border-gray-300 text-gray-900 focus:ring-gray-900" />
+                </label>
               </td>
               <td class="px-4 py-3">
                 <span :class="[
