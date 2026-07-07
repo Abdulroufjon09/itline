@@ -46,6 +46,80 @@ const SCHEDULE_LABEL = {
 };
 
 // ─────────────────────────────
+// OVOZLI BILDIRISHNOMALAR (Web Audio API)
+// ─────────────────────────────
+
+// Tashqi fayl kerak emas — signal to'g'ridan-to'g'ri brauzerda generatsiya qilinadi
+const soundEnabled = ref(true);
+let audioCtx = null;
+
+function getAudioCtx() {
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  if (audioCtx.state === "suspended") audioCtx.resume();
+  return audioCtx;
+}
+
+const lessonAudio = new Audio("https://misol.com/ovoz/dars-signali.mp3");
+const newsAudio = new Audio("https://misol.com/ovoz/elon-signali.mp3");
+
+function playLessonAlert() {
+  if (!soundEnabled.value) return;
+  lessonAudio.currentTime = 0;
+  lessonAudio.play().catch(() => {});
+  triggerVisualPulse();
+}
+
+function playNewsAlert() {
+  if (!soundEnabled.value) return;
+  newsAudio.currentTime = 0;
+  newsAudio.play().catch(() => {});
+  triggerVisualPulse();
+}
+
+// Signal chiqqanda ekranda ham qisqa vaqt ko'rinadigan "chaqnash" effekti
+const visualAlert = ref(false);
+let visualAlertTimer = null;
+function triggerVisualPulse() {
+  visualAlert.value = true;
+  clearTimeout(visualAlertTimer);
+  visualAlertTimer = setTimeout(() => (visualAlert.value = false), 2500);
+}
+
+// Tugma bosilganda ovozni yoqish/o'chirish + AudioContext'ni ochish (autoplay cheklovi uchun)
+function toggleSound() {
+  soundEnabled.value = !soundEnabled.value;
+  if (soundEnabled.value) {
+    getAudioCtx();
+    beep(1200, 0, 0.1, 0.15); // yoqilganini bildiruvchi qisqa signal
+  }
+}
+
+// Har bir guruh uchun signal faqat bir marta berilishini nazorat qiladi
+const alertedLessonIds = new Set();
+let lastCheckedDay = new Date().toDateString();
+
+function checkLessonAlerts() {
+  // Kun almashganda ro'yxatni tozalaymiz (ertaga xuddi shu guruh yana signal bersin)
+  const today = new Date().toDateString();
+  if (today !== lastCheckedDay) {
+    alertedLessonIds.clear();
+    lastCheckedDay = today;
+  }
+
+  todaysGroups.value.forEach((g) => {
+    if (!g.lesson_time) return;
+    const secondsLeft = secondsUntilLesson(g.lesson_time);
+    // Dars aynan hozir boshlanayotganda (0 dan -2 soniyagacha oraliqda) signal beramiz
+    if (secondsLeft <= 0 && secondsLeft > -2 && !alertedLessonIds.has(g.id)) {
+      alertedLessonIds.add(g.id);
+      playLessonAlert();
+    }
+  });
+}
+
+// ─────────────────────────────
 // FETCH
 // ─────────────────────────────
 
@@ -65,7 +139,10 @@ async function fetchGroups() {
 onMounted(() => {
   fetchGroups();
   clockTimer = setInterval(() => (clockNow.value = new Date()), 1000);
-  statusTimer = setInterval(() => (statusNow.value = new Date()), 1000);
+  statusTimer = setInterval(() => {
+    statusNow.value = new Date();
+    checkLessonAlerts();
+  }, 1000);
   refetchTimer = setInterval(fetchGroups, 120000);
 });
 
@@ -230,11 +307,26 @@ const STATUS_CLASS = {
 const news = ref([]);
 const currentNewsIndex = ref(0);
 let newsRotateTimer = null;
+let newsRefetchTimer = null;
+
+// Avval ko'rilgan e'lonlar ID'lari — yangisini aniqlash uchun
+const seenNewsIds = new Set();
+let firstNewsLoad = true;
 
 async function fetchNews() {
   try {
     const res = await fetch(`${API}/news/active/`);
-    if (res.ok) news.value = await res.json();
+    if (!res.ok) return;
+    const data = await res.json();
+
+    if (!firstNewsLoad) {
+      const hasNew = data.some((n) => !seenNewsIds.has(n.id));
+      if (hasNew) playNewsAlert();
+    }
+
+    data.forEach((n) => seenNewsIds.add(n.id));
+    news.value = data;
+    firstNewsLoad = false;
   } catch (e) {
     // jim
   }
@@ -247,9 +339,14 @@ onMounted(() => {
       currentNewsIndex.value = (currentNewsIndex.value + 1) % news.value.length;
     }
   }, 6000);
+  // Yangi e'lonlarni sezish uchun har 30 soniyada tekshiramiz
+  newsRefetchTimer = setInterval(fetchNews, 30000);
 });
 
-onUnmounted(() => clearInterval(newsRotateTimer));
+onUnmounted(() => {
+  clearInterval(newsRotateTimer);
+  clearInterval(newsRefetchTimer);
+});
 
 const PRIORITY_STYLE = {
   urgent: "bg-red-500/10 border-red-500/40 text-red-300",
@@ -334,7 +431,12 @@ const PRIORITY_DOT = {
 
       <!-- ══════════ SCHEDULE BOARD ══════════ -->
       <div
-        class="order-2 w-full min-w-0 overflow-hidden rounded-2xl border border-slate-800/80 bg-[#10151d] shadow-2xl shadow-black/50 animate-[fadeIn_0.4s_ease] lg:order-1 lg:flex-1"
+        class="order-2 w-full min-w-0 overflow-hidden rounded-2xl border bg-[#10151d] shadow-2xl shadow-black/50 transition-all duration-500 animate-[fadeIn_0.4s_ease] lg:order-1 lg:flex-1"
+        :class="
+          visualAlert
+            ? 'border-amber-400 shadow-[0_0_40px_rgba(251,191,36,0.35)] animate-[boardFlash_0.6s_ease-in-out_3]'
+            : 'border-slate-800/80'
+        "
       >
         <!-- Header -->
         <div
@@ -367,15 +469,60 @@ const PRIORITY_DOT = {
             </div>
           </div>
 
-          <div class="shrink-0 text-right">
-            <p class="text-[11px] uppercase tracking-[0.08em] text-slate-500">
-              {{ todayLabel }} · {{ todayDate }}
-            </p>
-            <p
-              class="font-['Space_Mono',monospace] text-xl font-bold tabular-nums text-amber-400 drop-shadow-[0_0_18px_rgba(251,191,36,0.35)]"
+          <div class="flex shrink-0 items-center gap-4">
+            <!-- Ovozni yoqish/o'chirish tugmasi -->
+            <button
+              type="button"
+              @click="toggleSound"
+              class="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-800 text-slate-400 transition hover:border-amber-400/60 hover:text-amber-400"
+              :title="soundEnabled ? 'Ovozni o\'chirish' : 'Ovozni yoqish'"
             >
-              {{ formatClock(clockNow) }}
-            </p>
+              <svg
+                v-if="soundEnabled"
+                viewBox="0 0 24 24"
+                width="17"
+                height="17"
+                fill="none"
+              >
+                <path
+                  d="M11 5 6 9H3v6h3l5 4V5Z"
+                  fill="currentColor"
+                />
+                <path
+                  d="M15.5 8.5a5 5 0 0 1 0 7"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                />
+                <path
+                  d="M18 6a9 9 0 0 1 0 12"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                  opacity="0.6"
+                />
+              </svg>
+              <svg v-else viewBox="0 0 24 24" width="17" height="17" fill="none">
+                <path d="M11 5 6 9H3v6h3l5 4V5Z" fill="currentColor" />
+                <path
+                  d="M16 9l5 6M21 9l-5 6"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                />
+              </svg>
+            </button>
+
+            <div class="text-right">
+              <p class="text-[11px] uppercase tracking-[0.08em] text-slate-500">
+                {{ todayLabel }} · {{ todayDate }}
+              </p>
+              <p
+                class="font-['Space_Mono',monospace] text-xl font-bold tabular-nums text-amber-400 drop-shadow-[0_0_18px_rgba(251,191,36,0.35)]"
+              >
+                {{ formatClock(clockNow) }}
+              </p>
+            </div>
           </div>
         </div>
 
@@ -562,6 +709,16 @@ const PRIORITY_DOT = {
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@keyframes boardFlash {
+  0%,
+  100% {
+    box-shadow: 0 0 0 rgba(251, 191, 36, 0);
+  }
+  50% {
+    box-shadow: 0 0 55px rgba(251, 191, 36, 0.55);
   }
 }
 
