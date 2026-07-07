@@ -257,17 +257,21 @@ async function generatePayments() {
   }
 }
 
+// ══════════ TUZATILDI: status FAQAT checkbox holatiga bog'liq ══════════
 async function togglePaid(payment) {
+  const shouldBePaid = !payment.is_paid;
   const res = await fetch(`${API}/payments/confirm/${payment.id}/`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      is_paid: !payment.is_paid,
+      is_paid: shouldBePaid,
+      is_checked: shouldBePaid,
       amount_due: payment.amount_due ?? paymentAmountDue(payment),
     }),
   });
   const data = await res.json();
-  payment.is_paid = data.is_paid;
+  payment.is_paid = data.is_paid ?? shouldBePaid;
+  payment.is_checked = data.is_checked ?? payment.is_paid;
   if (data.amount_due !== undefined) {
     payment.amount_due = data.amount_due;
   }
@@ -284,8 +288,9 @@ async function updateAmount(payment) {
 const totalAmount = computed(() =>
   payments.value.reduce((a, b) => a + Number(paymentAmountDue(b) || 0), 0),
 );
+// ══════════ TUZATILDI: paidAmount endi bitta manbadan (paymentPaidAmount) hisoblanadi ══════════
 const paidAmount = computed(() =>
-  payments.value.reduce((a, b) => a + (Number(b.paid_amount) || paymentPaidAmount(b)), 0),
+  payments.value.reduce((a, b) => a + paymentPaidAmount(b), 0),
 );
 const unpaidAmount = computed(() => totalAmount.value - paidAmount.value);
 
@@ -293,10 +298,7 @@ const historyTotalAmount = computed(() =>
   historyPayments.value.reduce((a, b) => a + Number(paymentAmountDue(b) || 0), 0),
 );
 const historyPaidAmount = computed(() =>
-  historyPayments.value.reduce(
-    (a, b) => a + (Number(b.paid_amount) || paymentPaidAmount(b)),
-    0,
-  ),
+  historyPayments.value.reduce((a, b) => a + paymentPaidAmount(b), 0),
 );
 const historyUnpaidAmount = computed(
   () => historyTotalAmount.value - historyPaidAmount.value,
@@ -422,14 +424,11 @@ function paymentCourseFee(payment) {
   );
 }
 
+// ══════════ TUZATILDI: 0 qiymatni ham to'g'ri hisoblaydi, is_paid'ga qarab "soxta" summa qo'shmaydi ══════════
 function paymentPaidAmount(payment) {
-  return (
-    payment.paid_amount ??
-    payment.amount_paid ??
-    payment.amount_received ??
-    (payment.is_paid ? paymentAmountDue(payment) : 0) ??
-    0
-  );
+  return Number(
+    payment.paid_amount ?? payment.amount_paid ?? payment.amount_received ?? 0
+  ) || 0;
 }
 
 function paymentAmountDue(payment) {
@@ -469,13 +468,26 @@ function paymentAmountDue(payment) {
 // Qolgan = Oylik to'lov (default summa) - hozirgacha to'langan summa
 function remainingAmount(payment) {
   const due = Number(paymentAmountDue(payment)) || 0;
-  const paid = Number(payment.paid_amount ?? paymentPaidAmount(payment)) || 0;
+  const paid = Number(paymentPaidAmount(payment)) || 0;
   return due - paid;
 }
+// ✅ YANGI: minus tugmasini bosishni to'sib qo'yadi (klaviaturadan "-" kiritilmasin)
+function blockNegativeKey(e) {
+  if (e.key === "-" || e.key === "Subtract" || e.key === "NumpadSubtract") {
+    e.preventDefault();
+  }
+}
 
-// Checkbox yoki input o'zgarganda statusni backendga saqlaydi
+// ✅ YANGI: agar biror yo'l bilan (masalan, paste orqali) manfiy son kirsa, uni 0 ga tuzatadi
+function sanitizePaidAmount(payment) {
+  const val = Number(payment.paid_amount);
+  if (isNaN(val) || val < 0) {
+    payment.paid_amount = 0;
+  }
+}
+// ══════════ TUZATILDI: status FAQAT checkbox (is_checked) holatiga qarab belgilanadi ══════════
 async function savePaymentRow(payment) {
-  const shouldBePaid = Boolean(payment.is_checked || payment.is_paid || Number(payment.paid_amount || 0) > 0 || remainingAmount(payment) <= 0);
+  const shouldBePaid = Boolean(payment.is_checked);
 
   try {
     const res = await fetch(`${API}/payments/confirm/${payment.id}/`, {
@@ -483,13 +495,14 @@ async function savePaymentRow(payment) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         is_paid: shouldBePaid,
-        is_checked: Boolean(payment.is_checked),
+        is_checked: shouldBePaid,
+        amount_due: payment.amount_due ?? paymentAmountDue(payment),
       }),
     });
 
     const data = await res.json().catch(() => ({}));
     payment.is_paid = data.is_paid ?? shouldBePaid;
-    payment.is_checked = data.is_checked ?? payment.is_paid;
+    payment.is_checked = data.is_checked ?? shouldBePaid;
 
     if (!res.ok) {
       throw new Error("Confirm endpoint failed");
@@ -502,19 +515,18 @@ async function savePaymentRow(payment) {
         body: JSON.stringify({
           amount_due: payment.amount_due ?? paymentAmountDue(payment),
           paid_amount: payment.paid_amount,
-          is_checked: Boolean(payment.is_checked),
+          is_checked: shouldBePaid,
           is_paid: shouldBePaid,
         }),
       });
       const fallbackData = await fallbackRes.json().catch(() => ({}));
       payment.is_paid = fallbackData.is_paid ?? shouldBePaid;
-      payment.is_checked = fallbackData.is_checked ?? payment.is_paid;
+      payment.is_checked = fallbackData.is_checked ?? shouldBePaid;
     } catch (fallbackError) {
       console.error("To'lovni saqlashda xatolik:", fallbackError);
     }
   }
 }
-
 function addMarkError(...fields) {
   fields.forEach((f) => addErrorFields.value.add(f));
   setTimeout(() => fields.forEach((f) => addErrorFields.value.delete(f)), 1500);
@@ -591,6 +603,9 @@ async function submitAdd() {
     if (role === "student") {
       payload.teacher_id = Number(addForm.value.teacher_id);
       payload.schedule = addForm.value.schedule;
+      // ══════════ TUZATILDI: yangi student uchun to'lov statusini eksplisit false qilib yuboramiz ══════════
+      payload.is_paid = false;
+      payload.is_checked = false;
     }
 
     const { ok, data } = await addApiFetch("/register/", {
@@ -626,10 +641,7 @@ const inputClass = (field) => [
     ? "border-red-300 bg-red-50"
     : "border-gray-200 focus:border-gray-400",
 ];
-console.log(payments.value[0])
-console.log(groups.value[0])
 </script>
-
 <template>
   <div class="max-w-6xl mx-auto p-4 sm:p-6">
     <!-- Header -->
@@ -766,11 +778,12 @@ console.log(groups.value[0])
                 {{ payment.teacher_name }}
               </td>
               <td class="px-4 py-3 text-gray-600">{{ courseLabel(payment) }}</td>
+              <td class="px-4 py-3">{{ money(paymentAmountDue(payment)) }}</td>
               <td class="px-4 py-3">
-                {{ money(paymentCourseFee(payment)) }}</td>
-              <td class="px-4 py-3">
-                <input type="number" v-model.number="payment.paid_amount" @change="savePaymentRow(payment)"
-                  placeholder="0"
+                <!-- ✅ TUZATILDI: manfiy son kiritib bo'lmaydi -->
+                <input type="number" min="0" step="1" v-model.number="payment.paid_amount"
+                  @keydown="blockNegativeKey($event)" @input="sanitizePaidAmount(payment)"
+                  @change="savePaymentRow(payment)" placeholder="0"
                   class="border border-gray-200 rounded-lg px-2 py-1 w-28 text-sm outline-none focus:border-gray-400" />
               </td>
               <td class="px-4 py-3 font-medium"
@@ -779,18 +792,21 @@ console.log(groups.value[0])
               </td>
               <td class="px-4 py-3">
                 <label class="inline-flex items-center cursor-pointer">
-                  <input type="checkbox" v-model="payment.is_checked" @change="savePaymentRow(payment)"
-                    class="h-4 w-4 rounded border-gray-300 text-gray-900 focus:ring-gray-900" />
+                  <!-- ✅ TUZATILDI: summa 0/bo'sh bo'lsa checkbox disabled -->
+                  <input type="checkbox" v-model="payment.is_checked"
+                    :disabled="!Number(payment.paid_amount) || Number(payment.paid_amount) <= 0"
+                    @change="savePaymentRow(payment)"
+                    class="h-4 w-4 rounded border-gray-300 text-gray-900 focus:ring-gray-900 disabled:opacity-40 disabled:cursor-not-allowed" />
                 </label>
               </td>
               <td class="px-4 py-3">
                 <span :class="[
                   'px-2.5 py-1 rounded-full text-xs font-medium',
-                  remainingAmount(payment) <= 0
+                  payment.is_checked
                     ? 'bg-green-100 text-green-700'
                     : 'bg-red-100 text-red-600',
                 ]">
-                  {{ remainingAmount(payment) <= 0 ? "To'langan" : "To'lanmagan" }}
+                  {{ payment.is_checked ? "To'langan" : "To'lanmagan" }}
                 </span>
               </td>
             </tr>
@@ -903,7 +919,7 @@ console.log(groups.value[0])
                 </td>
                 <td class="px-4 py-3 text-gray-500">{{ courseLabel(payment) }}</td>
                 <td class="px-4 py-3 font-medium">
-                  {{ money(paymentCourseFee(payment)) }}
+                  {{ money(paymentAmountDue(payment)) }}
                 </td>
                 <td class="px-4 py-3 text-gray-700">
                   {{ money(paymentPaidAmount(payment)) }}
@@ -915,11 +931,11 @@ console.log(groups.value[0])
                 <td class="px-4 py-3">
                   <span :class="[
                     'px-2.5 py-1 rounded-full text-xs font-medium',
-                    remainingAmount(payment) <= 0
+                    payment.is_paid
                       ? 'bg-green-100 text-green-700'
                       : 'bg-red-100 text-red-600',
                   ]">
-                    {{ remainingAmount(payment) <= 0 ? "✓ To'langan" : "✗ To'lanmagan" }}
+                    {{ payment.is_paid ? "✓ To'langan" : "✗ To'lanmagan" }}
                   </span>
                 </td>
               </tr>
