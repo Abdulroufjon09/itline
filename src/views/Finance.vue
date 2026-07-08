@@ -5,14 +5,19 @@
       class="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
     >
       <div>
-        <div class="flex items-center gap-2 mb-1">
-          <div
-            class="w-1.5 h-6 rounded-full bg-gradient-to-b from-emerald-400 to-emerald-600"
-          ></div>
+        <div class="flex items-center gap-2 mb-4">
+          <div class="pl-4">
+            <img
+              src="../icon/itline.jpg"
+              alt=""
+              class="w-10 rounded-full animate-spin"
+              style="animation-duration: 5s"
+            />
+          </div>
           <h1
-            class="text-xl sm:text-2xl font-bold text-slate-800 tracking-tight"
+            class="text-xl sm:text-2xl font-sans text-slate-800 tracking-tight"
           >
-            Moliya
+            Finance
           </h1>
         </div>
         <p class="text-sm text-slate-400 ml-3.5">
@@ -272,6 +277,7 @@
           </div>
         </div>
 
+        <!-- ✅ TUZATILGAN: Remaining calculation va conditional coloring -->
         <div
           class="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-4 pt-4 border-t border-slate-100"
         >
@@ -291,24 +297,46 @@
           </div>
           <div>
             <p class="text-xs text-slate-400 mb-1">
-              Qolgan (kutilayotgan) summa
+              {{
+                calculatedRemaining > 0
+                  ? "Qolgan (kutilayotgan) summa"
+                  : "Ortiqcha yig'ilgan"
+              }}
             </p>
-            <p class="text-base font-bold text-red-500 tabular-nums">
-              {{ fmt(summary.remaining_total) }}
+            <p
+              class="text-base font-bold tabular-nums"
+              :class="
+                calculatedRemaining > 0 ? 'text-red-500' : 'text-emerald-600'
+              "
+            >
+              {{
+                calculatedRemaining > 0
+                  ? "-" + fmt(calculatedRemaining)
+                  : "+" + fmt(Math.abs(calculatedRemaining))
+              }}
             </p>
           </div>
         </div>
 
-        <!-- Progress bar -->
+        <!-- ✅ TUZATILGAN: Progress bar color oshirmasi -->
         <div class="mt-4">
           <div class="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
             <div
-              class="h-full bg-gradient-to-r from-emerald-400 to-emerald-500 rounded-full transition-all duration-500"
+              class="h-full rounded-full transition-all duration-500"
+              :class="
+                calculatedRemaining > 0
+                  ? 'bg-gradient-to-r from-emerald-400 to-emerald-500'
+                  : 'bg-gradient-to-r from-indigo-400 to-indigo-500'
+              "
               :style="{ width: collectionPercent + '%' }"
             ></div>
           </div>
           <p class="text-xs text-slate-400 mt-1.5 text-right">
-            {{ collectionPercent }}% yig'ildi
+            {{
+              collectionPercent >= 100
+                ? "Tolandi ✓"
+                : collectionPercent + "% yig'ildi"
+            }}
           </p>
         </div>
       </div>
@@ -734,7 +762,6 @@ const search = ref("");
 const toast = ref({ show: false, message: "", type: "success" });
 const selectedMonth = ref(new Date().toISOString().slice(0, 7));
 
-// Backenddan olinadigan yaxlit hisobot
 const summary = ref({
   total_students: 0,
   generated_count: 0,
@@ -811,12 +838,17 @@ const formatMonth = (m) => {
   return monthNames[idx] ? `${monthNames[idx]} ${year}` : m;
 };
 
-// ── Joriy oy uchun to'lov va xarajatlar (backenddan allaqachon shu oy uchun keladi) ──
+// ── Joriy oy uchun to'lov va xarajatlar ──
 const monthPayments = computed(() => payments.value);
 const monthExpenses = computed(() => expenses.value);
 
 const paidAmountOf = (p) => Number(p.paid_amount ?? 0) || 0;
 const remainingOf = (p) => (Number(p.amount_due) || 0) - paidAmountOf(p);
+
+// ✅ TUZATILGAN: Remaining qiymatini to'g'ri hisoblash
+const calculatedRemaining = computed(() => {
+  return Math.max(0, summary.value.remaining_total);
+});
 
 const collectionPercent = computed(() => {
   if (!summary.value.expected_total) return 0;

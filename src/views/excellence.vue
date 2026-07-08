@@ -687,8 +687,15 @@ const inputClass = (field) => [
   <div class="max-w-6xl mx-auto p-4 sm:p-6">
     <!-- Header -->
     <div class="flex justify-between items-center mb-6">
-      <div>
-        <h1 class="text-xl sm:text-2xl font-medium">Excellence Panel</h1>
+      <div class="space-y-2">
+        <h1 class="flex gap-3 text-xl sm:text-2xl font-sans">
+          <span
+            ><img
+              src="../icon/itline.jpg"
+              alt=""
+              class="w-10 rounded-full animate-spin"  style="animation-duration: 5s" /></span
+          >Itline Panel
+        </h1>
         <p class="text-gray-400 text-sm mt-0.5">
           Xush kelibsiz, {{ user.name }}!
         </p>

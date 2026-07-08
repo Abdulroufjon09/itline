@@ -25,6 +25,10 @@ const routes = [
     meta: { requiresAuth: true },
   },
   {
+    path: "/rerere",
+    component: lazy("r"),
+  },
+  {
     path: "/students",
     component: lazy("Students"),
     meta: { requiresAuth: true },

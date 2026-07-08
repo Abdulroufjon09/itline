@@ -1,14 +1,14 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from "vue";
 import { useRouter } from "vue-router";
+import lessonSoundFile from "/sounds/mixkit-airport-announcement-ding-1569.wav";
+import newsSoundFile from "/sounds/mixkit-elegant-door-announcement-224.wav";
 
 const router = useRouter();
 const API = "https://itline-django-9s85.onrender.com/api";
 
 const user = JSON.parse(localStorage.getItem("user") || "null");
 
-// ✅ ROLE-BASED ACCESS CONTROL: Hamma foydalanuvchilar (admin, excellence, student) ko'ra olishlari mumkin
-// Faqat login qilgan foydalanuvchilar uchun
 if (!user) {
   router.push("/login");
 }
@@ -49,7 +49,6 @@ const SCHEDULE_LABEL = {
 // OVOZLI BILDIRISHNOMALAR (Web Audio API)
 // ─────────────────────────────
 
-// Tashqi fayl kerak emas — signal to'g'ridan-to'g'ri brauzerda generatsiya qilinadi
 const soundEnabled = ref(true);
 let audioCtx = null;
 
@@ -61,24 +60,64 @@ function getAudioCtx() {
   return audioCtx;
 }
 
-const lessonAudio = new Audio("https://misol.com/ovoz/dars-signali.mp3");
-const newsAudio = new Audio("https://misol.com/ovoz/elon-signali.mp3");
-
+const lessonAudio = new Audio(lessonSoundFile);
+const newsAudio = new Audio(newsSoundFile);
 function playLessonAlert() {
   if (!soundEnabled.value) return;
+
+  // 1️⃣ Birinchi chiqarish
   lessonAudio.currentTime = 0;
-  lessonAudio.play().catch(() => {});
+  lessonAudio.play().catch((e) => console.warn(e));
+
+  // 2️⃣ Ikkinchi chiqarish — 600ms keiyin
+  setTimeout(() => {
+    lessonAudio.currentTime = 0;
+    lessonAudio.play().catch((e) => console.warn(e));
+  }, 4200);
+
   triggerVisualPulse();
 }
 
 function playNewsAlert() {
   if (!soundEnabled.value) return;
+
+  // ✅ Sound chiqayotganda news rotation'ni pause qil
+  pauseNewsRotationDuringSound();
+
   newsAudio.currentTime = 0;
-  newsAudio.play().catch(() => {});
+  newsAudio.play().catch((e) => console.warn(e));
+
+  setTimeout(() => {
+    newsAudio.currentTime = 0;
+    newsAudio.play().catch((e) => console.warn(e));
+  }, 5200);
+
   triggerVisualPulse();
 }
 
-// Signal chiqqanda ekranda ham qisqa vaqt ko'rinadigan "chaqnash" effekti
+function beep(freq = 1200, delay = 0, duration = 0.1, volume = 0.15) {
+  setTimeout(() => {
+    try {
+      const ctx = getAudioCtx();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      osc.type = "sine";
+      osc.frequency.value = freq;
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      gain.gain.setValueAtTime(volume, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + duration);
+
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + duration);
+    } catch (e) {
+      console.warn("Beep xatosi:", e);
+    }
+  }, delay * 1000);
+}
+
 const visualAlert = ref(false);
 let visualAlertTimer = null;
 function triggerVisualPulse() {
@@ -87,21 +126,18 @@ function triggerVisualPulse() {
   visualAlertTimer = setTimeout(() => (visualAlert.value = false), 2500);
 }
 
-// Tugma bosilganda ovozni yoqish/o'chirish + AudioContext'ni ochish (autoplay cheklovi uchun)
 function toggleSound() {
   soundEnabled.value = !soundEnabled.value;
   if (soundEnabled.value) {
     getAudioCtx();
-    beep(1200, 0, 0.1, 0.15); // yoqilganini bildiruvchi qisqa signal
+    beep(1200, 0, 0.1, 0.15);
   }
 }
 
-// Har bir guruh uchun signal faqat bir marta berilishini nazorat qiladi
 const alertedLessonIds = new Set();
 let lastCheckedDay = new Date().toDateString();
 
 function checkLessonAlerts() {
-  // Kun almashganda ro'yxatni tozalaymiz (ertaga xuddi shu guruh yana signal bersin)
   const today = new Date().toDateString();
   if (today !== lastCheckedDay) {
     alertedLessonIds.clear();
@@ -111,7 +147,6 @@ function checkLessonAlerts() {
   todaysGroups.value.forEach((g) => {
     if (!g.lesson_time) return;
     const secondsLeft = secondsUntilLesson(g.lesson_time);
-    // Dars aynan hozir boshlanayotganda (0 dan -2 soniyagacha oraliqda) signal beramiz
     if (secondsLeft <= 0 && secondsLeft > -2 && !alertedLessonIds.has(g.id)) {
       alertedLessonIds.add(g.id);
       playLessonAlert();
@@ -156,7 +191,6 @@ onUnmounted(() => {
 // HELPERS
 // ─────────────────────────────
 
-// JS getDay(): Yak=0..Shan=6  →  Python weekday(): Dush=0..Yak=6
 function scheduleTypeForDate(date) {
   const py = (date.getDay() + 6) % 7;
   if ([0, 2, 4].includes(py)) return "odd";
@@ -308,6 +342,7 @@ const news = ref([]);
 const currentNewsIndex = ref(0);
 let newsRotateTimer = null;
 let newsRefetchTimer = null;
+let newsAudioTimer = null;
 
 // Avval ko'rilgan e'lonlar ID'lari — yangisini aniqlash uchun
 const seenNewsIds = new Set();
@@ -326,26 +361,47 @@ async function fetchNews() {
 
     data.forEach((n) => seenNewsIds.add(n.id));
     news.value = data;
+
+    // ✅ Agar xabar o'chsa va index chiqib ketsa, uni tuzatish
+    if (news.value.length > 0 && currentNewsIndex.value >= news.value.length) {
+      currentNewsIndex.value = 0;
+    }
+
     firstNewsLoad = false;
   } catch (e) {
     // jim
   }
 }
 
-onMounted(() => {
-  fetchNews();
+// ✅ News rotation'ni boshlash
+function startNewsRotation() {
   newsRotateTimer = setInterval(() => {
     if (news.value.length > 1) {
       currentNewsIndex.value = (currentNewsIndex.value + 1) % news.value.length;
     }
   }, 6000);
-  // Yangi e'lonlarni sezish uchun har 30 soniyada tekshiramiz
-  newsRefetchTimer = setInterval(fetchNews, 30000);
+}
+
+// ✅ News rotation'ni to'xtatish va sound tugagandan keyin qayta boshlash
+function pauseNewsRotationDuringSound() {
+  clearInterval(newsRotateTimer);
+  clearInterval(newsAudioTimer);
+  // Sound tugagandan keyin (5.2 soniya + buffer), rotation'ni qayta boshlash
+  newsAudioTimer = setTimeout(() => {
+    startNewsRotation();
+  }, 5400);
+}
+
+onMounted(() => {
+  fetchNews();
+  startNewsRotation();
+  newsRefetchTimer = setInterval(fetchNews, 10000);
 });
 
 onUnmounted(() => {
   clearInterval(newsRotateTimer);
   clearInterval(newsRefetchTimer);
+  clearInterval(newsAudioTimer);
 });
 
 const PRIORITY_STYLE = {
@@ -484,10 +540,7 @@ const PRIORITY_DOT = {
                 height="17"
                 fill="none"
               >
-                <path
-                  d="M11 5 6 9H3v6h3l5 4V5Z"
-                  fill="currentColor"
-                />
+                <path d="M11 5 6 9H3v6h3l5 4V5Z" fill="currentColor" />
                 <path
                   d="M15.5 8.5a5 5 0 0 1 0 7"
                   stroke="currentColor"
@@ -502,7 +555,13 @@ const PRIORITY_DOT = {
                   opacity="0.6"
                 />
               </svg>
-              <svg v-else viewBox="0 0 24 24" width="17" height="17" fill="none">
+              <svg
+                v-else
+                viewBox="0 0 24 24"
+                width="17"
+                height="17"
+                fill="none"
+              >
                 <path d="M11 5 6 9H3v6h3l5 4V5Z" fill="currentColor" />
                 <path
                   d="M16 9l5 6M21 9l-5 6"
