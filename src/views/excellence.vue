@@ -206,14 +206,129 @@ onMounted(async () => {
     fetchGroups(),
   ]);
   await fetchPayments();
-  await fetchAttPayments();
+  fetchTgStatus();
 });
 
 watch(activeTab, (tab) => {
   if (tab === "history" && historyTeacherId.value) {
     fetchHistoryPayments();
   }
+  // Davomat to'lovlari faqat kerak bo'lganda yuklanadi (sahifa tez ochilishi uchun)
+  if (tab === "attendance" && !attPayments.value.length) {
+    fetchAttPayments();
+  }
 });
+
+// ══════════ PAYMENTS: QIDIRUV + PAGINATION (sekinlik/oq ekran fix) ══════════
+const paySearch = ref("");
+const payPage = ref(1);
+const PAY_PAGE_SIZE = 50;
+
+const filteredPayments = computed(() => {
+  const q = paySearch.value.trim().toLowerCase();
+  if (!q) return payments.value;
+  const qd = q.replace(/\D/g, "");
+  return payments.value.filter((p) => {
+    const name = String(p.student_name || "").toLowerCase();
+    if (name.includes(q)) return true;
+    if (qd.length >= 3) {
+      return String(p.student_phone || "").replace(/\D/g, "").includes(qd);
+    }
+    return false;
+  });
+});
+
+const payTotalPages = computed(() =>
+  Math.max(1, Math.ceil(filteredPayments.value.length / PAY_PAGE_SIZE)),
+);
+const pagedPayments = computed(() =>
+  filteredPayments.value.slice(
+    (payPage.value - 1) * PAY_PAGE_SIZE,
+    payPage.value * PAY_PAGE_SIZE,
+  ),
+);
+watch([paySearch, selectedMonth, selectedTeacherId], () => {
+  payPage.value = 1;
+});
+
+// ══════════ TELEGRAM XABAR YUBORISH ══════════
+const UZ_MONTHS = [
+  "Yanvar", "Fevral", "Mart", "Aprel", "May", "Iyun",
+  "Iyul", "Avgust", "Sentabr", "Oktabr", "Noyabr", "Dekabr",
+];
+const monthLabel = computed(() => {
+  const [y, m] = selectedMonth.value.split("-");
+  return `${UZ_MONTHS[parseInt(m) - 1]} ${y}`;
+});
+
+const tgLinkedIds = ref(new Set());
+async function fetchTgStatus() {
+  try {
+    const res = await fetch(`${API}/tg/status/`);
+    if (!res.ok) return;
+    const data = await res.json();
+    tgLinkedIds.value = new Set(data.student_ids || []);
+  } catch {
+    /* indikator ishlamasa ham sahifa ishlashda davom etadi */
+  }
+}
+
+const msgModal = ref({
+  open: false,
+  mode: "single", // single | all
+  student: null,
+  sending: false,
+  text: "",
+});
+const msgResult = ref(null);
+
+function defaultReminderText() {
+  return (
+    "Assalomu alaykum, {ism}!\n" +
+    "ITLINE o'quv markazida {oy} oyi uchun to'lov muddati yaqinlashmoqda. " +
+    "Iltimos, to'lovni o'z vaqtida amalga oshiring. Rahmat! 🙏"
+  );
+}
+
+function openMsgModal(mode, payment = null) {
+  msgResult.value = null;
+  msgModal.value = {
+    open: true,
+    mode,
+    student: payment
+      ? { id: payment.student_id, name: payment.student_name }
+      : null,
+    sending: false,
+    text: defaultReminderText(),
+  };
+}
+
+async function sendMsg() {
+  const m = msgModal.value;
+  if (!m.text.trim() || m.sending) return;
+  m.sending = true;
+  msgResult.value = null;
+  try {
+    let url = `${API}/messages/send-all/`;
+    const body = { text: m.text, month: monthLabel.value };
+    if (m.mode === "single" && m.student) {
+      url = `${API}/messages/send/`;
+      body.student_id = m.student.id;
+    }
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Xatolik yuz berdi");
+    msgResult.value = data;
+  } catch (e) {
+    msgResult.value = { error: e.message };
+  } finally {
+    msgModal.value.sending = false;
+  }
+}
 
 watch([historyTeacherId, historyMonth], () => {
   if (activeTab.value === "history" && historyTeacherId.value) {
@@ -367,6 +482,16 @@ function money(val) {
   return Number(val).toLocaleString("uz-UZ") + " so'm";
 }
 
+// ✅ FIX: normalizePhone xato otsa butun sahifa render buzilardi (oq ekran).
+// Noto'g'ri/bo'sh telefon uchun exception o'rniga bo'sh qiymat qaytaramiz.
+function safeNormalizePhone(raw) {
+  try {
+    return normalizePhone(String(raw || ""));
+  } catch {
+    return "";
+  }
+}
+
 function findPaymentGroup(payment) {
   if (!payment) return null;
   if (payment.group && typeof payment.group === "object") return payment.group;
@@ -378,7 +503,7 @@ function findPaymentGroup(payment) {
     );
   }
 
-  const phone = normalizePhone(payment.student_phone);
+  const phone = safeNormalizePhone(payment.student_phone);
   const name = String(payment.student_name || "")
     .trim()
     .toLowerCase();
@@ -390,7 +515,7 @@ function findPaymentGroup(payment) {
         g.students.some((s) => {
           if (!s) return false;
           if (s.id != null && s.id === payment.student_id) return true;
-          if (phone && normalizePhone(s.phone) === phone) return true;
+          if (phone && safeNormalizePhone(s.phone) === phone) return true;
           if (
             name &&
             `${s.name || ""} ${s.surname || ""}`.trim().toLowerCase() === name
@@ -783,6 +908,25 @@ const inputClass = (field) => [
             {{ generating ? "Hisoblanmoqda..." : "To'lovlarni yaratish" }}
           </button>
         </div>
+
+        <div class="flex items-end">
+          <button
+            @click="openMsgModal('all')"
+            class="px-4 py-2 bg-sky-500 text-white rounded-xl text-sm hover:bg-sky-600 transition"
+          >
+            📨 Barchaga xabar
+          </button>
+        </div>
+
+        <div class="flex-1 min-w-[180px]">
+          <label class="block text-xs text-gray-400 mb-1">Qidiruv</label>
+          <input
+            v-model="paySearch"
+            type="text"
+            placeholder="Ism yoki telefon..."
+            class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-gray-400"
+          />
+        </div>
       </div>
 
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5">
@@ -838,11 +982,14 @@ const inputClass = (field) => [
               <th class="text-left px-4 py-3 text-xs text-gray-400 font-medium">
                 Holat
               </th>
+              <th class="text-left px-4 py-3 text-xs text-gray-400 font-medium">
+                Xabar
+              </th>
             </tr>
           </thead>
           <tbody>
             <tr
-              v-for="payment in payments"
+              v-for="payment in pagedPayments"
               :key="payment.id"
               class="border-b border-gray-50 hover:bg-gray-50 transition"
             >
@@ -909,15 +1056,60 @@ const inputClass = (field) => [
                   {{ payment.is_checked ? "To'langan" : "To'lanmagan" }}
                 </span>
               </td>
+              <td class="px-4 py-3">
+                <button
+                  @click="openMsgModal('single', payment)"
+                  class="relative px-2.5 py-1.5 rounded-lg border border-gray-200 hover:border-sky-300 hover:bg-sky-50 transition text-sm"
+                  :title="
+                    tgLinkedIds.has(payment.student_id)
+                      ? 'Botga ulangan — xabar boradi'
+                      : 'Hali botga ulanmagan'
+                  "
+                >
+                  ✉️
+                  <span
+                    :class="[
+                      'absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full border border-white',
+                      tgLinkedIds.has(payment.student_id)
+                        ? 'bg-green-400'
+                        : 'bg-gray-300',
+                    ]"
+                  ></span>
+                </button>
+              </td>
             </tr>
           </tbody>
         </table>
         <p
-          v-if="payments.length === 0"
+          v-if="filteredPayments.length === 0"
           class="text-center py-8 text-gray-400 text-sm"
         >
-          Bu oy uchun to'lovlar yo'q.
+          {{ paySearch ? "Hech narsa topilmadi." : "Bu oy uchun to'lovlar yo'q." }}
         </p>
+        <!-- Pagination -->
+        <div
+          v-if="payTotalPages > 1"
+          class="flex items-center justify-between gap-3 p-4 border-t border-gray-100"
+        >
+          <button
+            @click="payPage--"
+            :disabled="payPage <= 1"
+            class="px-3.5 py-1.5 rounded-lg border border-gray-200 text-sm text-gray-500 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
+          >
+            ← Oldingi
+          </button>
+          <p class="text-xs text-gray-400 tabular-nums">
+            {{ payPage }} / {{ payTotalPages }} —
+            {{ filteredPayments.length.toLocaleString() }} ta yozuv
+          </p>
+          <button
+            @click="payPage++"
+            :disabled="payPage >= payTotalPages"
+            class="px-3.5 py-1.5 rounded-lg border border-gray-200 text-sm text-gray-500 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
+          >
+            Keyingi →
+          </button>
+        </div>
       </div>
     </div>
 
@@ -1425,6 +1617,82 @@ const inputClass = (field) => [
     </div>
     <div v-if="activeTab === 'groups'">
       <Groups />
+    </div>
+
+    <!-- ══════════ XABAR YUBORISH MODAL ══════════ -->
+    <div
+      v-if="msgModal.open"
+      class="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4"
+      @click.self="msgModal.open = false"
+    >
+      <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-5">
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="font-semibold text-gray-800">
+            {{
+              msgModal.mode === "single"
+                ? `✉️ ${msgModal.student?.name}ga xabar`
+                : "📨 Barcha o'quvchilarga xabar"
+            }}
+          </h3>
+          <button
+            @click="msgModal.open = false"
+            class="text-gray-400 hover:text-gray-600 text-xl leading-none"
+          >
+            ×
+          </button>
+        </div>
+
+        <p class="text-xs text-gray-400 mb-2">
+          {ism} — o'quvchi ismi, {oy} — tanlangan oy ({{ monthLabel }})
+          bilan avtomatik almashtiriladi. Xabar faqat botga ulangan
+          o'quvchilarga boradi.
+        </p>
+
+        <textarea
+          v-model="msgModal.text"
+          rows="5"
+          class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-gray-400 resize-none"
+        ></textarea>
+
+        <div
+          v-if="msgResult"
+          :class="[
+            'mt-3 text-sm rounded-xl px-3 py-2',
+            msgResult.error
+              ? 'bg-red-50 text-red-600'
+              : 'bg-green-50 text-green-700',
+          ]"
+        >
+          <template v-if="msgResult.error">❌ {{ msgResult.error }}</template>
+          <template v-else-if="msgResult.async">
+            ✅ {{ msgResult.queued }} ta o'quvchiga yuborilmoqda (fonda).
+            {{ msgResult.no_chat }} tasi hali botga ulanmagan.
+          </template>
+          <template v-else>
+            ✅ Yuborildi: {{ msgResult.sent }}
+            <span v-if="msgResult.no_chat"
+              >· Botga ulanmagan: {{ msgResult.no_chat }}</span
+            >
+            <span v-if="msgResult.failed">· Xato: {{ msgResult.failed }}</span>
+          </template>
+        </div>
+
+        <div class="flex gap-2 mt-4">
+          <button
+            @click="msgModal.open = false"
+            class="flex-1 px-4 py-2 rounded-xl border border-gray-200 text-sm text-gray-500 hover:bg-gray-50 transition"
+          >
+            Yopish
+          </button>
+          <button
+            @click="sendMsg"
+            :disabled="msgModal.sending || !msgModal.text.trim()"
+            class="flex-1 px-4 py-2 rounded-xl bg-sky-500 text-white text-sm hover:bg-sky-600 transition disabled:opacity-50"
+          >
+            {{ msgModal.sending ? "Yuborilmoqda..." : "Yuborish" }}
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 </template>

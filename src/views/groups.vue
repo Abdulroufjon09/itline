@@ -328,6 +328,52 @@ function formatSum(n) {
   const val = Number(n) || 0;
   return val.toLocaleString("ru-RU");
 }
+
+// ─────────────────────────────
+// GURUHGA TELEGRAM XABAR
+// ─────────────────────────────
+
+const groupMsg = ref({
+  open: false,
+  group: null,
+  sending: false,
+  text: "",
+});
+const groupMsgResult = ref(null);
+
+function openGroupMsg(group) {
+  groupMsgResult.value = null;
+  groupMsg.value = {
+    open: true,
+    group,
+    sending: false,
+    text:
+      "Assalomu alaykum, {ism}!\n" +
+      "ITLINE o'quv markazida oylik to'lov muddati yaqinlashmoqda. " +
+      "Iltimos, to'lovni o'z vaqtida amalga oshiring. Rahmat! 🙏",
+  };
+}
+
+async function sendGroupMsg() {
+  const m = groupMsg.value;
+  if (!m.text.trim() || m.sending || !m.group) return;
+  m.sending = true;
+  groupMsgResult.value = null;
+  try {
+    const res = await fetch(`${API}/messages/send-group/`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ group_id: m.group.id, text: m.text }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Xatolik yuz berdi");
+    groupMsgResult.value = data;
+  } catch (e) {
+    groupMsgResult.value = { error: e.message };
+  } finally {
+    groupMsg.value.sending = false;
+  }
+}
 </script>
 
 <template>
@@ -493,6 +539,10 @@ function formatSum(n) {
                   <button @click="openEdit(activeGroup)"
                     class="flex-1 border border-gray-200 py-2.5 rounded-xl text-sm hover:bg-gray-50 transition">
                     ✏️ Tahrirlash
+                  </button>
+                  <button @click="openGroupMsg(activeGroup)"
+                    class="flex-1 border border-sky-200 text-sky-600 py-2.5 rounded-xl text-sm hover:bg-sky-50 transition">
+                    📨 Xabar
                   </button>
                   <button @click="deleteGroup(activeGroup.id)"
                     class="flex-1 border border-red-100 text-red-500 py-2.5 rounded-xl text-sm hover:bg-red-50 transition">
@@ -696,6 +746,59 @@ function formatSum(n) {
               </template>
             </div>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════ GURUHGA XABAR MODAL ══════════ -->
+    <div v-if="groupMsg.open" class="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4"
+      @click.self="groupMsg.open = false">
+      <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-5">
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="font-semibold text-gray-800">
+            📨 «{{ groupMsg.group?.name }}» guruhiga xabar
+          </h3>
+          <button @click="groupMsg.open = false" class="text-gray-400 hover:text-gray-600 text-xl leading-none">
+            ×
+          </button>
+        </div>
+
+        <p class="text-xs text-gray-400 mb-2">
+          Guruhdagi {{ groupMsg.group?.students?.length || 0 }} ta o'quvchiga
+          yuboriladi. {ism} — o'quvchi ismi bilan almashtiriladi. Xabar faqat
+          botga ulangan o'quvchilarga boradi.
+        </p>
+
+        <textarea v-model="groupMsg.text" rows="5"
+          class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-gray-400 resize-none"></textarea>
+
+        <div v-if="groupMsgResult" :class="[
+          'mt-3 text-sm rounded-xl px-3 py-2',
+          groupMsgResult.error
+            ? 'bg-red-50 text-red-600'
+            : 'bg-green-50 text-green-700',
+        ]">
+          <template v-if="groupMsgResult.error">❌ {{ groupMsgResult.error }}</template>
+          <template v-else-if="groupMsgResult.async">
+            ✅ {{ groupMsgResult.queued }} ta o'quvchiga yuborilmoqda (fonda).
+            {{ groupMsgResult.no_chat }} tasi hali botga ulanmagan.
+          </template>
+          <template v-else>
+            ✅ Yuborildi: {{ groupMsgResult.sent }}
+            <span v-if="groupMsgResult.no_chat">· Botga ulanmagan: {{ groupMsgResult.no_chat }}</span>
+            <span v-if="groupMsgResult.failed">· Xato: {{ groupMsgResult.failed }}</span>
+          </template>
+        </div>
+
+        <div class="flex gap-2 mt-4">
+          <button @click="groupMsg.open = false"
+            class="flex-1 px-4 py-2 rounded-xl border border-gray-200 text-sm text-gray-500 hover:bg-gray-50 transition">
+            Yopish
+          </button>
+          <button @click="sendGroupMsg" :disabled="groupMsg.sending || !groupMsg.text.trim()"
+            class="flex-1 px-4 py-2 rounded-xl bg-sky-500 text-white text-sm hover:bg-sky-600 transition disabled:opacity-50">
+            {{ groupMsg.sending ? "Yuborilmoqda..." : "Yuborish" }}
+          </button>
         </div>
       </div>
     </div>
