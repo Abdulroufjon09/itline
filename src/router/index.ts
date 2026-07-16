@@ -84,6 +84,12 @@ const routes = [
   },
 
   { path: "/finance", component: () => import("@/views/Finance.vue") },
+
+  {
+    path: "/database",
+    component: lazy("DataBase"),
+    meta: { requiresAuth: true },
+  },
 ];
 
 const router = createRouter({

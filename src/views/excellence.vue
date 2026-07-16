@@ -740,6 +740,11 @@ const inputClass = (field) => [
         to="/finance"
         >💵 finance</router-link
       >
+      <router-link
+        class="px-4 py-2 rounded-full text-sm border transition whitespace-nowrap border-gray-200 text-gray-500 hover:bg-gray-50"
+        to="/database"
+        >🗄️ Baza</router-link
+      >
     </div>
 
     <!-- ══════════ TO'LOVLAR ══════════ -->
