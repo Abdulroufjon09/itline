@@ -1,7 +1,8 @@
 import { createRouter, createWebHistory } from "vue-router";
 import OfflineView from "@/views/OfflineView.vue";
 
-fetch("https://itline-django-9s85.onrender.com/api/teachers/").catch(() => {});
+// Sayt ochilishi bilan serverni uyg'otamiz (Render free plan uxlab qoladi)
+fetch("https://itline-django-9s85.onrender.com/api/ping/").catch(() => {});
 
 const lazy = (view: string) => () => import(`@/views/${view}.vue`);
 

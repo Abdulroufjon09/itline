@@ -303,6 +303,30 @@ function openMsgModal(mode, payment = null) {
   };
 }
 
+async function deleteStudentRow(payment) {
+  if (
+    !confirm(
+      `${payment.student_name} butunlay o'chiriladi (to'lovlari va davomati bilan). Davom etasizmi?`,
+    )
+  )
+    return;
+  try {
+    const res = await fetch(`${API}/students/delete/${payment.student_id}/`, {
+      method: "POST",
+    });
+    const d = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      alert(d.error || "O'chirishda xatolik");
+      return;
+    }
+    payments.value = payments.value.filter(
+      (p) => p.student_id !== payment.student_id,
+    );
+  } catch (e) {
+    alert("Server bilan aloqa yo'q");
+  }
+}
+
 async function sendMsg() {
   const m = msgModal.value;
   if (!m.text.trim() || m.sending) return;
@@ -1057,25 +1081,34 @@ const inputClass = (field) => [
                 </span>
               </td>
               <td class="px-4 py-3">
-                <button
-                  @click="openMsgModal('single', payment)"
-                  class="relative px-2.5 py-1.5 rounded-lg border border-gray-200 hover:border-sky-300 hover:bg-sky-50 transition text-sm"
-                  :title="
-                    tgLinkedIds.has(payment.student_id)
-                      ? 'Botga ulangan — xabar boradi'
-                      : 'Hali botga ulanmagan'
-                  "
-                >
-                  ✉️
-                  <span
-                    :class="[
-                      'absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full border border-white',
+                <div class="flex items-center gap-1.5">
+                  <button
+                    @click="openMsgModal('single', payment)"
+                    class="relative px-2.5 py-1.5 rounded-lg border border-gray-200 hover:border-sky-300 hover:bg-sky-50 transition text-sm"
+                    :title="
                       tgLinkedIds.has(payment.student_id)
-                        ? 'bg-green-400'
-                        : 'bg-gray-300',
-                    ]"
-                  ></span>
-                </button>
+                        ? 'Botga ulangan — xabar boradi'
+                        : 'Hali botga ulanmagan'
+                    "
+                  >
+                    ✉️
+                    <span
+                      :class="[
+                        'absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full border border-white',
+                        tgLinkedIds.has(payment.student_id)
+                          ? 'bg-green-400'
+                          : 'bg-gray-300',
+                      ]"
+                    ></span>
+                  </button>
+                  <button
+                    @click="deleteStudentRow(payment)"
+                    title="Studentni butunlay o'chirish"
+                    class="px-2 py-1.5 rounded-lg border border-gray-200 text-gray-300 hover:text-red-500 hover:border-red-200 hover:bg-red-50 transition text-sm"
+                  >
+                    🗑
+                  </button>
+                </div>
               </td>
             </tr>
           </tbody>

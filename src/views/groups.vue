@@ -290,27 +290,58 @@ async function saveGroup() {
 }
 
 async function deleteGroup(id) {
-  const message =
-    "Guruhni o'chiriladi!\n\n⚠️ AHAMIYATLI:\n" +
-    "- Studentlar o'chirilmaydi\n" +
-    "- Faqat guruhdan olib tashlanadi\n" +
-    "- Ularning ma'lumotlari saqlanib qoladi\n\n" +
-    "Davom etmoqchimisiz?";
+  if (!confirm("Guruh o'chiriladi. Davom etasizmi?")) return;
 
-  if (!confirm(message)) return;
+  // Kurs tugagan bo'lsa — studentlarni ham o'chirish imkoniyati
+  const withStudents = confirm(
+    "Guruhdagi STUDENTLARNI ham butunlay o'chirasizmi?\n\n" +
+      "OK — studentlar ham o'chiriladi (kurs tugagan holat).\n" +
+      "Bekor qilish — studentlar saqlanadi, faqat guruh o'chadi.\n\n" +
+      "⚠️ Boshqa guruhga ham a'zo studentlar o'chirilmaydi.",
+  );
 
   try {
-    const res = await fetch(`${API}/groups/delete/${id}/`, {
-      method: "DELETE",
-    });
+    const url = `${API}/groups/delete/${id}/${withStudents ? "?with_students=1" : ""}`;
+    const res = await fetch(url, { method: "DELETE" });
+    const d = await res.json().catch(() => ({}));
     if (!res.ok) {
-      const d = await res.json().catch(() => ({}));
       alert(d.error || "O'chirishda xatolik");
       return;
     }
     closePanel();
     await fetchGroups();
-    alert("Guruh o'chirildi. Studentlar olib tashlanildi.");
+    alert(
+      withStudents
+        ? `Guruh va ${d.deleted_students ?? 0} ta student o'chirildi.`
+        : "Guruh o'chirildi. Studentlar saqlanib qoldi.",
+    );
+  } catch (e) {
+    alert("Server bilan aloqa yo'q");
+  }
+}
+
+async function deleteStudent(s) {
+  if (
+    !confirm(
+      `${s.name} ${s.surname || ""} butunlay o'chiriladi (to'lovlari va davomati bilan). Davom etasizmi?`,
+    )
+  )
+    return;
+  try {
+    const res = await fetch(`${API}/students/delete/${s.id}/`, {
+      method: "POST",
+    });
+    const d = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      alert(d.error || "O'chirishda xatolik");
+      return;
+    }
+    if (activeGroup.value) {
+      activeGroup.value.students = (activeGroup.value.students || []).filter(
+        (x) => x.id !== s.id,
+      );
+    }
+    fetchGroups();
   } catch (e) {
     alert("Server bilan aloqa yo'q");
   }
@@ -577,6 +608,11 @@ async function sendGroupMsg() {
                     <span class="text-xs text-gray-400 shrink-0 bg-gray-100 px-2 py-0.5 rounded-full">
                       {{ s.stage }}-etap
                     </span>
+                    <button v-if="canCreateGroup" @click.stop="deleteStudent(s)"
+                      title="Studentni butunlay o'chirish"
+                      class="shrink-0 text-gray-300 hover:text-red-500 transition text-sm px-1.5 py-1 rounded-lg hover:bg-red-50">
+                      🗑
+                    </button>
                   </div>
                 </div>
                 <div v-else
