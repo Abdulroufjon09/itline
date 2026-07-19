@@ -3,6 +3,7 @@ import { reactive, ref, onMounted, computed } from "vue";
 import { useRouter } from "vue-router";
 import { useUiStore } from "../stores/uiStore";
 import { normalizePhone } from "../utils/phone";
+import AppIcon from "@/components/AppIcon.vue";
 
 const API = "https://itline-django-9s85.onrender.com/api";
 const router = useRouter();
@@ -180,7 +181,7 @@ onMounted(async () => {
         v-if="networkError"
         class="mx-8 mb-2 px-3 py-2.5 rounded-xl bg-red-50 border border-red-200 flex items-center gap-2"
       >
-        <span class="text-red-400">⚠</span>
+        <span class="text-red-400"><AppIcon name="warning" /></span>
         <div>
           <p class="text-xs font-medium text-red-600">Internet aloqasi yo'q</p>
           <p class="text-xs text-red-400">

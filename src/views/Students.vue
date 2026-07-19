@@ -4,6 +4,7 @@ import Magazine from "./Magazine.vue";
 import { ref, onMounted, computed } from "vue";
 import { useRouter } from "vue-router";
 import LessonsPlans from "./LessonsPlans.vue";
+import AppIcon from "@/components/AppIcon.vue";
 
 const router = useRouter();
 const API = "https://itline-django-9s85.onrender.com/api";
@@ -11,15 +12,15 @@ const user = JSON.parse(localStorage.getItem("user") || "{}");
 if (!user?.id) router.push("/login");
 
 const QUICK_ACTIONS = [
-  { reason: "exam_pass", label: "Imtihon", amount: +80, icon: "✅" },
-  { reason: "homework_done", label: "Vazifa to'liq", amount: +20, icon: "📘" },
+  { reason: "exam_pass", label: "Imtihon", amount: +80, icon: "check-circle" },
+  { reason: "homework_done", label: "Vazifa to'liq", amount: +20, icon: "course" },
   {
     reason: "homework_partial",
     label: "Vazifa chala",
     amount: +10,
-    icon: "📙",
+    icon: "course",
   },
-  { reason: "homework_missed", label: "Vazifa yo'q", amount: -20, icon: "❌" },
+  { reason: "homework_missed", label: "Vazifa yo'q", amount: -20, icon: "x-circle" },
 ];
 
 const AVATAR_COLORS = [
@@ -165,7 +166,7 @@ async function giveCoin(studentId, reason) {
     }
     const s = students.value.find((st) => st.id === studentId);
     if (s) s.coin_balance = data.coin_balance;
-    showFeedback(studentId, "success", "Coin berildi ✓");
+    showFeedback(studentId, "success", "Coin berildi");
   } catch {
     showFeedback(studentId, "error", "Server xatoligi");
   } finally {
@@ -198,7 +199,7 @@ async function giveManualBonus(studentId) {
     if (s) s.coin_balance = data.coin_balance;
     bonusUsed.value[studentId] = true;
     manualAmount.value[studentId] = null;
-    showFeedback(studentId, "success", "Oylik bonus berildi ✓");
+    showFeedback(studentId, "success", "Oylik bonus berildi");
   } catch {
     showFeedback(studentId, "error", "Server xatoligi");
   } finally {
@@ -258,12 +259,7 @@ const stageStyle = (stage) => {
     <div class="flex items-center justify-between mb-6">
       <div class="flex items-center gap-3 min-w-0">
         <RouterLink v-if="user.is_admin" to="/admin" class="text-gray-400 hover:text-gray-700 transition shrink-0">
-          <svg xmlns="http://www.w3.org/2000/svg" width="1.4em" height="1.4em" viewBox="0 0 48 48">
-            <path d="M0 0h48v48H0z" fill="none" />
-            <path fill="none" stroke="currentColor" stroke-linejoin="round" stroke-width="4"
-              d="M44 40.836q-7.34-8.96-13.036-10.168t-10.846-.365V41L4 23.545L20.118 7v10.167q9.523.075 16.192 6.833q6.668 6.758 7.69 16.836Z"
-              clip-rule="evenodd" />
-          </svg>
+          <AppIcon name="arrow-left" class="w-4 h-4" />
         </RouterLink>
         <div class="min-w-0">
           <h1 class="text-lg sm:text-xl font-semibold truncate">Kabinet</h1>
@@ -272,7 +268,7 @@ const stageStyle = (stage) => {
       </div>
       <button @click="$router.push('/profile')"
         class="shrink-0 border border-gray-200 px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm hover:bg-gray-50 transition">
-        ⚙️ Profil
+        <AppIcon name="settings" /> Profil
       </button>
     </div>
 
@@ -286,13 +282,13 @@ const stageStyle = (stage) => {
       <div class="flex-1 min-w-0">
         <p class="font-medium text-sm sm:text-base truncate">
           {{ user.name }} {{ user.surname }}
-          <span v-if="user.is_admin" class="text-yellow-500 ml-1">★</span>
+          <span v-if="user.is_admin" class="text-yellow-500 ml-1"><AppIcon name="star" /></span>
         </p>
         <p class="text-xs text-gray-400 truncate">{{ user.phone }}</p>
         <div class="mt-1.5">
           <span v-if="!user.is_admin && myGroup"
             class="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">
-            🗂️ {{ myGroup.name }}
+            <AppIcon name="groups" /> {{ myGroup.name }}
           </span>
           <span v-else-if="!user.is_admin && !myGroup" class="text-xs text-gray-300">Guruhga biriktirilmagan</span>
         </div>
@@ -307,7 +303,7 @@ const stageStyle = (stage) => {
           ? 'bg-black text-white border-black'
           : 'border-gray-200 text-gray-600 hover:bg-gray-50',
       ]">
-        👥 Guruh
+        <AppIcon name="users" /> Guruh
       </button>
 
       <template v-if="!user.is_admin">
@@ -317,7 +313,7 @@ const stageStyle = (stage) => {
             ? 'bg-black text-white border-black'
             : 'border-gray-200 text-gray-600 hover:bg-gray-50',
         ]">
-          💳 To'lovlar
+          <AppIcon name="payment" /> To'lovlar
         </button>
         <button @click="activeTab = 'leader'" :class="[
           'shrink-0 px-3.5 sm:px-4 py-2 rounded-full border text-xs sm:text-sm transition',
@@ -325,7 +321,7 @@ const stageStyle = (stage) => {
             ? 'bg-black text-white border-black'
             : 'border-gray-200 text-gray-600 hover:bg-gray-50',
         ]">
-          ⍟ Leaderboard
+          <AppIcon name="trophy" /> Leaderboard
         </button>
         <button @click="activeTab = 'market'" :class="[
           'shrink-0 px-3.5 sm:px-4 py-2 rounded-full border text-xs sm:text-sm transition',
@@ -333,7 +329,7 @@ const stageStyle = (stage) => {
             ? 'bg-black text-white border-black'
             : 'border-gray-200 text-gray-600 hover:bg-gray-50',
         ]">
-          🛒 Magazine
+          <AppIcon name="shop" /> Magazine
         </button>
       </template>
     </div>
@@ -358,7 +354,7 @@ const stageStyle = (stage) => {
             ? 'bg-black text-white border-black'
             : 'border-gray-200 text-gray-500 hover:bg-gray-50',
         ]">
-          🗂️ {{ g.name }}
+          <AppIcon name="groups" /> {{ g.name }}
           <span class="opacity-50 ml-0.5">({{
             g.students?.filter((s) => students.some((st) => st.id === (s.id ?? s)))
               .length || 0
@@ -406,7 +402,7 @@ const stageStyle = (stage) => {
                 </span>
                 <span v-if="getStudentGroup(student.id)"
                   class="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-500">
-                  🗂️ {{ getStudentGroup(student.id).name }}
+                  <AppIcon name="groups" /> {{ getStudentGroup(student.id).name }}
                 </span>
               </div>
             </div>
@@ -414,11 +410,11 @@ const stageStyle = (stage) => {
             <!-- Coin + action -->
             <div class="flex items-center gap-2 shrink-0">
               <span class="text-xs px-2.5 py-1 rounded-full bg-yellow-50 text-yellow-700 font-medium whitespace-nowrap">
-                🪙 {{ student.coin_balance || 0 }}
+                <AppIcon name="coin" /> {{ student.coin_balance || 0 }}
               </span>
               <button v-if="user.is_admin" @click="togglePanel(student.id)"
                 class="cursor-pointer w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-gray-100 transition text-sm">
-                {{ expandedStudentId === student.id ? "✕" : "⚙️" }}
+                <AppIcon :name="expandedStudentId === student.id ? 'x' : 'settings'" />
               </button>
             </div>
           </div>
@@ -438,7 +434,7 @@ const stageStyle = (stage) => {
                     ? 'bg-emerald-50 text-emerald-700 border-emerald-100 hover:bg-emerald-100'
                     : 'bg-rose-50 text-rose-600 border-rose-100 hover:bg-rose-100',
                 ]">
-                <span class="text-base leading-none">{{ action.icon }}</span>
+                <span class="text-base leading-none"><AppIcon :name="action.icon" /></span>
                 <span class="leading-tight text-center">{{
                   action.label
                 }}</span>
@@ -451,7 +447,7 @@ const stageStyle = (stage) => {
             <!-- Oylik bonus -->
             <div class="mt-3 pt-3 border-t border-gray-100">
               <p class="text-xs text-gray-500 mb-2">
-                🎁 Oylik erkin bonus
+                <AppIcon name="gift" /> Oylik erkin bonus
                 <span class="text-gray-400">(1 marta)</span>
               </p>
               <div class="flex items-center gap-2 flex-wrap">
@@ -514,7 +510,7 @@ const stageStyle = (stage) => {
                   ? 'bg-green-100 text-green-700'
                   : 'bg-red-100 text-red-600',
               ]">{{
-                payment.is_paid ? "To'lov qilingan ✓" : "To'lov qilinmagan"
+                payment.is_paid ? "To'lov qilingan" : "To'lov qilinmagan"
               }}</span>
               <p v-if="payment.paid_at" class="text-xs text-gray-400 mt-1.5">
                 {{ formatDate(payment.paid_at) }}

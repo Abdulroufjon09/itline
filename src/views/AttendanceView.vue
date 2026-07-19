@@ -1,5 +1,6 @@
 <script setup>
 import { ref, onMounted, computed } from "vue";
+import AppIcon from "@/components/AppIcon.vue";
 
 const API = "https://itline-django-9s85.onrender.com/api";
 
@@ -255,7 +256,7 @@ onMounted(() => {
         <div class="flex gap-2">
           <button @click="$router.push('/admin')"
             class="px-4 py-2 rounded-full border border-gray-200 text-sm bg-white hover:bg-gray-50 transition">
-            ← Admin
+            <AppIcon name="arrow-left" /> Admin
           </button>
           <button @click="logout"
             class="px-4 py-2 rounded-full border border-gray-200 text-sm bg-white hover:bg-gray-50 transition">
@@ -291,7 +292,7 @@ onMounted(() => {
                 class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-gray-400" />
               <select v-model.number="newLesson.group_id"
                 class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-gray-400 bg-white">
-                <option :value="null">🗂️ Guruh tanlang (ixtiyoriy)</option>
+                <option :value="null"><AppIcon name="groups" /> Guruh tanlang (ixtiyoriy)</option>
                 <option v-for="g in groups" :key="g.id" :value="g.id">
                   {{ g.name }}<template v-if="g.teacher"> — {{ g.teacher.name }}</template>
                 </option>
@@ -324,7 +325,7 @@ onMounted(() => {
                 <p :class="selectedLesson?.id === lesson.id ? 'text-gray-300' : 'text-gray-400'"
                   class="text-xs mt-0.5 flex gap-2">
                   <span>{{ lesson.date }}</span>
-                  <span v-if="lesson.date === today" class="text-green-400">● Bugun</span>
+                  <span v-if="lesson.date === today" class="text-green-400">Bugun</span>
                 </p>
               </div>
               <p v-if="lessons.length === 0" class="text-center py-4 text-gray-400 text-sm">
@@ -356,9 +357,9 @@ onMounted(() => {
                   </p>
                 </div>
                 <div class="flex gap-2 text-xs">
-                  <span class="px-3 py-1 rounded-full bg-green-100 text-green-700">✓ {{ presentCount }}</span>
-                  <span class="px-3 py-1 rounded-full bg-yellow-100 text-yellow-700">⏰ {{ lateCount }}</span>
-                  <span class="px-3 py-1 rounded-full bg-red-100 text-red-600">✗ {{ absentCount }}</span>
+                  <span class="px-3 py-1 rounded-full bg-green-100 text-green-700"><AppIcon name="check" /> {{ presentCount }}</span>
+                  <span class="px-3 py-1 rounded-full bg-yellow-100 text-yellow-700"><AppIcon name="clock" /> {{ lateCount }}</span>
+                  <span class="px-3 py-1 rounded-full bg-red-100 text-red-600"><AppIcon name="x" /> {{ absentCount }}</span>
                 </div>
               </div>
 
@@ -378,7 +379,7 @@ onMounted(() => {
                     ? 'bg-gray-900 text-white border-gray-900'
                     : 'border-gray-200 text-gray-500 bg-white hover:bg-gray-50',
                 ]">
-                  🗂️ {{ g.name }}
+                  <AppIcon name="groups" /> {{ g.name }}
                   <span class="opacity-60 ml-0.5">({{ groupAttendanceCount(g) }})</span>
                 </button>
               </div>

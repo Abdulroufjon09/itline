@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted, computed, watch } from "vue";
 import { useRouter } from "vue-router";
+import AppIcon from "@/components/AppIcon.vue";
 const router = useRouter();
 const API = "https://itline-django-9s85.onrender.com/api";
 const user = JSON.parse(localStorage.getItem("user") || "null");
@@ -12,7 +13,7 @@ const isTeacherOrAdmin =
 if (!user) {
   router.push("/login");
 } else if (!isTeacherOrAdmin) {
-  console.log("❌ Not allowed to access Groups");
+  console.log("Not allowed to access Groups");
   router.push("/");
 } else {
   hasAccess.value = true;
@@ -321,7 +322,7 @@ async function deleteGroup(id) {
     "Guruhdagi STUDENTLARNI ham butunlay o'chirasizmi?\n\n" +
       "OK — studentlar ham o'chiriladi (kurs tugagan holat).\n" +
       "Bekor qilish — studentlar saqlanadi, faqat guruh o'chadi.\n\n" +
-      "⚠️ Boshqa guruhga ham a'zo studentlar o'chirilmaydi.",
+      "Boshqa guruhga ham a'zo studentlar o'chirilmaydi.",
   );
 
   try {
@@ -438,12 +439,7 @@ async function sendGroupMsg() {
       <div class="flex items-center justify-between mb-4 sm:mb-6 gap-2">
         <div class="flex items-center gap-2 sm:gap-3 min-w-0">
           <RouterLink to="/admin" class="text-gray-400 hover:text-gray-700 transition shrink-0">
-            <svg xmlns="http://www.w3.org/2000/svg" width="1.4em" height="1.4em" viewBox="0 0 48 48">
-              <path d="M0 0h48v48H0z" fill="none" />
-              <path fill="none" stroke="currentColor" stroke-linejoin="round" stroke-width="4"
-                d="M44 40.836q-7.34-8.96-13.036-10.168t-10.846-.365V41L4 23.545L20.118 7v10.167q9.523.075 16.192 6.833q6.668 6.758 7.69 16.836Z"
-                clip-rule="evenodd" />
-            </svg>
+            <AppIcon name="arrow-left" class="w-4 h-4" />
           </RouterLink>
           <div class="min-w-0">
             <h1 class="text-lg sm:text-xl font-semibold truncate">Guruhlar</h1>
@@ -456,7 +452,7 @@ async function sendGroupMsg() {
         <div class="flex gap-2 shrink-0">
           <RouterLink to="/groups/board"
             class="border border-gray-200 px-3 sm:px-4 py-2 rounded-full text-xs sm:text-sm hover:bg-gray-100 transition bg-white whitespace-nowrap">
-            📋 Jadval
+            <AppIcon name="attendance" /> Jadval
           </RouterLink>
           <button v-if="canCreateGroup" @click="openCreate"
             class="cursor-pointer bg-black text-white px-3 sm:px-4 py-2 rounded-full text-xs sm:text-sm hover:bg-gray-800 transition whitespace-nowrap">
@@ -490,7 +486,7 @@ async function sendGroupMsg() {
                       : 'border-gray-200 text-gray-500 hover:bg-gray-50',
                   ]"
                 >
-                  👤 Mening guruhlarim
+                  <AppIcon name="user" /> Mening guruhlarim
                   <span class="opacity-60">({{ myGroupsCount }})</span>
                 </button>
                 <button
@@ -502,7 +498,7 @@ async function sendGroupMsg() {
                       : 'border-gray-200 text-gray-500 hover:bg-gray-50',
                   ]"
                 >
-                  🗂️ Barcha ustozlar
+                  <AppIcon name="groups" /> Barcha ustozlar
                   <span class="opacity-60">({{ groups.length }})</span>
                 </button>
               </div>
@@ -512,7 +508,7 @@ async function sendGroupMsg() {
               </div>
 
               <div v-else-if="visibleGroups.length === 0" class="text-center py-12 text-gray-400 text-sm">
-                <p class="text-3xl mb-3">🗂️</p>
+                <p class="text-3xl mb-3"><AppIcon name="groups" /></p>
                 <p v-if="myTeacherId && !showAllTeachers">
                   Sizga biriktirilgan guruh yo'q
                 </p>
@@ -547,16 +543,16 @@ async function sendGroupMsg() {
                         </span>
                         <span v-if="group.schedule"
                           class="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full shrink-0">
-                          📅 {{ SCHEDULE_LABEL[group.schedule] }}
+                          <AppIcon name="schedule" /> {{ SCHEDULE_LABEL[group.schedule] }}
                         </span>
                         <span v-if="group.room"
                           class="text-xs bg-amber-50 text-amber-700 px-2 py-0.5 rounded-full shrink-0">
-                          🚪 {{ group.room }}
+                          <AppIcon name="room" /> {{ group.room }}
                         </span>
                         <span v-if="group.needs_review"
                           class="text-xs bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full shrink-0"
                           :title="group.review_note">
-                          ⚠️ Tekshirilsin
+                          <AppIcon name="warning" /> Tekshirilsin
                         </span>
                       </div>
                       <p class="text-xs text-gray-400 mt-0.5 truncate">
@@ -617,17 +613,17 @@ async function sendGroupMsg() {
                     <div class="flex items-center gap-2 mt-2 flex-wrap">
                       <span v-if="activeGroup.lesson_time"
                         class="text-xs bg-gray-100 text-gray-600 px-2.5 py-1 rounded-full">
-                        🕒 {{ activeGroup.lesson_time.slice(0, 5) }}
+                        <AppIcon name="clock" /> {{ activeGroup.lesson_time.slice(0, 5) }}
                       </span>
                       <span v-if="activeGroup.schedule"
                         class="text-xs bg-blue-50 text-blue-700 px-2.5 py-1 rounded-full">
-                        📅 {{ SCHEDULE_LABEL[activeGroup.schedule] }}
+                        <AppIcon name="schedule" /> {{ SCHEDULE_LABEL[activeGroup.schedule] }}
                       </span>
                       <span class="text-xs px-2.5 py-1 rounded-full" :class="activeGroup.room
                         ? 'bg-amber-50 text-amber-700'
                         : 'bg-gray-100 text-gray-400'
                         ">
-                        🚪 {{ activeGroup.room || "Xona belgilanmagan" }}
+                        <AppIcon name="room" /> {{ activeGroup.room || "Xona belgilanmagan" }}
                       </span>
                     </div>
                   </div>
@@ -640,7 +636,7 @@ async function sendGroupMsg() {
                 <div v-if="activeGroup.needs_review"
                   class="mb-4 px-3 py-2.5 rounded-xl bg-orange-50 border border-orange-200">
                   <p class="text-xs font-medium text-orange-700">
-                    ⚠️ {{ activeGroup.review_note || "Ma'lumot to'liq emas" }}
+                    <AppIcon name="warning" /> {{ activeGroup.review_note || "Ma'lumot to'liq emas" }}
                   </p>
                   <p class="text-xs text-orange-500 mt-0.5">
                     Hozirgi qiymatlar taxminiy. Tahrirlab to'g'ri qiymatni
@@ -652,15 +648,15 @@ async function sendGroupMsg() {
                 <div v-if="canCreateGroup" class="flex gap-2 mb-5">
                   <button @click="openEdit(activeGroup)"
                     class="flex-1 border border-gray-200 py-2.5 rounded-xl text-sm hover:bg-gray-50 transition">
-                    ✏️ Tahrirlash
+                    <AppIcon name="edit" /> Tahrirlash
                   </button>
                   <button @click="openGroupMsg(activeGroup)"
                     class="flex-1 border border-sky-200 text-sky-600 py-2.5 rounded-xl text-sm hover:bg-sky-50 transition">
-                    📨 Xabar
+                    <AppIcon name="send" /> Xabar
                   </button>
                   <button @click="deleteGroup(activeGroup.id)"
                     class="flex-1 border border-red-100 text-red-500 py-2.5 rounded-xl text-sm hover:bg-red-50 transition">
-                    🗑 O'chirish
+                    <AppIcon name="trash" /> O'chirish
                   </button>
                 </div>
 
@@ -694,7 +690,7 @@ async function sendGroupMsg() {
                     <button v-if="canCreateGroup" @click.stop="deleteStudent(s)"
                       title="Studentni butunlay o'chirish"
                       class="shrink-0 text-gray-300 hover:text-red-500 transition text-sm px-1.5 py-1 rounded-lg hover:bg-red-50">
-                      🗑
+                      <AppIcon name="trash" />
                     </button>
                   </div>
                 </div>
@@ -746,7 +742,7 @@ async function sendGroupMsg() {
                         ? 'bg-blue-600 text-white border-blue-600'
                         : 'border-gray-200 text-gray-600 hover:bg-gray-50',
                     ]">
-                      📅 Du / Chor / Juma
+                      <AppIcon name="schedule" /> Du / Chor / Juma
                     </button>
                     <button type="button" @click="form.schedule = 'even'" :class="[
                       'flex-1 py-2.5 rounded-xl text-sm border transition cursor-pointer',
@@ -754,7 +750,7 @@ async function sendGroupMsg() {
                         ? 'bg-blue-600 text-white border-blue-600'
                         : 'border-gray-200 text-gray-600 hover:bg-gray-50',
                     ]">
-                      📅 Se / Pay / Shan
+                      <AppIcon name="schedule" /> Se / Pay / Shan
                     </button>
                   </div>
                   <p class="text-xs text-gray-400 mt-2">
@@ -853,8 +849,8 @@ async function sendGroupMsg() {
                       savingGroup
                         ? "Saqlanmoqda..."
                         : panel === "create"
-                          ? "✓ Guruh yaratish"
-                          : "✓ Saqlash"
+                          ? "Guruh yaratish"
+                          : "Saqlash"
                     }}
                   </button>
                   <button @click="closePanel"
@@ -875,7 +871,7 @@ async function sendGroupMsg() {
       <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-5">
         <div class="flex items-center justify-between mb-3">
           <h3 class="font-semibold text-gray-800">
-            📨 «{{ groupMsg.group?.name }}» guruhiga xabar
+            <AppIcon name="send" /> «{{ groupMsg.group?.name }}» guruhiga xabar
           </h3>
           <button @click="groupMsg.open = false" class="text-gray-400 hover:text-gray-600 text-xl leading-none">
             ×
@@ -897,13 +893,13 @@ async function sendGroupMsg() {
             ? 'bg-red-50 text-red-600'
             : 'bg-green-50 text-green-700',
         ]">
-          <template v-if="groupMsgResult.error">❌ {{ groupMsgResult.error }}</template>
+          <template v-if="groupMsgResult.error"><AppIcon name="x-circle" /> {{ groupMsgResult.error }}</template>
           <template v-else-if="groupMsgResult.async">
-            ✅ {{ groupMsgResult.queued }} ta o'quvchiga yuborilmoqda (fonda).
+            <AppIcon name="check-circle" /> {{ groupMsgResult.queued }} ta o'quvchiga yuborilmoqda (fonda).
             {{ groupMsgResult.no_chat }} tasi hali botga ulanmagan.
           </template>
           <template v-else>
-            ✅ Yuborildi: {{ groupMsgResult.sent }}
+            <AppIcon name="check-circle" /> Yuborildi: {{ groupMsgResult.sent }}
             <span v-if="groupMsgResult.no_chat">· Botga ulanmagan: {{ groupMsgResult.no_chat }}</span>
             <span v-if="groupMsgResult.failed">· Xato: {{ groupMsgResult.failed }}</span>
           </template>

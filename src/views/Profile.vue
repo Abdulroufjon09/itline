@@ -2,6 +2,9 @@
 import { ref, computed } from "vue";
 import { useRouter } from "vue-router";
 import { useTheme } from "../composables/useTheme";
+import SunBoldIcon from "~icons/solar/sun-bold";
+import MoonTwotoneIcon from "~icons/line-md/moon-twotone";
+import AppIcon from "@/components/AppIcon.vue";
 
 const API = "https://itline-django-9s85.onrender.com/api";
 const router = useRouter();
@@ -156,12 +159,11 @@ const inputCls =
   "w-full px-3.5 py-2.5 rounded-xl border text-sm outline-none transition " +
   "bg-white border-slate-200 text-slate-800 placeholder:text-slate-300 " +
   "focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100";
+
 </script>
 
 <template>
-  <div
-    class="min-h-screen transition-colors bg-slate-50 app-gradient"
-  >
+  <div class="min-h-screen transition-colors bg-slate-50 app-gradient">
     <div class="max-w-2xl mx-auto px-4 py-6 sm:py-10">
       <!-- ══════════ HEADER ══════════ -->
       <div class="flex items-center justify-between mb-6">
@@ -169,15 +171,7 @@ const inputCls =
           @click="back"
           class="flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-medium transition border bg-white border-slate-200 text-slate-500 hover:text-slate-800 hover:bg-slate-50"
         >
-          <svg
-            class="w-4 h-4"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            viewBox="0 0 24 24"
-          >
-            <path d="M19 12H5M12 19l-7-7 7-7" />
-          </svg>
+          <AppIcon name="arrow-left" class="w-4 h-4" />
           Orqaga
         </button>
 
@@ -187,7 +181,10 @@ const inputCls =
           :title="isDark ? 'Kunduzgi rejim' : 'Tungi rejim'"
           class="w-10 h-10 rounded-xl flex items-center justify-center transition border bg-white border-slate-200 hover:bg-slate-50"
         >
-          <span class="text-lg">{{ isDark ? "☀️" : "🌙" }}</span>
+          <span>
+            <SunBoldIcon v-if="isDark" height="1em" />
+            <MoonTwotoneIcon v-else height="1em" />
+          </span>
         </button>
       </div>
 
@@ -231,7 +228,7 @@ const inputCls =
         v-if="usingDefaultPassword"
         class="mb-5 px-4 py-3.5 rounded-2xl border flex items-start gap-3 bg-amber-50 border-amber-200"
       >
-        <span class="shrink-0">⚠️</span>
+        <span class="shrink-0"><AppIcon name="warning" /></span>
         <div class="min-w-0">
           <p class="text-sm font-medium text-amber-800">
             Siz standart parolda ishlayapsiz
@@ -251,38 +248,27 @@ const inputCls =
           <div
             class="w-9 h-9 rounded-xl flex items-center justify-center text-white shadow-sm bg-gradient-to-br from-sky-500 to-blue-600"
           >
-            👤
+            <AppIcon name="user" />
           </div>
           <div>
-            <h2 class="font-semibold text-slate-800">
-              Shaxsiy ma'lumot
-            </h2>
-            <p class="text-xs text-slate-400">
-              Ism va familiyangiz
-            </p>
+            <h2 class="font-semibold text-slate-800">Shaxsiy ma'lumot</h2>
+            <p class="text-xs text-slate-400">Ism va familiyangiz</p>
           </div>
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <label
-              class="block text-xs mb-1.5 text-slate-400"
-              >Ism</label
-            >
+            <label class="block text-xs mb-1.5 text-slate-400">Ism</label>
             <input v-model="profile.name" type="text" :class="inputCls" />
           </div>
           <div>
-            <label
-              class="block text-xs mb-1.5 text-slate-400"
-              >Familiya</label
-            >
+            <label class="block text-xs mb-1.5 text-slate-400">Familiya</label>
             <input v-model="profile.surname" type="text" :class="inputCls" />
           </div>
         </div>
 
         <div>
-          <label
-            class="block text-xs mb-1.5 mt-3 text-slate-400"
+          <label class="block text-xs mb-1.5 mt-3 text-slate-400"
             >Telefon</label
           >
           <input
@@ -306,7 +292,7 @@ const inputCls =
           v-if="profile.success"
           class="mt-3 px-3 py-2 rounded-xl text-xs bg-emerald-50 text-emerald-700"
         >
-          ✓ {{ profile.success }}
+          <AppIcon name="check" /> {{ profile.success }}
         </p>
 
         <button
@@ -329,32 +315,18 @@ const inputCls =
           <div
             class="w-9 h-9 rounded-xl flex items-center justify-center text-white shadow-sm bg-gradient-to-br from-rose-500 to-pink-600"
           >
-            🔑
+            <AppIcon name="key" />
           </div>
           <div class="flex-1 min-w-0">
-            <h2 class="font-semibold text-slate-800">
-              Parolni o'zgartirish
-            </h2>
-            <p class="text-xs text-slate-400">
-              Hisobingiz xavfsizligi
-            </p>
+            <h2 class="font-semibold text-slate-800">Parolni o'zgartirish</h2>
+            <p class="text-xs text-slate-400">Hisobingiz xavfsizligi</p>
           </div>
-          <svg
-            class="w-5 h-5 shrink-0 transition-transform text-slate-300"
-            :class="pwd.show ? 'rotate-180' : ''"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            viewBox="0 0 24 24"
-          >
-            <path d="M6 9l6 6 6-6" />
-          </svg>
+          <AppIcon name="chevron-down" class="w-5 h-5 shrink-0 transition-transform text-slate-300" />
         </button>
 
         <div v-if="pwd.show" class="mt-5 flex flex-col gap-3">
           <div>
-            <label
-              class="block text-xs mb-1.5 text-slate-400"
+            <label class="block text-xs mb-1.5 text-slate-400"
               >Joriy parol</label
             >
             <input
@@ -366,8 +338,7 @@ const inputCls =
           </div>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label
-                class="block text-xs mb-1.5 text-slate-400"
+              <label class="block text-xs mb-1.5 text-slate-400"
                 >Yangi parol</label
               >
               <input
@@ -378,8 +349,7 @@ const inputCls =
               />
             </div>
             <div>
-              <label
-                class="block text-xs mb-1.5 text-slate-400"
+              <label class="block text-xs mb-1.5 text-slate-400"
                 >Takrorlang</label
               >
               <input
@@ -402,7 +372,7 @@ const inputCls =
             v-if="pwd.success"
             class="px-3 py-2 rounded-xl text-xs bg-emerald-50 text-emerald-700"
           >
-            ✓ {{ pwd.success }}
+            <AppIcon name="check" /> {{ pwd.success }}
           </p>
 
           <button
@@ -423,15 +393,11 @@ const inputCls =
           <div
             class="w-9 h-9 rounded-xl flex items-center justify-center text-white shadow-sm bg-gradient-to-br from-amber-400 to-orange-500"
           >
-            🎨
+            <AppIcon name="palette" />
           </div>
           <div>
-            <h2 class="font-semibold text-slate-800">
-              Ko'rinish
-            </h2>
-            <p class="text-xs text-slate-400">
-              Ilova rangi va rejimi
-            </p>
+            <h2 class="font-semibold text-slate-800">Ko'rinish</h2>
+            <p class="text-xs text-slate-400">Ilova rangi va rejimi</p>
           </div>
         </div>
 
@@ -448,16 +414,12 @@ const inputCls =
             <div
               class="w-full h-14 rounded-xl mb-3 bg-gradient-to-br from-slate-50 to-slate-200 border border-slate-200"
             ></div>
-            <p class="text-sm font-medium text-slate-800">
-              ☀️ Kunduzgi
-            </p>
-            <p class="text-xs mt-0.5 text-slate-400">
-              Yorug' rejim
-            </p>
+            <p class="text-sm font-medium text-slate-800"><AppIcon name="sun" /> Kunduzgi</p>
+            <p class="text-xs mt-0.5 text-slate-400">Yorug' rejim</p>
             <span
               v-if="!isDark"
               class="absolute top-3 right-3 w-5 h-5 rounded-full bg-indigo-500 text-white text-[11px] flex items-center justify-center"
-              >✓</span
+              ><AppIcon name="check" /></span
             >
           </button>
 
@@ -473,16 +435,12 @@ const inputCls =
             <div
               class="w-full h-14 rounded-xl mb-3 bg-gradient-to-br from-slate-900 via-indigo-900 to-purple-900 border border-slate-700"
             ></div>
-            <p class="text-sm font-medium text-slate-800">
-              🌙 Tungi
-            </p>
-            <p class="text-xs mt-0.5 text-slate-400">
-              Ko'zga qulay
-            </p>
+            <p class="text-sm font-medium text-slate-800"><AppIcon name="moon" /> Tungi</p>
+            <p class="text-xs mt-0.5 text-slate-400">Ko'zga qulay</p>
             <span
               v-if="isDark"
               class="absolute top-3 right-3 w-5 h-5 rounded-full bg-indigo-500 text-white text-[11px] flex items-center justify-center"
-              >✓</span
+              ><AppIcon name="check" /></span
             >
           </button>
         </div>
@@ -500,7 +458,7 @@ const inputCls =
           <div
             class="w-9 h-9 rounded-xl flex items-center justify-center text-white shadow-sm bg-gradient-to-br from-slate-500 to-slate-700"
           >
-            🚪
+            <AppIcon name="room" />
           </div>
           <div>
             <h2 class="font-semibold text-slate-800">Hisobdan chiqish</h2>

@@ -4,7 +4,7 @@
       <li v-for="(u, idx) in users" :key="u.id" :class="['row', u.role]">
         <span class="rank">{{ idx + 1 }}</span>
         <span class="name">{{ u.name }} {{ u.surname }}</span>
-        <span class="coins">🪙 {{ u.coin_balance  }}</span>
+        <span class="coins"><AppIcon name="coin" /> {{ u.coin_balance  }}</span>
       </li>
     </ul>
     <div v-if="users.length === 0" class="empty">Ma'lumot yuklanmoqda...</div>

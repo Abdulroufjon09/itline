@@ -1,5 +1,6 @@
 <script setup>
 import { ref, onMounted } from "vue";
+import AppIcon from "@/components/AppIcon.vue";
 
 const API = "https://itline-django-9s85.onrender.com/api";
 const user = JSON.parse(localStorage.getItem("user") || "null");
@@ -133,8 +134,8 @@ async function submitForm() {
     }
 
     successMsg.value = editingId.value
-      ? "Yangilik tahrirlandi ✅"
-      : "Yangilik qo'shildi ✅";
+      ? "Yangilik tahrirlandi"
+      : "Yangilik qo'shildi";
     setTimeout(() => (successMsg.value = ""), 3000);
 
     showForm.value = false;
@@ -239,7 +240,7 @@ function formatDate(d) {
             v-else-if="!newsList.length"
             class="py-16 text-center text-sm text-slate-400"
           >
-            <p class="mb-2 text-3xl">🗞️</p>
+            <p class="mb-2 text-3xl"><AppIcon name="news" /></p>
             Hozircha yangiliklar yo'q
           </div>
 

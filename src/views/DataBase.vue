@@ -28,17 +28,7 @@
         to="/excellence"
         class="flex items-center justify-center gap-2 px-4 py-2 bg-white hover:bg-slate-50 active:scale-95 text-slate-500 hover:text-rose-500 text-sm font-medium rounded-lg border border-slate-100 shadow-sm transition-all duration-150 shrink-0"
       >
-        <svg
-          class="w-4 h-4"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          viewBox="0 0 24 24"
-        >
-          <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" />
-          <polyline points="16 17 21 12 16 7" />
-          <line x1="21" y1="12" x2="9" y2="12" />
-        </svg>
+        <AppIcon name="logout" class="w-4 h-4" />
         <span>Orqaga</span>
       </router-link>
     </div>
@@ -70,7 +60,7 @@
                 s.iconBg,
               ]"
             >
-              {{ s.icon }}
+              <AppIcon :name="s.icon" />
             </div>
             <span
               class="text-[11px] font-medium text-slate-400 uppercase tracking-wider hidden sm:inline"
@@ -119,17 +109,14 @@
       <!-- Loading -->
       <div v-if="loading" class="p-16 text-center">
         <div class="flex flex-col items-center gap-3">
-          <svg class="w-7 h-7 text-indigo-400 animate-spin" fill="none" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" />
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-          </svg>
+          <AppIcon name="spinner" class="w-7 h-7 text-indigo-400 animate-spin" />
           <p class="text-sm text-slate-400">Yuklanmoqda...</p>
         </div>
       </div>
 
       <template v-else>
         <div v-if="!filtered.length" class="p-16 text-center">
-          <p class="text-3xl mb-2">🔍</p>
+          <p class="text-3xl mb-2"><AppIcon name="search" /></p>
           <p class="text-sm text-slate-400">Hech narsa topilmadi</p>
         </div>
 
@@ -144,7 +131,7 @@
             class="flex items-start gap-3 p-3 rounded-xl border border-slate-100 hover:border-sky-200 hover:bg-sky-50/40 transition group"
           >
             <div class="w-9 h-9 rounded-lg bg-sky-500 text-white flex items-center justify-center shrink-0 text-sm shadow-sm shadow-sky-200">
-              ✈️
+              <AppIcon name="send" />
             </div>
             <div class="min-w-0">
               <p class="text-sm font-semibold text-sky-600 group-hover:underline truncate">{{ c.username }}</p>
@@ -239,9 +226,9 @@
 
           <!-- Paginatsiya -->
           <div v-if="totalPages > 1" class="flex items-center justify-between gap-3 p-4 border-t border-slate-100">
-            <button @click="page--" :disabled="page <= 1" class="px-3.5 py-1.5 rounded-lg border border-slate-200 text-sm text-slate-500 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition">← Oldingi</button>
+            <button @click="page--" :disabled="page <= 1" class="px-3.5 py-1.5 rounded-lg border border-slate-200 text-sm text-slate-500 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition"><AppIcon name="arrow-left" /> Oldingi</button>
             <p class="text-xs text-slate-400 tabular-nums">{{ page }} / {{ totalPages }}</p>
-            <button @click="page++" :disabled="page >= totalPages" class="px-3.5 py-1.5 rounded-lg border border-slate-200 text-sm text-slate-500 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition">Keyingi →</button>
+            <button @click="page++" :disabled="page >= totalPages" class="px-3.5 py-1.5 rounded-lg border border-slate-200 text-sm text-slate-500 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition">Keyingi <AppIcon name="arrow-right" /></button>
           </div>
         </template>
       </template>
@@ -252,6 +239,7 @@
 <script setup>
 import { ref, computed, onMounted, watch } from "vue";
 import { API_BASE } from "@/config";
+import AppIcon from "@/components/AppIcon.vue";
 
 const API = `${API_BASE}/api`;
 
@@ -268,9 +256,9 @@ const pageSize = 50;
 const loading = computed(() => loadingAll.value);
 
 const statCards = computed(() => [
-  { key: "leads", label: "Leadlar", value: leads.value.length, icon: "📞", bg: "bg-indigo-50", iconBg: "bg-indigo-500 shadow-indigo-200" },
-  { key: "grads", label: "Bitiruvchilar", value: grads.value.length, icon: "🎓", bg: "bg-amber-50", iconBg: "bg-amber-500 shadow-amber-200" },
-  { key: "ads", label: "Reklama", value: ads.value.length, icon: "📣", bg: "bg-sky-50", iconBg: "bg-sky-500 shadow-sky-200" },
+  { key: "leads", label: "Leadlar", value: leads.value.length, icon: "phone", bg: "bg-indigo-50", iconBg: "bg-indigo-500 shadow-indigo-200" },
+  { key: "grads", label: "Bitiruvchilar", value: grads.value.length, icon: "student", bg: "bg-amber-50", iconBg: "bg-amber-500 shadow-amber-200" },
+  { key: "ads", label: "Reklama", value: ads.value.length, icon: "megaphone", bg: "bg-sky-50", iconBg: "bg-sky-500 shadow-sky-200" },
 ]);
 
 const source = computed(() => {

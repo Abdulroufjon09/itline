@@ -5,7 +5,7 @@
       <h1 class="text-2xl font-black text-[#1e1040] tracking-tight">
         Leaderboard
       </h1>
-      <p class="text-gray-400 text-sm font-semibold mt-0.5">Coin reytingi 🪙</p>
+      <p class="text-gray-400 text-sm font-semibold mt-0.5">Coin reytingi <AppIcon name="coin" /></p>
     </div>
 
     <!-- Loading -->
@@ -40,7 +40,7 @@
           </p>
           <div class="bg-white rounded-xl px-3 py-1 shadow-sm">
             <span class="text-gray-500 text-xs font-black">
-              {{ topThree[1]?.coin_balance ?? 0 }} 🪙
+              {{ topThree[1]?.coin_balance ?? 0 }} <AppIcon name="coin" />
             </span>
           </div>
           <div
@@ -51,7 +51,7 @@
 
         <!-- 1st -->
         <div class="flex flex-col items-center gap-2 -mb-2">
-          <span class="text-2xl">👑</span>
+          <span class="text-2xl"><AppIcon name="manager" /></span>
           <div class="relative">
             <div
               class="w-20 h-20 rounded-full bg-[#1a2a3a] ring-4 ring-cyan-400 flex items-center justify-center text-2xl font-black text-white shadow-lg">
@@ -68,7 +68,7 @@
           </p>
           <div class="bg-cyan-50 rounded-xl px-3 py-1 shadow-sm">
             <span class="text-cyan-500 text-xs font-black">
-              {{ topThree[0]?.coin_balance ?? 0 }} 🪙
+              {{ topThree[0]?.coin_balance ?? 0 }} <AppIcon name="coin" />
             </span>
           </div>
           <div
@@ -95,7 +95,7 @@
           </p>
           <div class="bg-orange-50 rounded-xl px-3 py-1 shadow-sm">
             <span class="text-orange-400 text-xs font-black">
-              {{ topThree[2]?.coin_balance ?? 0 }} 🪙
+              {{ topThree[2]?.coin_balance ?? 0 }} <AppIcon name="coin" />
             </span>
           </div>
           <div
@@ -146,7 +146,7 @@
         <!-- Coin -->
         <div class="bg-purple-50 rounded-xl px-3 py-1">
           <span class="text-purple-500 text-xs font-black">
-            {{ item.coin_balance }} 🪙
+            {{ item.coin_balance }} <AppIcon name="coin" />
           </span>
         </div>
       </div>
@@ -155,7 +155,7 @@
       <div
         v-if="users.length === 0"
         class="flex flex-col items-center justify-center py-20 gap-3">
-        <span class="text-5xl">🏆</span>
+        <span class="text-5xl"><AppIcon name="trophy" /></span>
         <p class="text-gray-400 font-semibold text-sm">Hali hech kim yo'q</p>
       </div>
 

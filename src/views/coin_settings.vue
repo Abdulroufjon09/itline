@@ -1,5 +1,6 @@
 <script setup>
 import { ref, onMounted, computed } from "vue";
+import AppIcon from "@/components/AppIcon.vue";
 
 const API = "https://itline-django-9s85.onrender.com/api";
 
@@ -53,7 +54,7 @@ async function saveSettings() {
         late: data.late,
         absent: data.absent,
       };
-      feedback.value = "success:Saqlandi ✓";
+      feedback.value = "success:Saqlandi";
     } else {
       feedback.value = `error:${data?.error || "Xatolik yuz berdi"}`;
     }
@@ -79,7 +80,7 @@ onMounted(fetchSettings);
 <template>
   <div class="bg-white border border-gray-100 rounded-2xl p-4 sm:p-5 shadow-sm">
     <div class="flex items-center gap-2 mb-1">
-      <span class="text-lg">🪙</span>
+      <span class="text-lg"><AppIcon name="coin" /></span>
       <h2 class="text-sm font-semibold text-gray-800">
         Davomat uchun coin sozlamalari
       </h2>
@@ -95,7 +96,7 @@ onMounted(fetchSettings);
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <div>
           <label class="text-xs text-gray-400 mb-1 flex items-center gap-1">
-            ✅ Keldi
+            <AppIcon name="check-circle" /> Keldi
           </label>
           <input
             type="number"
@@ -105,7 +106,7 @@ onMounted(fetchSettings);
         </div>
         <div>
           <label class="text-xs text-gray-400 mb-1 flex items-center gap-1">
-            ⏰ Kech keldi
+            <AppIcon name="clock" /> Kech keldi
           </label>
           <input
             type="number"
@@ -115,7 +116,7 @@ onMounted(fetchSettings);
         </div>
         <div>
           <label class="text-xs text-gray-400 mb-1 flex items-center gap-1">
-            ✗ Kelmadi
+            <AppIcon name="x" /> Kelmadi
           </label>
           <input
             type="number"

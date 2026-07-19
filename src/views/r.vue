@@ -2,6 +2,7 @@
 import { ref, computed } from "vue";
 import { useRouter } from "vue-router";
 import { normalizePhone } from "../utils/phone.js";
+import AppIcon from "@/components/AppIcon.vue";
 
 const router = useRouter();
 const API = "https://itline-django-9s85.onrender.com/api";
@@ -37,11 +38,11 @@ const detectedRole = computed(() => {
 const roleLabel = computed(() => {
   switch (detectedRole.value) {
     case "excellence":
-      return "🌟 Manager";
+      return "Manager";
     case "admin":
-      return "🛡️ Teacher";
+      return "Teacher";
     case "student":
-      return "🎓 Student";
+      return "Student";
     default:
       return null;
   }
@@ -167,7 +168,7 @@ const inputClass = (field) => [
       v-if="networkError"
       class="mb-4 px-3 py-2.5 rounded-xl bg-red-50 border border-red-200 flex items-center gap-2"
     >
-      <span class="text-red-400">⚠</span>
+      <span class="text-red-400"><AppIcon name="warning" /></span>
       <div>
         <p class="text-xs font-medium text-red-600">Internet aloqasi yo'q</p>
         <p class="text-xs text-red-400">
@@ -186,7 +187,7 @@ const inputClass = (field) => [
       v-if="successMsg"
       class="mb-4 px-3 py-2.5 rounded-xl bg-green-50 border border-green-200 flex items-center gap-2"
     >
-      <span class="text-green-500">✓</span>
+      <span class="text-green-500"><AppIcon name="check" /></span>
       <p class="text-xs font-medium text-green-700">{{ successMsg }}</p>
     </div>
 

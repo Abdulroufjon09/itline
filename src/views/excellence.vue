@@ -9,6 +9,7 @@ import { normalizePhone } from "../utils/phone.js";
 import Groups from "./groups.vue";
 import LessonsPlans from "./LessonsPlans.vue";
 import NewsManager from "./NewsManager.vue";
+import AppIcon from "@/components/AppIcon.vue";
 
 const router = useRouter();
 const API = "https://itline-django-9s85.onrender.com/api";
@@ -22,6 +23,20 @@ function logout() {
 }
 
 const activeTab = ref("payments");
+
+// Panel bo'limlari (ikonka nomlari AppIcon.vue dagi ro'yxatdan)
+const TABS = [
+  { key: "payments", icon: "payment", label: "Payments" },
+  { key: "fee", icon: "briefcase", label: "Courses" },
+  { key: "history", icon: "chart", label: "History" },
+  { key: "attendance", icon: "attendance", label: "Attendance" },
+  { key: "add", icon: "user-plus", label: "Add" },
+  { key: "mahsulotlar", icon: "shop", label: "Products" },
+  { key: "orders", icon: "orders", label: "Orders" },
+  { key: "settings", icon: "coin", label: "Coin Settings" },
+  { key: "groups", icon: "groups", label: "Groups" },
+  { key: "news", icon: "news", label: "News" },
+];
 
 const teachers = ref([]);
 const stagePrices = ref([]);
@@ -80,11 +95,11 @@ const detectedRole = computed(() => {
 const roleLabel = computed(() => {
   switch (detectedRole.value) {
     case "excellence":
-      return "🌟 Manager";
+      return "Manager";
     case "admin":
-      return "🛡️ Teacher";
+      return "Teacher";
     case "student":
-      return "🎓 Student";
+      return "Student";
     default:
       return null;
   }
@@ -946,46 +961,35 @@ const inputClass = (field) => [
         @click="$router.push('/profile')"
         class="px-4 py-2 rounded-full border border-gray-200 text-sm hover:bg-gray-50 transition"
       >
-        ⚙️ Profil
+        <AppIcon name="settings" /> Profil
       </button>
     </div>
 
     <!-- Tablar -->
     <div class="flex gap-2 mb-6 overflow-x-auto pb-1">
       <button
-        v-for="tab in [
-          { key: 'payments', label: '💳 Payments' },
-          { key: 'fee', label: '💼 Courses' },
-
-          { key: 'history', label: '📊 History' },
-          { key: 'attendance', label: '📋 Attendance' },
-          { key: 'add', label: '👤 Add' },
-          { key: 'mahsulotlar', label: ' Products' },
-          { key: 'orders', label: '📦 orders' },
-          { key: 'settings', label: '⚙️ Coin Settings' },
-          { key: 'groups', label: '🗂️ Groups' },
-          { key: 'news', label: '📩 News' },
-        ]"
+        v-for="tab in TABS"
         :key="tab.key"
         @click="activeTab = tab.key"
         :class="[
-          'cursor-pointer px-4 py-2 rounded-full text-sm border transition whitespace-nowrap',
+          'cursor-pointer px-4 py-2 rounded-full text-sm border transition whitespace-nowrap flex items-center gap-1.5',
           activeTab === tab.key
             ? 'bg-gray-900 text-white border-gray-900'
             : 'border-gray-200 text-gray-500 hover:bg-gray-50',
         ]"
       >
+        <AppIcon :name="tab.icon" />
         {{ tab.label }}
       </button>
       <router-link
         class="px-4 py-2 rounded-full text-sm border transition whitespace-nowrap border-gray-200 text-gray-500 hover:bg-gray-50"
         to="/finance"
-        >💵 finance</router-link
+        ><AppIcon name="money" /> finance</router-link
       >
       <router-link
         class="px-4 py-2 rounded-full text-sm border transition whitespace-nowrap border-gray-200 text-gray-500 hover:bg-gray-50"
         to="/database"
-        >🗄️ Baza</router-link
+        ><AppIcon name="database" /> Baza</router-link
       >
     </div>
 
@@ -1031,7 +1035,7 @@ const inputClass = (field) => [
             @click="openMsgModal('all')"
             class="px-4 py-2 bg-sky-500 text-white rounded-xl text-sm hover:bg-sky-600 transition"
           >
-            📨 Barchaga xabar
+            <AppIcon name="send" /> Barchaga xabar
           </button>
         </div>
 
@@ -1184,7 +1188,7 @@ const inputClass = (field) => [
                         : 'Hali botga ulanmagan'
                     "
                   >
-                    ✉️
+                    <AppIcon name="mail" />
                     <span
                       :class="[
                         'absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full border border-white',
@@ -1199,7 +1203,7 @@ const inputClass = (field) => [
                     title="Studentni butunlay o'chirish"
                     class="px-2 py-1.5 rounded-lg border border-gray-200 text-gray-300 hover:text-red-500 hover:border-red-200 hover:bg-red-50 transition text-sm"
                   >
-                    🗑
+                    <AppIcon name="trash" />
                   </button>
                 </div>
               </td>
@@ -1222,7 +1226,7 @@ const inputClass = (field) => [
             :disabled="payPage <= 1"
             class="px-3.5 py-1.5 rounded-lg border border-gray-200 text-sm text-gray-500 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
           >
-            ← Oldingi
+            <AppIcon name="arrow-left" /> Oldingi
           </button>
           <p class="text-xs text-gray-400 tabular-nums">
             {{ payPage }} / {{ payTotalPages }} —
@@ -1233,7 +1237,7 @@ const inputClass = (field) => [
             :disabled="payPage >= payTotalPages"
             class="px-3.5 py-1.5 rounded-lg border border-gray-200 text-sm text-gray-500 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
           >
-            Keyingi →
+            Keyingi <AppIcon name="arrow-right" />
           </button>
         </div>
       </div>
@@ -1392,7 +1396,8 @@ const inputClass = (field) => [
                         : 'bg-red-100 text-red-600',
                     ]"
                   >
-                    {{ payment.is_paid ? "✓ To'langan" : "✗ To'lanmagan" }}
+                    <AppIcon :name="payment.is_paid ? 'check' : 'x'" />
+                  {{ payment.is_paid ? "To'langan" : "To'lanmagan" }}
                   </span>
                 </td>
               </tr>
@@ -1507,7 +1512,7 @@ const inputClass = (field) => [
                       : 'bg-red-100 text-red-500',
                   ]"
                 >
-                  {{ getStudentPaymentForAtt(student.id)?.is_paid ? "✓" : "✗" }}
+                  <AppIcon :name="getStudentPaymentForAtt(student.id)?.is_paid ? 'check' : 'x'" />
                 </span>
               </div>
             </div>
@@ -1555,8 +1560,8 @@ const inputClass = (field) => [
               >
                 {{
                   getStudentPaymentForAtt(selectedStudent.id)?.is_paid
-                    ? "✓ To'lov qilingan"
-                    : "✗ To'lov qilinmagan"
+                    ? "To'lov qilingan"
+                    : "To'lov qilinmagan"
                 }}
               </p>
               <p class="text-sm font-semibold mt-0.5">
@@ -1604,7 +1609,7 @@ const inputClass = (field) => [
         v-if="addNetworkError"
         class="mb-4 px-3 py-2.5 rounded-xl bg-red-50 border border-red-200 flex items-center gap-2"
       >
-        <span class="text-red-400">⚠</span>
+        <span class="text-red-400"><AppIcon name="warning" /></span>
         <div>
           <p class="text-xs font-medium text-red-600">Internet aloqasi yo'q</p>
           <p class="text-xs text-red-400">
@@ -1623,7 +1628,7 @@ const inputClass = (field) => [
         v-if="addSuccessMsg"
         class="mb-4 px-3 py-2.5 rounded-xl bg-green-50 border border-green-200 flex items-center gap-2"
       >
-        <span class="text-green-500">✓</span>
+        <span class="text-green-500"><AppIcon name="check" /></span>
         <p class="text-xs font-medium text-green-700">{{ addSuccessMsg }}</p>
       </div>
 
@@ -1667,7 +1672,7 @@ const inputClass = (field) => [
               v-else-if="phoneVerified"
               class="px-3 flex items-center rounded-xl bg-green-50 text-green-600 text-xs font-medium border border-green-200 whitespace-nowrap shrink-0"
             >
-              ✓ Tasdiqlandi
+              <AppIcon name="check" /> Tasdiqlandi
             </span>
           </div>
 
@@ -1699,7 +1704,7 @@ const inputClass = (field) => [
             v-if="detectedRole === 'student' && verify.codeSent && !phoneVerified && !verify.error"
             class="text-xs text-sky-600 mt-1.5"
           >
-            📲 Kod o'quvchining Telegramiga yuborildi — kodni so'rab, shu yerga
+            <AppIcon name="phone" /> Kod o'quvchining Telegramiga yuborildi — kodni so'rab, shu yerga
             kiriting.
           </p>
           <div
@@ -1714,7 +1719,7 @@ const inputClass = (field) => [
               rel="noopener"
               class="text-xs text-sky-600 hover:underline font-medium mt-1 inline-block"
             >
-              @{{ BOT_USERNAME }} ni ochish →
+              @{{ BOT_USERNAME }} ni ochish <AppIcon name="arrow-right" />
             </a>
           </div>
           <p
@@ -1826,8 +1831,8 @@ const inputClass = (field) => [
           <h3 class="font-semibold text-gray-800">
             {{
               msgModal.mode === "single"
-                ? `✉️ ${msgModal.student?.name}ga xabar`
-                : "📨 Barcha o'quvchilarga xabar"
+                ? `${msgModal.student?.name}ga xabar`
+                : "Barcha o'quvchilarga xabar"
             }}
           </h3>
           <button
@@ -1859,13 +1864,13 @@ const inputClass = (field) => [
               : 'bg-green-50 text-green-700',
           ]"
         >
-          <template v-if="msgResult.error">❌ {{ msgResult.error }}</template>
+          <template v-if="msgResult.error"><AppIcon name="x-circle" /> {{ msgResult.error }}</template>
           <template v-else-if="msgResult.async">
-            ✅ {{ msgResult.queued }} ta o'quvchiga yuborilmoqda (fonda).
+            <AppIcon name="check-circle" /> {{ msgResult.queued }} ta o'quvchiga yuborilmoqda (fonda).
             {{ msgResult.no_chat }} tasi hali botga ulanmagan.
           </template>
           <template v-else>
-            ✅ Yuborildi: {{ msgResult.sent }}
+            <AppIcon name="check-circle" /> Yuborildi: {{ msgResult.sent }}
             <span v-if="msgResult.no_chat"
               >· Botga ulanmagan: {{ msgResult.no_chat }}</span
             >

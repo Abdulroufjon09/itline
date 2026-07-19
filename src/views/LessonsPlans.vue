@@ -3,6 +3,7 @@ import { ref, computed, onMounted, onUnmounted } from "vue";
 import { useRouter } from "vue-router";
 import lessonSoundFile from "/sounds/mixkit-airport-announcement-ding-1569.wav";
 import newsSoundFile from "/sounds/mixkit-elegant-door-announcement-224.wav";
+import AppIcon from "@/components/AppIcon.vue";
 
 const router = useRouter();
 const API = "https://itline-django-9s85.onrender.com/api";
@@ -503,15 +504,7 @@ const PRIORITY_DOT = {
               to="/groups"
               class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-slate-800 text-slate-400 transition hover:border-amber-400/60 hover:text-amber-400"
             >
-              <svg viewBox="0 0 24 24" width="18" height="18" fill="none">
-                <path
-                  d="M15 18l-6-6 6-6"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                />
-              </svg>
+              <AppIcon name="chevron-left" class="w-4 h-4" />
             </RouterLink>
             <div class="min-w-0">
               <p
@@ -533,43 +526,8 @@ const PRIORITY_DOT = {
               class="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-800 text-slate-400 transition hover:border-amber-400/60 hover:text-amber-400"
               :title="soundEnabled ? 'Ovozni o\'chirish' : 'Ovozni yoqish'"
             >
-              <svg
-                v-if="soundEnabled"
-                viewBox="0 0 24 24"
-                width="17"
-                height="17"
-                fill="none"
-              >
-                <path d="M11 5 6 9H3v6h3l5 4V5Z" fill="currentColor" />
-                <path
-                  d="M15.5 8.5a5 5 0 0 1 0 7"
-                  stroke="currentColor"
-                  stroke-width="1.8"
-                  stroke-linecap="round"
-                />
-                <path
-                  d="M18 6a9 9 0 0 1 0 12"
-                  stroke="currentColor"
-                  stroke-width="1.8"
-                  stroke-linecap="round"
-                  opacity="0.6"
-                />
-              </svg>
-              <svg
-                v-else
-                viewBox="0 0 24 24"
-                width="17"
-                height="17"
-                fill="none"
-              >
-                <path d="M11 5 6 9H3v6h3l5 4V5Z" fill="currentColor" />
-                <path
-                  d="M16 9l5 6M21 9l-5 6"
-                  stroke="currentColor"
-                  stroke-width="1.8"
-                  stroke-linecap="round"
-                />
-              </svg>
+              <AppIcon name="volume-on" class="w-4 h-4" />
+              <AppIcon name="volume-off" class="w-4 h-4" />
             </button>
 
             <div class="text-right">
@@ -623,7 +581,7 @@ const PRIORITY_DOT = {
           v-else-if="!todaySchedule"
           class="px-6 py-16 text-center text-sm text-slate-500"
         >
-          <p class="mb-2 text-3xl">☕</p>
+          <p class="mb-2 text-3xl"><AppIcon name="coffee" /></p>
           <p>Bugun dars yo'q — dam olish kuni</p>
         </div>
 
@@ -632,7 +590,7 @@ const PRIORITY_DOT = {
           v-else-if="todaysGroups.length === 0"
           class="px-6 py-16 text-center text-sm text-slate-500"
         >
-          <p class="mb-2 text-3xl">🗂️</p>
+          <p class="mb-2 text-3xl"><AppIcon name="groups" /></p>
           <p>Bugunga rejalashtirilgan guruh topilmadi</p>
         </div>
 

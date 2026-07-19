@@ -1,5 +1,6 @@
 <script setup>
 import { ref, onMounted } from "vue";
+import AppIcon from "@/components/AppIcon.vue";
 
 const API = "https://itline-django-9s85.onrender.com/api";
 
@@ -76,19 +77,20 @@ onMounted(fetchOrders);
     <div class="flex gap-2 mb-5">
       <button
         v-for="f in [
-          { key: 'pending', label: '⏳ Kutilmoqda' },
-          { key: 'approved', label: '✅ Tasdiqlangan' },
-          { key: 'rejected', label: '❌ Rad etilgan' },
+          { key: 'pending', icon: 'clock', label: 'Kutilmoqda' },
+          { key: 'approved', icon: 'check-circle', label: 'Tasdiqlangan' },
+          { key: 'rejected', icon: 'x-circle', label: 'Rad etilgan' },
         ]"
         :key="f.key"
         @click="activeFilter = f.key; fetchOrders()"
         :class="[
-          'px-4 py-2 rounded-full text-sm border transition',
+          'px-4 py-2 rounded-full text-sm border transition flex items-center gap-1.5',
           activeFilter === f.key
             ? 'bg-gray-900 text-white border-gray-900'
             : 'border-gray-200 text-gray-500 hover:bg-gray-50',
         ]"
       >
+        <AppIcon :name="f.icon" />
         {{ f.label }}
       </button>
     </div>
@@ -110,7 +112,7 @@ onMounted(fetchOrders);
           <div>
             <p class="font-semibold text-sm">{{ o.student_name }}</p>
             <p class="text-xs text-gray-400 mt-0.5">
-              📅 {{ o.created_at }}
+              <AppIcon name="schedule" /> {{ o.created_at }}
             </p>
           </div>
           <span
@@ -128,10 +130,10 @@ onMounted(fetchOrders);
           <div>
             <p class="text-sm font-medium">{{ o.product_name }}</p>
             <p class="text-xs text-amber-600 font-semibold mt-0.5">
-              🪙 {{ o.price_coins }} coin
+              <AppIcon name="coin" /> {{ o.price_coins }} coin
             </p>
           </div>
-          <span class="text-2xl">🎁</span>
+          <span class="text-2xl"><AppIcon name="gift" /></span>
         </div>
 
         <!-- Actions (faqat pending uchun) -->
@@ -141,14 +143,14 @@ onMounted(fetchOrders);
             :disabled="resolvingId === o.id"
             class="flex-1 border border-red-200 text-red-500 rounded-xl py-2 text-sm hover:bg-red-50 transition disabled:opacity-50"
           >
-            {{ resolvingId === o.id ? "..." : "❌ Rad etish" }}
+            {{ resolvingId === o.id ? "..." : "Rad etish" }}
           </button>
           <button
             @click="resolveOrder(o.id, 'approved')"
             :disabled="resolvingId === o.id"
             class="flex-1 bg-gray-900 text-white rounded-xl py-2 text-sm hover:bg-gray-700 transition disabled:opacity-50"
           >
-            {{ resolvingId === o.id ? "..." : "✅ Tasdiqlash" }}
+            {{ resolvingId === o.id ? "..." : "Tasdiqlash" }}
           </button>
         </div>
       </div>

@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted, computed } from "vue";
 import { useRouter } from "vue-router";
+import AppIcon from "@/components/AppIcon.vue";
 
 // ─── Constants ───────────────────────────────────────────────
 const API = "https://itline-django-9s85.onrender.com/api";
@@ -135,7 +136,7 @@ function setLeaderScope(scope) {
 
 // Top 3 uchun medal, qolganlar uchun oddiy raqam
 function rankBadge(rank) {
-  return { 1: "🥇", 2: "🥈", 3: "🥉" }[rank] || null;
+  return rank <= 3;   // top 3 ga medal ikonkasi
 }
 
 onMounted(async () => {
@@ -166,7 +167,7 @@ function open_students() {
         @click="$router.push('/profile')"
         class="px-4 py-2 rounded-full text-sm border border-gray-200 hover:bg-gray-50"
       >
-        ⚙️ Profil
+        <AppIcon name="settings" /> Profil
       </button>
     </div>
 
@@ -175,7 +176,7 @@ function open_students() {
       v-if="usingDefaultPassword"
       class="mb-6 px-4 py-3 rounded-2xl bg-amber-50 border border-amber-200 flex items-start gap-3"
     >
-      <span class="text-amber-500 shrink-0">⚠️</span>
+      <span class="text-amber-500 shrink-0"><AppIcon name="warning" /></span>
       <div class="min-w-0 flex-1">
         <p class="text-sm font-medium text-amber-800">
           Siz hali standart parolda ishlayapsiz
@@ -199,19 +200,19 @@ function open_students() {
         @click="$router.push('/students')"
         class="p-5 border rounded-2xl cursor-pointer hover:bg-gray-50"
       >
-        👥 O'quvchilar
+        <AppIcon name="users" /> O'quvchilar
       </div>
       <div
         @click="$router.push('/Attendance')"
         class="p-5 border rounded-2xl cursor-pointer hover:bg-gray-50"
       >
-        📋 Davomat
+        <AppIcon name="attendance" /> Davomat
       </div>
       <div
         @click="$router.push('/groups')"
         class="p-5 border rounded-2xl cursor-pointer hover:bg-gray-50"
       >
-        🗂️ Guruhlar
+        <AppIcon name="groups" /> Guruhlar
       </div>
     </div>
 
@@ -222,16 +223,7 @@ function open_students() {
         class="w-full flex items-center gap-2 mb-4 font-medium text-left"
       >
         <span>Mening o'quvchilarim ({{ students.length }})</span>
-        <svg
-          class="w-4 h-4 shrink-0 text-gray-400 transition-transform"
-          :class="studentlarim ? 'rotate-180' : ''"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          viewBox="0 0 24 24"
-        >
-          <path d="M6 9l6 6 6-6" />
-        </svg>
+        <AppIcon name="chevron-down" class="w-4 h-4 shrink-0 text-gray-400 transition-transform" />
       </button>
 
       <div
@@ -287,7 +279,7 @@ function open_students() {
           <div
             class="w-9 h-9 rounded-xl flex items-center justify-center text-white shadow-sm bg-gradient-to-br from-amber-400 to-orange-500"
           >
-            🏆
+            <AppIcon name="trophy" />
           </div>
           <div>
             <h2 class="font-medium">Reyting</h2>
@@ -305,7 +297,7 @@ function open_students() {
                 : 'border-gray-200 text-gray-500 hover:bg-gray-50',
             ]"
           >
-            👤 Mening o'quvchilarim
+            <AppIcon name="user" /> Mening o'quvchilarim
           </button>
           <button
             @click="setLeaderScope('all')"
@@ -316,7 +308,7 @@ function open_students() {
                 : 'border-gray-200 text-gray-500 hover:bg-gray-50',
             ]"
           >
-            🌐 Barchasi
+            <AppIcon name="globe" /> Barchasi
           </button>
         </div>
       </div>
@@ -329,7 +321,7 @@ function open_students() {
         v-else-if="leaders.length === 0"
         class="text-center py-8 text-gray-400 text-sm"
       >
-        <p class="text-3xl mb-2">🏆</p>
+        <p class="text-3xl mb-2"><AppIcon name="trophy" /></p>
         <p>Hozircha coin to'plagan o'quvchi yo'q</p>
       </div>
 
@@ -343,8 +335,13 @@ function open_students() {
           <span
             v-if="rankBadge(l.rank)"
             class="w-8 text-center text-lg shrink-0"
-            >{{ rankBadge(l.rank) }}</span
-          >
+            :class="{
+              'text-amber-400': l.rank === 1,
+              'text-slate-400': l.rank === 2,
+              'text-orange-400': l.rank === 3,
+            }"
+            ><AppIcon name="medal"
+          /></span>
           <span
             v-else
             class="w-8 text-center text-xs text-gray-400 tabular-nums shrink-0"
@@ -368,7 +365,7 @@ function open_students() {
           <span
             class="text-sm font-semibold tabular-nums shrink-0 px-2.5 py-1 rounded-full bg-amber-50 text-amber-700"
           >
-            🪙 {{ l.coin_balance }}
+            <AppIcon name="coin" /> {{ l.coin_balance }}
           </span>
         </div>
       </div>

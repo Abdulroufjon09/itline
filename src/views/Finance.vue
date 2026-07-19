@@ -34,17 +34,7 @@
           to="/excellence"
           class="flex items-center justify-center gap-2 px-4 py-2 bg-white hover:bg-slate-50 active:scale-95 text-slate-500 hover:text-rose-500 text-sm font-medium rounded-lg border border-slate-100 shadow-sm transition-all duration-150 shrink-0"
         >
-          <svg
-            class="w-4 h-4"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            viewBox="0 0 24 24"
-          >
-            <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" />
-            <polyline points="16 17 21 12 16 7" />
-            <line x1="21" y1="12" x2="9" y2="12" />
-          </svg>
+          <AppIcon name="logout" class="w-4 h-4" />
           <span class="hidden sm:inline">Chiqish</span>
         </router-link>
       </div>
@@ -56,25 +46,7 @@
       class="bg-white rounded-2xl border border-slate-100 shadow-sm p-16 text-center"
     >
       <div class="flex flex-col items-center gap-3">
-        <svg
-          class="w-8 h-8 text-indigo-400 animate-spin"
-          fill="none"
-          viewBox="0 0 24 24"
-        >
-          <circle
-            class="opacity-25"
-            cx="12"
-            cy="12"
-            r="10"
-            stroke="currentColor"
-            stroke-width="3"
-          />
-          <path
-            class="opacity-75"
-            fill="currentColor"
-            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-          />
-        </svg>
+        <AppIcon name="spinner" class="w-8 h-8 text-indigo-400 animate-spin" />
         <p class="text-sm text-slate-400">Ma'lumotlar yuklanmoqda...</p>
       </div>
     </div>
@@ -94,17 +66,7 @@
               <div
                 class="w-8 h-8 rounded-lg bg-emerald-500 flex items-center justify-center shadow-sm shadow-emerald-200 shrink-0"
               >
-                <svg
-                  class="w-4 h-4 text-white"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2.5"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"
-                  />
-                </svg>
+                <AppIcon name="money" class="w-4 h-4 text-white" />
               </div>
               <span
                 class="text-xs font-medium text-slate-400 uppercase tracking-wider"
@@ -139,17 +101,7 @@
               <div
                 class="w-8 h-8 rounded-lg bg-rose-500 flex items-center justify-center shadow-sm shadow-rose-200 shrink-0"
               >
-                <svg
-                  class="w-4 h-4 text-white"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2.5"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4zM3 6h18"
-                  />
-                </svg>
+                <AppIcon name="receipt" class="w-4 h-4 text-white" />
               </div>
               <span
                 class="text-xs font-medium text-slate-400 uppercase tracking-wider"
@@ -215,7 +167,7 @@
               class="text-xs text-white/70 font-medium mt-1.5 flex items-center gap-1"
             >
               <span>{{
-                summary.profit >= 0 ? "↑ Ijobiy holat" : "↓ Manfiy holat"
+                summary.profit >= 0 ? "Ijobiy holat" : "Manfiy holat"
               }}</span>
             </p>
           </div>
@@ -334,7 +286,7 @@
           <p class="text-xs text-slate-400 mt-1.5 text-right">
             {{
               collectionPercent >= 100
-                ? "Tolandi ✓"
+                ? "To'landi"
                 : collectionPercent + "% yig'ildi"
             }}
           </p>
@@ -390,16 +342,7 @@
           </button>
 
           <div class="relative flex-1 sm:flex-none">
-            <svg
-              class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              viewBox="0 0 24 24"
-            >
-              <circle cx="11" cy="11" r="8" />
-              <path d="m21 21-4.35-4.35" />
-            </svg>
+            <AppIcon name="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
             <input
               v-model="search"
               type="text"
@@ -659,17 +602,7 @@
                   <div
                     class="w-7 h-7 rounded-full bg-rose-50 flex items-center justify-center shrink-0"
                   >
-                    <svg
-                      class="w-3.5 h-3.5 text-rose-400"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4zM3 6h18"
-                      />
-                    </svg>
+                    <AppIcon name="receipt" class="w-3.5 h-3.5 text-rose-400" />
                   </div>
                   <div>
                     <span class="text-sm font-medium text-slate-700 block">{{
@@ -751,6 +684,7 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from "vue";
+import AppIcon from "@/components/AppIcon.vue";
 
 const API = "https://itline-django-9s85.onrender.com/api";
 
@@ -985,7 +919,7 @@ async function submitExpense() {
 
     resetExpenseForm();
     showExpenseForm.value = false;
-    showToast("Xarajat qo'shildi ✓");
+    showToast("Xarajat qo'shildi");
     await loadSummary(); // real-time: foyda/zarar darhol yangilanadi
   } catch (err) {
     console.error("create expense error:", err);

@@ -1,5 +1,6 @@
 <script setup>
 import { ref, onMounted } from "vue";
+import AppIcon from "@/components/AppIcon.vue";
 
 const API = "https://itline-django-9s85.onrender.com/api";
 
@@ -213,7 +214,7 @@ onMounted(fetchProducts);
                   :alt="p.name"
                   class="w-full h-full object-cover"
                 />
-                <span v-else class="text-2xl">🎁</span>
+                <span v-else class="text-2xl"><AppIcon name="gift" /></span>
               </div>
             </td>
 
@@ -230,7 +231,7 @@ onMounted(fetchProducts);
 
             <!-- Narx -->
             <td class="px-4 py-3 font-semibold text-amber-600">
-              🪙 {{ p.price_coins }}
+              <AppIcon name="coin" /> {{ p.price_coins }}
             </td>
 
             <!-- Qoldiq -->

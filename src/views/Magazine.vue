@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted, computed } from "vue";
 import { useRouter } from "vue-router";
+import AppIcon from "@/components/AppIcon.vue";
 
 const router = useRouter();
 const API = "https://itline-django-9s85.onrender.com/api";
@@ -128,7 +129,7 @@ onMounted(async () => {
         </div>
         <div class="flex items-center gap-2">
           <span class="px-4 py-2 rounded-full bg-amber-50 text-amber-700 text-sm font-semibold">
-            🪙 {{ coins }}
+            <AppIcon name="coin" /> {{ coins }}
           </span>
         </div>
       </div>
@@ -151,7 +152,7 @@ onMounted(async () => {
               :alt="p.name"
               class="w-full h-full object-cover"
             />
-            <span v-else class="text-4xl">🎁</span>
+            <span v-else class="text-4xl"><AppIcon name="gift" /></span>
           </div>
           <div class="p-4 flex flex-col flex-1">
             <p class="font-medium text-sm">{{ p.name }}</p>
@@ -159,7 +160,7 @@ onMounted(async () => {
               {{ p.description }}
             </p>
             <div class="mt-auto pt-3 flex items-center justify-between gap-2">
-              <span class="text-sm font-semibold text-amber-600">🪙 {{ p.price_coins }}</span>
+              <span class="text-sm font-semibold text-amber-600"><AppIcon name="coin" /> {{ p.price_coins }}</span>
               <button
                 @click="openConfirm(p)"
                 :disabled="!affordable(p.price_coins) || buyingId === p.id || (p.stock !== null && p.stock !== undefined && p.stock <= 0)"
@@ -206,7 +207,7 @@ onMounted(async () => {
             <div class="min-w-0">
               <p class="text-sm font-medium truncate">{{ o.product_name }}</p>
               <p class="text-xs text-gray-400">
-                {{ o.created_at }} · 🪙 {{ o.price_coins }}
+                {{ o.created_at }} · <AppIcon name="coin" /> {{ o.price_coins }}
               </p>
             </div>
             <span
@@ -238,7 +239,7 @@ onMounted(async () => {
         <div class="bg-white rounded-2xl p-5 max-w-sm w-full">
           <p class="font-semibold mb-1">{{ confirmProduct.name }}</p>
           <p class="text-sm text-gray-400 mb-4">
-            🪙 {{ confirmProduct.price_coins }} coin sarflanadi. Davom etasizmi?
+            <AppIcon name="coin" /> {{ confirmProduct.price_coins }} coin sarflanadi. Davom etasizmi?
           </p>
           <div class="flex gap-2">
             <button
