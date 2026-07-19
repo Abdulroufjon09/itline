@@ -487,6 +487,11 @@ async function sendGroupMsg() {
                           class="text-xs bg-amber-50 text-amber-700 px-2 py-0.5 rounded-full shrink-0">
                           🚪 {{ group.room }}
                         </span>
+                        <span v-if="group.needs_review"
+                          class="text-xs bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full shrink-0"
+                          :title="group.review_note">
+                          ⚠️ Tekshirilsin
+                        </span>
                       </div>
                       <p class="text-xs text-gray-400 mt-0.5 truncate">
                         {{ group.teacher?.name || "O'qituvchi yo'q" }}
@@ -563,6 +568,18 @@ async function sendGroupMsg() {
                   <button @click="closePanel" class="text-gray-300 hover:text-gray-600 text-2xl leading-none shrink-0">
                     ×
                   </button>
+                </div>
+
+                <!-- Import vaqtida jadvalda topilmagan ma'lumot ogohlantirishi -->
+                <div v-if="activeGroup.needs_review"
+                  class="mb-4 px-3 py-2.5 rounded-xl bg-orange-50 border border-orange-200">
+                  <p class="text-xs font-medium text-orange-700">
+                    ⚠️ {{ activeGroup.review_note || "Ma'lumot to'liq emas" }}
+                  </p>
+                  <p class="text-xs text-orange-500 mt-0.5">
+                    Hozirgi qiymatlar taxminiy. Tahrirlab to'g'ri qiymatni
+                    saqlasangiz, bu ogohlantirish yo'qoladi.
+                  </p>
                 </div>
 
                 <!-- ✅ Tahrirlash va O'chirish tugmalari faqat admin/excellence uchun -->
