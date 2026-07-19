@@ -91,6 +91,12 @@ const routes = [
     component: lazy("DataBase"),
     meta: { requiresAuth: true },
   },
+
+  {
+    path: "/profile",
+    component: lazy("Profile"),
+    meta: { requiresAuth: true },
+  },
 ];
 
 const router = createRouter({

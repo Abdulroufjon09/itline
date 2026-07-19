@@ -133,6 +133,12 @@ async function submitLogin() {
 
     if (ok && data.exists) {
       localStorage.setItem("user", JSON.stringify(buildUserPayload(data)));
+      // Standart parol bilan kirgan admin/ustozga panelda eslatma chiqadi
+      if (form.password === "excel2024") {
+        localStorage.setItem("used_default_password", "1");
+      } else {
+        localStorage.removeItem("used_default_password");
+      }
       redirectUser(data);
     } else {
       wrongPass.value = true;

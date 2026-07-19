@@ -1,4 +1,15 @@
 @import "tailwindcss";
+
+/* Tungi rejim: <html data-theme="dark"> bo'lganda dark: klasslari ishlaydi */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/* Tema almashganda silliq o'tish */
+html[data-theme] body {
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease;
+}
+
 /* Chrome, Edge, Safari */
 ::-webkit-scrollbar {
   display: none;

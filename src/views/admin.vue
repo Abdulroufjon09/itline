@@ -18,6 +18,11 @@ function logout() {
   router.push("/login");
 }
 
+// ─── Standart parol eslatmasi ────────────────────────────────
+const usingDefaultPassword = ref(
+  localStorage.getItem("used_default_password") === "1",
+);
+
 // ─── State ───────────────────────────────────────────────────
 const teachers = ref([]);
 const students = ref([]);
@@ -252,11 +257,42 @@ onMounted(async () => {
           Xush kelibsiz, {{ user.name }}!
         </p>
       </div>
+      <div class="flex items-center gap-2">
+        <button
+          @click="$router.push('/profile')"
+          class="px-4 py-2 rounded-full text-sm border border-gray-200 hover:bg-gray-50"
+        >
+          ⚙️ Profil
+        </button>
+        <button
+          @click="logout"
+          class="px-4 py-2 rounded-full text-sm hover:bg-gray-50"
+        >
+          Chiqish
+        </button>
+      </div>
+    </div>
+
+    <!-- Default parol ogohlantirishi -->
+    <div
+      v-if="usingDefaultPassword"
+      class="mb-6 px-4 py-3 rounded-2xl bg-amber-50 border border-amber-200 flex items-start gap-3"
+    >
+      <span class="text-amber-500 shrink-0">⚠️</span>
+      <div class="min-w-0 flex-1">
+        <p class="text-sm font-medium text-amber-800">
+          Siz hali standart parolda ishlayapsiz
+        </p>
+        <p class="text-xs text-amber-600 mt-0.5">
+          Bu parol barcha ustozlarda bir xil. Xavfsizlik uchun o'zingizniki
+          bilan almashtiring.
+        </p>
+      </div>
       <button
-        @click="logout"
-        class="px-4 py-2 rounded-full text-sm hover:bg-gray-50"
+        @click="$router.push('/profile')"
+        class="px-3 py-1.5 rounded-full text-xs bg-amber-500 text-white hover:bg-amber-600 transition shrink-0"
       >
-        Chiqish
+        O'zgartirish
       </button>
     </div>
 
