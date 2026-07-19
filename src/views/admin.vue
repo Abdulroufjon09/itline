@@ -4,7 +4,6 @@ import { useRouter } from "vue-router";
 
 // ─── Constants ───────────────────────────────────────────────
 const API = "https://itline-django-9s85.onrender.com/api";
-const STAGES = [1, 2, 3, 4, 5, 6, 7];
 
 // ─── Router & Auth ───────────────────────────────────────────
 const router = useRouter();
@@ -26,10 +25,14 @@ const usingDefaultPassword = ref(
 // ─── State ───────────────────────────────────────────────────
 const students = ref([]);
 const payments = ref([]);
+const leaders = ref([]);
 
 const loadingStudents = ref(false);
 const loadingPayments = ref(false);
-const stageLoading = ref(null);
+const loadingLeaders = ref(false);
+
+// Reyting: o'z o'quvchilarim / barcha o'quvchilar
+const leaderScope = ref("mine");
 
 // Admin o'zining o'quvchilarini ko'radi
 const myTeacherId = computed(() => user?.teacher_id ?? null);
@@ -92,33 +95,6 @@ async function fetchPayments(teacherId) {
 // ─── Student Actions ─────────────────────────────────────────
 
 
-async function updateStage(student, stage) {
-  if (stageLoading.value === student.id) return;
-  stageLoading.value = student.id;
-  try {
-    const result = await apiFetch(`/students/update/${student.id}/`, {
-      method: "PATCH",
-      body: JSON.stringify({ stage }),
-    });
-    if (stage === 5 && result.teacher_id !== myTeacherId.value) {
-      students.value = students.value.filter((s) => s.id !== student.id);
-      alert(`${student.name} kotta teacherga o'tdi`);
-    } else {
-      const s = students.value.find((s) => s.id === student.id);
-      if (s)
-        Object.assign(s, {
-          stage: result.stage,
-          teacher_id: result.teacher_id,
-          teacher_name: result.teacher_name,
-        });
-    }
-  } catch (e) {
-    alert(e.message);
-  } finally {
-    stageLoading.value = null;
-  }
-}
-
 async function updateSchedule(student, schedule) {
   try {
     await apiFetch(`/students/update/${student.id}/`, {
@@ -132,11 +108,40 @@ async function updateSchedule(student, schedule) {
 }
 
 // ─── Mount ───────────────────────────────────────────────────
+// ─── Reyting (leaderboard) ───────────────────────────────────
+async function fetchLeaders() {
+  loadingLeaders.value = true;
+  try {
+    const q =
+      leaderScope.value === "mine" && myTeacherId.value
+        ? `?teacher_id=${myTeacherId.value}`
+        : "";
+    leaders.value = await apiFetch(`/leaderboard/${q}`);
+  } catch (e) {
+    console.error("Leaderboard error:", e);
+    leaders.value = [];
+  } finally {
+    loadingLeaders.value = false;
+  }
+}
+
+function setLeaderScope(scope) {
+  if (leaderScope.value === scope) return;
+  leaderScope.value = scope;
+  fetchLeaders();
+}
+
+// Top 3 uchun medal, qolganlar uchun oddiy raqam
+function rankBadge(rank) {
+  return { 1: "🥇", 2: "🥈", 3: "🥉" }[rank] || null;
+}
+
 onMounted(async () => {
   if (!myTeacherId.value) return;
   await Promise.all([
     fetchStudents(myTeacherId.value),
     fetchPayments(myTeacherId.value),
+    fetchLeaders(),
   ]);
 });
 </script>
@@ -248,25 +253,110 @@ onMounted(async () => {
           </div>
         </div>
 
-        <!-- Stage buttons -->
-        <div class="flex gap-1 flex-wrap">
+      </div>
+    </div>
+
+    <!-- ══════════ REYTING ══════════ -->
+    <div class="rounded-2xl border border-gray-100 bg-white p-4 sm:p-6 mt-6 mb-8">
+      <div
+        class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4"
+      >
+        <div class="flex items-center gap-2.5">
+          <div
+            class="w-9 h-9 rounded-xl flex items-center justify-center text-white shadow-sm bg-gradient-to-br from-amber-400 to-orange-500"
+          >
+            🏆
+          </div>
+          <div>
+            <h2 class="font-medium">Reyting</h2>
+            <p class="text-xs text-gray-400">Coin bo'yicha eng faollar</p>
+          </div>
+        </div>
+
+        <div class="flex gap-2">
           <button
-            v-for="st in STAGES"
-            :key="st"
-            @click="updateStage(s, st)"
-            :disabled="stageLoading === s.id"
-            class="w-7 h-7 text-xs rounded-full transition"
+            @click="setLeaderScope('mine')"
             :class="[
-              s.stage === st
-                ? 'bg-black text-white'
-                : 'border border-gray-200 hover:bg-gray-50',
-              stageLoading === s.id ? 'opacity-50 cursor-not-allowed' : '',
+              'px-3 py-1.5 rounded-full text-xs sm:text-sm border transition',
+              leaderScope === 'mine'
+                ? 'bg-black text-white border-black'
+                : 'border-gray-200 text-gray-500 hover:bg-gray-50',
             ]"
           >
-            {{ st }}
+            👤 Mening o'quvchilarim
+          </button>
+          <button
+            @click="setLeaderScope('all')"
+            :class="[
+              'px-3 py-1.5 rounded-full text-xs sm:text-sm border transition',
+              leaderScope === 'all'
+                ? 'bg-black text-white border-black'
+                : 'border-gray-200 text-gray-500 hover:bg-gray-50',
+            ]"
+          >
+            🌐 Barchasi
           </button>
         </div>
       </div>
+
+      <div v-if="loadingLeaders" class="text-center py-8 text-gray-400 text-sm">
+        Yuklanmoqda...
+      </div>
+
+      <div
+        v-else-if="leaders.length === 0"
+        class="text-center py-8 text-gray-400 text-sm"
+      >
+        <p class="text-3xl mb-2">🏆</p>
+        <p>Hozircha coin to'plagan o'quvchi yo'q</p>
+      </div>
+
+      <div v-else class="divide-y divide-gray-100">
+        <div
+          v-for="l in leaders.slice(0, 20)"
+          :key="l.id"
+          class="flex items-center gap-3 py-2.5"
+        >
+          <!-- O'rin -->
+          <span
+            v-if="rankBadge(l.rank)"
+            class="w-8 text-center text-lg shrink-0"
+            >{{ rankBadge(l.rank) }}</span
+          >
+          <span
+            v-else
+            class="w-8 text-center text-xs text-gray-400 tabular-nums shrink-0"
+            >{{ l.rank }}</span
+          >
+
+          <!-- Ism -->
+          <div class="min-w-0 flex-1">
+            <p class="text-sm font-medium truncate">
+              {{ l.name }} {{ l.surname }}
+            </p>
+            <p
+              v-if="leaderScope === 'all' && l.teacher_name"
+              class="text-xs text-gray-400 truncate"
+            >
+              {{ l.teacher_name }}
+            </p>
+          </div>
+
+          <!-- Coin -->
+          <span
+            class="text-sm font-semibold tabular-nums shrink-0 px-2.5 py-1 rounded-full bg-amber-50 text-amber-700"
+          >
+            🪙 {{ l.coin_balance }}
+          </span>
+        </div>
+      </div>
+
+      <p
+        v-if="leaders.length > 20"
+        class="text-xs text-gray-400 text-center mt-3"
+      >
+        Yuqoridagi 20 tasi ko'rsatilmoqda ({{ leaders.length }} tadan)
+      </p>
     </div>
   </div>
 </template>
