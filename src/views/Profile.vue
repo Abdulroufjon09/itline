@@ -159,7 +159,6 @@ const inputCls =
   "w-full px-3.5 py-2.5 rounded-xl border text-sm outline-none transition " +
   "bg-white border-slate-200 text-slate-800 placeholder:text-slate-300 " +
   "focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100";
-
 </script>
 
 <template>
@@ -321,7 +320,10 @@ const inputCls =
             <h2 class="font-semibold text-slate-800">Parolni o'zgartirish</h2>
             <p class="text-xs text-slate-400">Hisobingiz xavfsizligi</p>
           </div>
-          <AppIcon name="chevron-down" class="w-5 h-5 shrink-0 transition-transform text-slate-300" />
+          <AppIcon
+            name="chevron-down"
+            class="w-5 h-5 shrink-0 transition-transform text-slate-300"
+          />
         </button>
 
         <div v-if="pwd.show" class="mt-5 flex flex-col gap-3">
@@ -414,13 +416,15 @@ const inputCls =
             <div
               class="w-full h-14 rounded-xl mb-3 bg-gradient-to-br from-slate-50 to-slate-200 border border-slate-200"
             ></div>
-            <p class="text-sm font-medium text-slate-800"><AppIcon name="sun" /> Kunduzgi</p>
+            <p class="text-sm font-medium text-slate-800">
+              <AppIcon name="sun" /> Kunduzgi
+            </p>
             <p class="text-xs mt-0.5 text-slate-400">Yorug' rejim</p>
             <span
               v-if="!isDark"
               class="absolute top-3 right-3 w-5 h-5 rounded-full bg-indigo-500 text-white text-[11px] flex items-center justify-center"
-              ><AppIcon name="check" /></span
-            >
+              ><AppIcon name="check"
+            /></span>
           </button>
 
           <button
@@ -435,13 +439,15 @@ const inputCls =
             <div
               class="w-full h-14 rounded-xl mb-3 bg-gradient-to-br from-slate-900 via-indigo-900 to-purple-900 border border-slate-700"
             ></div>
-            <p class="text-sm font-medium text-slate-800"><AppIcon name="moon" /> Tungi</p>
+            <p class="text-sm font-medium text-slate-800">
+              <AppIcon name="moon" /> Tungi
+            </p>
             <p class="text-xs mt-0.5 text-slate-400">Ko'zga qulay</p>
             <span
               v-if="isDark"
               class="absolute top-3 right-3 w-5 h-5 rounded-full bg-indigo-500 text-white text-[11px] flex items-center justify-center"
-              ><AppIcon name="check" /></span
-            >
+              ><AppIcon name="check"
+            /></span>
           </button>
         </div>
 
