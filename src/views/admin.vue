@@ -24,34 +24,15 @@ const usingDefaultPassword = ref(
 );
 
 // ─── State ───────────────────────────────────────────────────
-const teachers = ref([]);
 const students = ref([]);
 const payments = ref([]);
 
-const loadingTeachers = ref(false);
 const loadingStudents = ref(false);
 const loadingPayments = ref(false);
 const stageLoading = ref(null);
 
-const showForm = ref(false);
-const showReassign = ref(false);
-const showStudents = ref(false);
-const showAsk = ref(false);
-
-const teacherToDelete = ref(null);
-const selectedTeacherId = ref(null);
-
-const newTeacher = ref({ name: "", phone: "" });
-const fromTeacher = ref(null);
-const toTeacher = ref(null);
-
-// ─── Computed ────────────────────────────────────────────────
-const selectedTeacherName = computed(
-  () =>
-    teachers.value.find((t) => t.id === selectedTeacherId.value)?.name ?? "",
-);
-
-const currentTeacherId = computed(() => user?.id ?? null);
+// Admin o'zining o'quvchilarini ko'radi
+const myTeacherId = computed(() => user?.teacher_id ?? null);
 
 // ─── Helpers ─────────────────────────────────────────────────
 function formatMoney(value) {
@@ -82,17 +63,6 @@ async function apiFetch(path, options = {}) {
 }
 
 // ─── Fetch ───────────────────────────────────────────────────
-async function fetchTeachers() {
-  loadingTeachers.value = true;
-  try {
-    teachers.value = await apiFetch("/teachers/");
-  } catch (e) {
-    alert(e.message);
-  } finally {
-    loadingTeachers.value = false;
-  }
-}
-
 async function fetchStudents(teacherId) {
   if (!teacherId) {
     students.value = [];
@@ -119,88 +89,8 @@ async function fetchPayments(teacherId) {
   }
 }
 
-// ─── Teacher Actions ─────────────────────────────────────────
-async function createTeacher() {
-  if (!newTeacher.value.name.trim()) {
-    alert("Ism kiriting");
-    return;
-  }
-  try {
-    await apiFetch("/teachers/create/", {
-      method: "POST",
-      body: JSON.stringify(newTeacher.value),
-    });
-    newTeacher.value = { name: "", phone: "" };
-    showForm.value = false;
-    await fetchTeachers();
-  } catch (e) {
-    alert(e.message);
-  }
-}
-
-function askDelete(id) {
-  if (currentTeacherId.value === id) {
-    alert("O'zingizni o'chira olmaysiz");
-    return;
-  }
-  teacherToDelete.value = id;
-  showAsk.value = true;
-}
-
-async function confirmDelete() {
-  const id = teacherToDelete.value;
-  showAsk.value = false;
-  teacherToDelete.value = null;
-  try {
-    await apiFetch(`/teachers/delete/${id}/`, {
-      method: "DELETE",
-      headers: { "X-Requester-Id": String(currentTeacherId.value) },
-    });
-    if (selectedTeacherId.value === id) {
-      selectedTeacherId.value = null;
-      showStudents.value = false;
-      students.value = [];
-    }
-    await fetchTeachers();
-  } catch (e) {
-    alert(e.message);
-  }
-}
-
-async function reassignStudents() {
-  if (!fromTeacher.value || !toTeacher.value) {
-    alert("Teacher tanlang");
-    return;
-  }
-  if (fromTeacher.value === toTeacher.value) {
-    alert("Bir xil teacher tanlandi");
-    return;
-  }
-  const fromId = fromTeacher.value;
-  try {
-    await apiFetch("/teachers/reassign/", {
-      method: "POST",
-      body: JSON.stringify({
-        from_teacher_id: fromId,
-        to_teacher_id: toTeacher.value,
-      }),
-    });
-    showReassign.value = false;
-    fromTeacher.value = null;
-    toTeacher.value = null;
-    if (selectedTeacherId.value === fromId)
-      await fetchStudents(selectedTeacherId.value);
-  } catch (e) {
-    alert(e.message);
-  }
-}
-
 // ─── Student Actions ─────────────────────────────────────────
-async function selectTeacher(teacherId) {
-  selectedTeacherId.value = teacherId;
-  showStudents.value = true;
-  await Promise.all([fetchStudents(teacherId), fetchPayments(teacherId)]);
-}
+
 
 async function updateStage(student, stage) {
   if (stageLoading.value === student.id) return;
@@ -210,7 +100,7 @@ async function updateStage(student, stage) {
       method: "PATCH",
       body: JSON.stringify({ stage }),
     });
-    if (stage === 5 && result.teacher_id !== selectedTeacherId.value) {
+    if (stage === 5 && result.teacher_id !== myTeacherId.value) {
       students.value = students.value.filter((s) => s.id !== student.id);
       alert(`${student.name} kotta teacherga o'tdi`);
     } else {
@@ -243,7 +133,11 @@ async function updateSchedule(student, schedule) {
 
 // ─── Mount ───────────────────────────────────────────────────
 onMounted(async () => {
-  await fetchTeachers();
+  if (!myTeacherId.value) return;
+  await Promise.all([
+    fetchStudents(myTeacherId.value),
+    fetchPayments(myTeacherId.value),
+  ]);
 });
 </script>
 
@@ -257,20 +151,12 @@ onMounted(async () => {
           Xush kelibsiz, {{ user.name }}!
         </p>
       </div>
-      <div class="flex items-center gap-2">
-        <button
-          @click="$router.push('/profile')"
-          class="px-4 py-2 rounded-full text-sm border border-gray-200 hover:bg-gray-50"
-        >
-          ⚙️ Profil
-        </button>
-        <button
-          @click="logout"
-          class="px-4 py-2 rounded-full text-sm hover:bg-gray-50"
-        >
-          Chiqish
-        </button>
-      </div>
+      <button
+        @click="$router.push('/profile')"
+        class="px-4 py-2 rounded-full text-sm border border-gray-200 hover:bg-gray-50"
+      >
+        ⚙️ Profil
+      </button>
     </div>
 
     <!-- Default parol ogohlantirishi -->
@@ -318,109 +204,10 @@ onMounted(async () => {
       </div>
     </div>
 
-    <!-- TEACHERS -->
-    <div class="rounded-2xl p-4 sm:p-6 mb-6">
-      <div class="flex justify-between mb-4">
-        <h2 class="text-lg font-medium">O'qituvchilar</h2>
-        <div class="flex gap-2">
-          <button
-            @click="showReassign = !showReassign"
-            class="px-3 py-1 rounded-full text-sm"
-          >
-            O'tkazish
-          </button>
-        </div>
-      </div>
-
-      <!-- REASSIGN -->
-      <div v-if="showReassign" class="p-4 bg-yellow-50 rounded-xl mb-4">
-        <select
-          v-model.number="fromTeacher"
-          class="w-full p-2 rounded mb-2 cursor-pointer"
-        >
-          <option :value="null">Kimdan</option>
-          <option v-for="t in teachers" :key="t.id" :value="t.id">
-            {{ t.name }}
-          </option>
-        </select>
-        <select
-          v-model.number="toTeacher"
-          class="w-full p-2 rounded mb-2 cursor-pointer"
-        >
-          <option :value="null">Kimga</option>
-          <option v-for="t in teachers" :key="t.id" :value="t.id">
-            {{ t.name }}
-          </option>
-        </select>
-        <button
-          @click="reassignStudents"
-          class="w-full bg-yellow-500 text-white py-2 rounded"
-        >
-          O'tkazish
-        </button>
-      </div>
-
-      <!-- LOADING -->
-      <div
-        v-if="loadingTeachers"
-        class="text-center py-4 text-gray-400 text-sm"
-      >
-        Yuklanmoqda...
-      </div>
-
-      <!-- LIST -->
-      <div
-        v-else
-        v-for="t in teachers"
-        :key="t.id"
-        class="flex flex-wrap gap-2 justify-between items-center p-3 rounded-xl mb-2"
-      >
-        <div>
-          <p class="font-medium">{{ t.name }}</p>
-          <p class="text-xs text-gray-400">{{ t.phone }}</p>
-        </div>
-        <div class="flex gap-2 items-center">
-          <button
-            @click="selectTeacher(t.id)"
-            class="text-blue-500 text-sm border px-2 rounded cursor-pointer"
-          >
-            O'quvchilar
-          </button>
-        </div>
-      </div>
-
-      <!-- DELETE CONFIRM -->
-      <div
-        v-if="showAsk"
-        class="fixed inset-0 bg-black/30 flex items-center justify-center z-50"
-      >
-        <div class="bg-white rounded-2xl p-6 max-w-sm w-full mx-4 shadow-xl">
-          <h3 class="font-semibold mb-2">Teacherni o'chirish</h3>
-          <p class="text-sm text-gray-500 mb-4">
-            Rostdan ham o'chirmoqchimisiz?
-          </p>
-          <div class="flex gap-2">
-            <button
-              @click="showAsk = false"
-              class="flex-1 py-2 rounded-xl border text-sm"
-            >
-              Bekor
-            </button>
-            <button
-              @click="confirmDelete"
-              class="flex-1 py-2 rounded-xl bg-red-500 text-white text-sm"
-            >
-              O'chirish
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-
     <!-- STUDENTS -->
-    <div v-if="showStudents" class="rounded-2xl p-4 sm:p-6">
+    <div class="rounded-2xl p-4 sm:p-6">
       <h2 class="mb-4 font-medium">
-        {{ selectedTeacherName }} — o'quvchilari ({{ students.length }})
+        Mening o'quvchilarim ({{ students.length }})
       </h2>
 
       <div

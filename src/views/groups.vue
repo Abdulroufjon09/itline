@@ -88,6 +88,30 @@ const selectedStudents = computed(() =>
 const canCreateGroup = computed(() => (hasAccess.value = true));
 
 // ─────────────────────────────
+// GURUH FILTRI
+// Ustoz avval faqat o'z guruhlarini ko'radi; kerak bo'lsa
+// "Barcha ustozlar guruhi" tugmasi bilan hammasini ochadi.
+// Menejer (excellence) uchun filtr yo'q — u hammasini ko'radi.
+// ─────────────────────────────
+const showAllTeachers = ref(!user?.teacher_id || !!user?.is_excellence);
+
+const myTeacherId = computed(() => user?.teacher_id ?? null);
+
+const visibleGroups = computed(() => {
+  if (showAllTeachers.value || !myTeacherId.value) return groups.value;
+  return groups.value.filter(
+    (g) => (g.teacher?.id ?? g.teacher_id) === myTeacherId.value,
+  );
+});
+
+const myGroupsCount = computed(() => {
+  if (!myTeacherId.value) return 0;
+  return groups.value.filter(
+    (g) => (g.teacher?.id ?? g.teacher_id) === myTeacherId.value,
+  ).length;
+});
+
+// ─────────────────────────────
 // FETCH
 // ─────────────────────────────
 
@@ -424,7 +448,8 @@ async function sendGroupMsg() {
           <div class="min-w-0">
             <h1 class="text-lg sm:text-xl font-semibold truncate">Guruhlar</h1>
             <p class="text-xs sm:text-sm text-gray-400">
-              {{ groups.length }} ta guruh
+              {{ visibleGroups.length }} ta guruh
+              <span v-if="myTeacherId && !showAllTeachers"> — sizniki</span>
             </p>
           </div>
         </div>
@@ -451,20 +476,61 @@ async function sendGroupMsg() {
             panel ? 'hidden lg:block' : 'block',
           ]">
             <div class="bg-white rounded-2xl shadow-sm overflow-hidden">
+              <!-- Guruh filtri: o'zimniki / barcha ustozlar -->
+              <div
+                v-if="myTeacherId"
+                class="flex gap-2 p-3 border-b border-gray-100"
+              >
+                <button
+                  @click="showAllTeachers = false"
+                  :class="[
+                    'flex-1 px-3 py-2 rounded-xl text-xs sm:text-sm transition border',
+                    !showAllTeachers
+                      ? 'bg-black text-white border-black'
+                      : 'border-gray-200 text-gray-500 hover:bg-gray-50',
+                  ]"
+                >
+                  👤 Mening guruhlarim
+                  <span class="opacity-60">({{ myGroupsCount }})</span>
+                </button>
+                <button
+                  @click="showAllTeachers = true"
+                  :class="[
+                    'flex-1 px-3 py-2 rounded-xl text-xs sm:text-sm transition border',
+                    showAllTeachers
+                      ? 'bg-black text-white border-black'
+                      : 'border-gray-200 text-gray-500 hover:bg-gray-50',
+                  ]"
+                >
+                  🗂️ Barcha ustozlar
+                  <span class="opacity-60">({{ groups.length }})</span>
+                </button>
+              </div>
+
               <div v-if="loadingGroups" class="text-center py-12 text-gray-400 text-sm">
                 Yuklanmoqda...
               </div>
 
-              <div v-else-if="groups.length === 0" class="text-center py-12 text-gray-400 text-sm">
+              <div v-else-if="visibleGroups.length === 0" class="text-center py-12 text-gray-400 text-sm">
                 <p class="text-3xl mb-3">🗂️</p>
-                <p>Hozircha guruhlar yo'q</p>
-                <button v-if="canCreateGroup" @click="openCreate" class="mt-4 text-sm text-black underline">
+                <p v-if="myTeacherId && !showAllTeachers">
+                  Sizga biriktirilgan guruh yo'q
+                </p>
+                <p v-else>Hozircha guruhlar yo'q</p>
+                <button
+                  v-if="myTeacherId && !showAllTeachers && groups.length"
+                  @click="showAllTeachers = true"
+                  class="mt-4 text-sm text-black underline"
+                >
+                  Barcha ustozlar guruhini ko'rish
+                </button>
+                <button v-else-if="canCreateGroup" @click="openCreate" class="mt-4 text-sm text-black underline">
                   Birinchi guruhni yarating
                 </button>
               </div>
 
               <div v-else>
-                <div v-for="group in groups" :key="group.id" @click="openDetail(group)" :class="[
+                <div v-for="group in visibleGroups" :key="group.id" @click="openDetail(group)" :class="[
                   'px-4 sm:px-5 py-4 border-b border-gray-100 cursor-pointer transition hover:bg-gray-50 last:border-0',
                   activeGroup?.id === group.id && panel === 'detail'
                     ? 'bg-gray-50 border-l-2 border-l-black'

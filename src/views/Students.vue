@@ -270,9 +270,9 @@ const stageStyle = (stage) => {
           <p class="text-xs text-gray-400">Xush kelibsiz, {{ user.name }}</p>
         </div>
       </div>
-      <button @click="logout"
+      <button @click="$router.push('/profile')"
         class="shrink-0 border border-gray-200 px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm hover:bg-gray-50 transition">
-        Chiqish
+        ⚙️ Profil
       </button>
     </div>
 

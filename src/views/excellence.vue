@@ -943,10 +943,10 @@ const inputClass = (field) => [
         </p>
       </div>
       <button
-        @click="logout"
+        @click="$router.push('/profile')"
         class="px-4 py-2 rounded-full border border-gray-200 text-sm hover:bg-gray-50 transition"
       >
-        Chiqish
+        ⚙️ Profil
       </button>
     </div>
 

@@ -3,6 +3,9 @@ import App from './App.vue'
 import router from './router'
 import { createPinia } from 'pinia'
 import './assets/main.css'
+// Tema butun ilovaga qo'llanishi uchun shu yerda yuklanadi —
+// aks holda u faqat Profile sahifasi ochilganda ishga tushardi
+import './composables/useTheme'
 
 const app = createApp(App)
 

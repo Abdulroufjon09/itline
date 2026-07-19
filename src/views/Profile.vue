@@ -30,6 +30,15 @@ const initials = computed(() => {
   return ((n[0] || "") + (s[0] || "")).toUpperCase() || "?";
 });
 
+// ─────────── Chiqish ───────────
+const confirmLogout = ref(false);
+
+function logout() {
+  localStorage.removeItem("user");
+  localStorage.removeItem("used_default_password");
+  router.push("/login");
+}
+
 // ─────────── Shaxsiy ma'lumot ───────────
 const profile = ref({
   name: user.value?.name || "",
@@ -142,25 +151,23 @@ async function savePassword() {
 }
 
 // Umumiy input klassi
+// Ranglar global tema CSS orqali tungi rejimga moslashadi
 const inputCls =
   "w-full px-3.5 py-2.5 rounded-xl border text-sm outline-none transition " +
   "bg-white border-slate-200 text-slate-800 placeholder:text-slate-300 " +
-  "focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 " +
-  "dark:bg-white/5 dark:border-white/10 dark:text-slate-100 " +
-  "dark:placeholder:text-slate-500 dark:focus:border-indigo-400/60 " +
-  "dark:focus:ring-indigo-500/20";
+  "focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100";
 </script>
 
 <template>
   <div
-    class="min-h-screen transition-colors bg-slate-50 dark:bg-slate-950 dark:bg-gradient-to-br dark:from-slate-950 dark:via-indigo-950/40 dark:to-slate-900"
+    class="min-h-screen transition-colors bg-slate-50 app-gradient"
   >
     <div class="max-w-2xl mx-auto px-4 py-6 sm:py-10">
       <!-- ══════════ HEADER ══════════ -->
       <div class="flex items-center justify-between mb-6">
         <button
           @click="back"
-          class="flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-medium transition border bg-white border-slate-200 text-slate-500 hover:text-slate-800 hover:bg-slate-50 dark:bg-white/5 dark:border-white/10 dark:text-slate-400 dark:hover:text-white dark:hover:bg-white/10"
+          class="flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-medium transition border bg-white border-slate-200 text-slate-500 hover:text-slate-800 hover:bg-slate-50"
         >
           <svg
             class="w-4 h-4"
@@ -178,7 +185,7 @@ const inputCls =
         <button
           @click="toggleTheme"
           :title="isDark ? 'Kunduzgi rejim' : 'Tungi rejim'"
-          class="w-10 h-10 rounded-xl flex items-center justify-center transition border bg-white border-slate-200 hover:bg-slate-50 dark:bg-white/5 dark:border-white/10 dark:hover:bg-white/10"
+          class="w-10 h-10 rounded-xl flex items-center justify-center transition border bg-white border-slate-200 hover:bg-slate-50"
         >
           <span class="text-lg">{{ isDark ? "☀️" : "🌙" }}</span>
         </button>
@@ -186,32 +193,32 @@ const inputCls =
 
       <!-- ══════════ PROFIL KARTASI ══════════ -->
       <div
-        class="relative overflow-hidden rounded-3xl p-6 sm:p-7 mb-5 border shadow-sm bg-white border-slate-100 dark:border-white/10 dark:bg-gradient-to-br dark:from-indigo-600/25 dark:via-purple-600/15 dark:to-slate-900/60"
+        class="relative overflow-hidden rounded-3xl p-6 sm:p-7 mb-5 border shadow-sm bg-white border-slate-100"
       >
         <!-- Bezak -->
         <div
-          class="absolute -top-16 -right-16 w-48 h-48 rounded-full blur-3xl opacity-50 bg-indigo-100 dark:bg-indigo-500/25"
+          class="absolute -top-16 -right-16 w-48 h-48 rounded-full blur-3xl opacity-50 bg-indigo-100"
         ></div>
 
         <div
           class="relative flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-5"
         >
           <div
-            class="w-20 h-20 rounded-2xl flex items-center justify-center text-2xl font-bold shrink-0 shadow-lg bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow-indigo-200 dark:shadow-indigo-950/60"
+            class="w-20 h-20 rounded-2xl flex items-center justify-center text-2xl font-bold shrink-0 shadow-lg bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow-indigo-200"
           >
             {{ initials }}
           </div>
           <div class="min-w-0">
             <h1
-              class="text-xl sm:text-2xl font-bold tracking-tight truncate text-slate-800 dark:text-white"
+              class="text-xl sm:text-2xl font-bold tracking-tight truncate text-slate-800"
             >
               {{ user?.name }} {{ user?.surname }}
             </h1>
-            <p class="text-sm mt-0.5 text-slate-400 dark:text-slate-400">
+            <p class="text-sm mt-0.5 text-slate-400">
               {{ user?.phone }}
             </p>
             <span
-              class="inline-block mt-2 px-2.5 py-1 rounded-full text-[11px] font-medium bg-indigo-50 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-300"
+              class="inline-block mt-2 px-2.5 py-1 rounded-full text-[11px] font-medium bg-indigo-50 text-indigo-600"
             >
               {{ roleLabel }}
             </span>
@@ -222,14 +229,14 @@ const inputCls =
       <!-- Standart parol ogohlantirishi -->
       <div
         v-if="usingDefaultPassword"
-        class="mb-5 px-4 py-3.5 rounded-2xl border flex items-start gap-3 bg-amber-50 border-amber-200 dark:bg-amber-500/10 dark:border-amber-500/25"
+        class="mb-5 px-4 py-3.5 rounded-2xl border flex items-start gap-3 bg-amber-50 border-amber-200"
       >
         <span class="shrink-0">⚠️</span>
         <div class="min-w-0">
-          <p class="text-sm font-medium text-amber-800 dark:text-amber-300">
+          <p class="text-sm font-medium text-amber-800">
             Siz standart parolda ishlayapsiz
           </p>
-          <p class="text-xs mt-0.5 text-amber-600 dark:text-amber-400/80">
+          <p class="text-xs mt-0.5 text-amber-600">
             Bu parol barcha o'qituvchilarda bir xil. Quyida o'zingizniki bilan
             almashtiring.
           </p>
@@ -238,7 +245,7 @@ const inputCls =
 
       <!-- ══════════ SHAXSIY MA'LUMOT ══════════ -->
       <section
-        class="rounded-3xl border p-5 sm:p-6 mb-5 shadow-sm bg-white border-slate-100 dark:bg-white/[0.03] dark:border-white/10"
+        class="rounded-3xl border p-5 sm:p-6 mb-5 shadow-sm bg-white border-slate-100"
       >
         <div class="flex items-center gap-2.5 mb-5">
           <div
@@ -247,10 +254,10 @@ const inputCls =
             👤
           </div>
           <div>
-            <h2 class="font-semibold text-slate-800 dark:text-white">
+            <h2 class="font-semibold text-slate-800">
               Shaxsiy ma'lumot
             </h2>
-            <p class="text-xs text-slate-400 dark:text-slate-500">
+            <p class="text-xs text-slate-400">
               Ism va familiyangiz
             </p>
           </div>
@@ -259,14 +266,14 @@ const inputCls =
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label
-              class="block text-xs mb-1.5 text-slate-400 dark:text-slate-500"
+              class="block text-xs mb-1.5 text-slate-400"
               >Ism</label
             >
             <input v-model="profile.name" type="text" :class="inputCls" />
           </div>
           <div>
             <label
-              class="block text-xs mb-1.5 text-slate-400 dark:text-slate-500"
+              class="block text-xs mb-1.5 text-slate-400"
               >Familiya</label
             >
             <input v-model="profile.surname" type="text" :class="inputCls" />
@@ -275,7 +282,7 @@ const inputCls =
 
         <div>
           <label
-            class="block text-xs mb-1.5 mt-3 text-slate-400 dark:text-slate-500"
+            class="block text-xs mb-1.5 mt-3 text-slate-400"
             >Telefon</label
           >
           <input
@@ -284,20 +291,20 @@ const inputCls =
             disabled
             :class="[inputCls, 'opacity-60 cursor-not-allowed']"
           />
-          <p class="text-xs mt-1.5 text-slate-400 dark:text-slate-500">
+          <p class="text-xs mt-1.5 text-slate-400">
             Telefon raqamni faqat administrator o'zgartira oladi
           </p>
         </div>
 
         <p
           v-if="profile.error"
-          class="mt-3 px-3 py-2 rounded-xl text-xs bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-400"
+          class="mt-3 px-3 py-2 rounded-xl text-xs bg-red-50 text-red-600"
         >
           {{ profile.error }}
         </p>
         <p
           v-if="profile.success"
-          class="mt-3 px-3 py-2 rounded-xl text-xs bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400"
+          class="mt-3 px-3 py-2 rounded-xl text-xs bg-emerald-50 text-emerald-700"
         >
           ✓ {{ profile.success }}
         </p>
@@ -305,7 +312,7 @@ const inputCls =
         <button
           @click="saveProfile"
           :disabled="profile.saving"
-          class="mt-4 w-full sm:w-auto px-5 py-2.5 rounded-xl text-sm font-medium text-white transition disabled:opacity-50 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 shadow-sm shadow-indigo-200 dark:shadow-none"
+          class="mt-4 w-full sm:w-auto px-5 py-2.5 rounded-xl text-sm font-medium text-white transition disabled:opacity-50 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 shadow-sm shadow-indigo-200"
         >
           {{ profile.saving ? "Saqlanmoqda..." : "Saqlash" }}
         </button>
@@ -313,7 +320,7 @@ const inputCls =
 
       <!-- ══════════ XAVFSIZLIK ══════════ -->
       <section
-        class="rounded-3xl border p-5 sm:p-6 mb-5 shadow-sm bg-white border-slate-100 dark:bg-white/[0.03] dark:border-white/10"
+        class="rounded-3xl border p-5 sm:p-6 mb-5 shadow-sm bg-white border-slate-100"
       >
         <button
           @click="pwd.show = !pwd.show"
@@ -325,15 +332,15 @@ const inputCls =
             🔑
           </div>
           <div class="flex-1 min-w-0">
-            <h2 class="font-semibold text-slate-800 dark:text-white">
+            <h2 class="font-semibold text-slate-800">
               Parolni o'zgartirish
             </h2>
-            <p class="text-xs text-slate-400 dark:text-slate-500">
+            <p class="text-xs text-slate-400">
               Hisobingiz xavfsizligi
             </p>
           </div>
           <svg
-            class="w-5 h-5 shrink-0 transition-transform text-slate-300 dark:text-slate-600"
+            class="w-5 h-5 shrink-0 transition-transform text-slate-300"
             :class="pwd.show ? 'rotate-180' : ''"
             fill="none"
             stroke="currentColor"
@@ -347,7 +354,7 @@ const inputCls =
         <div v-if="pwd.show" class="mt-5 flex flex-col gap-3">
           <div>
             <label
-              class="block text-xs mb-1.5 text-slate-400 dark:text-slate-500"
+              class="block text-xs mb-1.5 text-slate-400"
               >Joriy parol</label
             >
             <input
@@ -360,7 +367,7 @@ const inputCls =
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label
-                class="block text-xs mb-1.5 text-slate-400 dark:text-slate-500"
+                class="block text-xs mb-1.5 text-slate-400"
                 >Yangi parol</label
               >
               <input
@@ -372,7 +379,7 @@ const inputCls =
             </div>
             <div>
               <label
-                class="block text-xs mb-1.5 text-slate-400 dark:text-slate-500"
+                class="block text-xs mb-1.5 text-slate-400"
                 >Takrorlang</label
               >
               <input
@@ -387,13 +394,13 @@ const inputCls =
 
           <p
             v-if="pwd.error"
-            class="px-3 py-2 rounded-xl text-xs bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-400"
+            class="px-3 py-2 rounded-xl text-xs bg-red-50 text-red-600"
           >
             {{ pwd.error }}
           </p>
           <p
             v-if="pwd.success"
-            class="px-3 py-2 rounded-xl text-xs bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400"
+            class="px-3 py-2 rounded-xl text-xs bg-emerald-50 text-emerald-700"
           >
             ✓ {{ pwd.success }}
           </p>
@@ -401,7 +408,7 @@ const inputCls =
           <button
             @click="savePassword"
             :disabled="pwd.saving"
-            class="w-full sm:w-auto px-5 py-2.5 rounded-xl text-sm font-medium text-white transition disabled:opacity-50 bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-600 hover:to-pink-700 shadow-sm shadow-rose-200 dark:shadow-none"
+            class="w-full sm:w-auto px-5 py-2.5 rounded-xl text-sm font-medium text-white transition disabled:opacity-50 bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-600 hover:to-pink-700 shadow-sm shadow-rose-200"
           >
             {{ pwd.saving ? "Saqlanmoqda..." : "Parolni yangilash" }}
           </button>
@@ -410,7 +417,7 @@ const inputCls =
 
       <!-- ══════════ KO'RINISH ══════════ -->
       <section
-        class="rounded-3xl border p-5 sm:p-6 shadow-sm bg-white border-slate-100 dark:bg-white/[0.03] dark:border-white/10"
+        class="rounded-3xl border p-5 sm:p-6 shadow-sm bg-white border-slate-100"
       >
         <div class="flex items-center gap-2.5 mb-5">
           <div
@@ -419,10 +426,10 @@ const inputCls =
             🎨
           </div>
           <div>
-            <h2 class="font-semibold text-slate-800 dark:text-white">
+            <h2 class="font-semibold text-slate-800">
               Ko'rinish
             </h2>
-            <p class="text-xs text-slate-400 dark:text-slate-500">
+            <p class="text-xs text-slate-400">
               Ilova rangi va rejimi
             </p>
           </div>
@@ -434,17 +441,17 @@ const inputCls =
             :class="[
               'relative overflow-hidden rounded-2xl border-2 p-4 text-left transition',
               !isDark
-                ? 'border-indigo-500 ring-2 ring-indigo-100 dark:ring-indigo-500/20'
-                : 'border-slate-200 hover:border-slate-300 dark:border-white/10 dark:hover:border-white/20',
+                ? 'border-indigo-500 ring-2 ring-indigo-100'
+                : 'border-slate-200 hover:border-slate-300:border-white/20',
             ]"
           >
             <div
               class="w-full h-14 rounded-xl mb-3 bg-gradient-to-br from-slate-50 to-slate-200 border border-slate-200"
             ></div>
-            <p class="text-sm font-medium text-slate-800 dark:text-white">
+            <p class="text-sm font-medium text-slate-800">
               ☀️ Kunduzgi
             </p>
-            <p class="text-xs mt-0.5 text-slate-400 dark:text-slate-500">
+            <p class="text-xs mt-0.5 text-slate-400">
               Yorug' rejim
             </p>
             <span
@@ -460,16 +467,16 @@ const inputCls =
               'relative overflow-hidden rounded-2xl border-2 p-4 text-left transition',
               isDark
                 ? 'border-indigo-500 ring-2 ring-indigo-500/20'
-                : 'border-slate-200 hover:border-slate-300 dark:border-white/10 dark:hover:border-white/20',
+                : 'border-slate-200 hover:border-slate-300:border-white/20',
             ]"
           >
             <div
               class="w-full h-14 rounded-xl mb-3 bg-gradient-to-br from-slate-900 via-indigo-900 to-purple-900 border border-slate-700"
             ></div>
-            <p class="text-sm font-medium text-slate-800 dark:text-white">
+            <p class="text-sm font-medium text-slate-800">
               🌙 Tungi
             </p>
-            <p class="text-xs mt-0.5 text-slate-400 dark:text-slate-500">
+            <p class="text-xs mt-0.5 text-slate-400">
               Ko'zga qulay
             </p>
             <span
@@ -480,9 +487,57 @@ const inputCls =
           </button>
         </div>
 
-        <p class="text-xs mt-4 text-slate-400 dark:text-slate-500">
+        <p class="text-xs mt-4 text-slate-400">
           Tanlov brauzeringizda saqlanadi va keyingi kirishda ham qo'llanadi.
         </p>
+      </section>
+
+      <!-- ══════════ HISOBDAN CHIQISH ══════════ -->
+      <section
+        class="rounded-3xl border p-5 sm:p-6 mt-5 shadow-sm bg-white border-slate-100"
+      >
+        <div class="flex items-center gap-2.5 mb-4">
+          <div
+            class="w-9 h-9 rounded-xl flex items-center justify-center text-white shadow-sm bg-gradient-to-br from-slate-500 to-slate-700"
+          >
+            🚪
+          </div>
+          <div>
+            <h2 class="font-semibold text-slate-800">Hisobdan chiqish</h2>
+            <p class="text-xs text-slate-400">
+              Bu qurilmadan hisobingizni yopish
+            </p>
+          </div>
+        </div>
+
+        <template v-if="!confirmLogout">
+          <button
+            @click="confirmLogout = true"
+            class="w-full sm:w-auto px-5 py-2.5 rounded-xl text-sm font-medium transition border border-red-200 text-red-600 hover:bg-red-50"
+          >
+            Chiqish
+          </button>
+        </template>
+
+        <template v-else>
+          <p class="text-sm mb-3 text-slate-600">
+            Rostdan ham chiqmoqchimisiz?
+          </p>
+          <div class="flex gap-2">
+            <button
+              @click="confirmLogout = false"
+              class="flex-1 sm:flex-none px-5 py-2.5 rounded-xl text-sm font-medium border border-slate-200 text-slate-500 hover:bg-slate-50 transition"
+            >
+              Bekor qilish
+            </button>
+            <button
+              @click="logout"
+              class="flex-1 sm:flex-none px-5 py-2.5 rounded-xl text-sm font-medium text-white transition bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700"
+            >
+              Ha, chiqaman
+            </button>
+          </div>
+        </template>
       </section>
     </div>
   </div>
