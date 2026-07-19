@@ -31,6 +31,9 @@ const loadingStudents = ref(false);
 const loadingPayments = ref(false);
 const loadingLeaders = ref(false);
 
+// O'quvchilar ro'yxati yig'ilgan holatda ochiladi
+const studentlarim = ref(false);
+
 // Reyting: o'z o'quvchilarim / barcha o'quvchilar
 const leaderScope = ref("mine");
 
@@ -94,7 +97,6 @@ async function fetchPayments(teacherId) {
 
 // ─── Student Actions ─────────────────────────────────────────
 
-
 async function updateSchedule(student, schedule) {
   try {
     await apiFetch(`/students/update/${student.id}/`, {
@@ -144,6 +146,10 @@ onMounted(async () => {
     fetchLeaders(),
   ]);
 });
+
+function open_students() {
+  studentlarim.value = !studentlarim.value;
+}
 </script>
 
 <template>
@@ -211,9 +217,22 @@ onMounted(async () => {
 
     <!-- STUDENTS -->
     <div class="rounded-2xl p-4 sm:p-6">
-      <h2 class="mb-4 font-medium">
-        Mening o'quvchilarim ({{ students.length }})
-      </h2>
+      <button
+        @click="open_students()"
+        class="w-full flex items-center gap-2 mb-4 font-medium text-left"
+      >
+        <span>Mening o'quvchilarim ({{ students.length }})</span>
+        <svg
+          class="w-4 h-4 shrink-0 text-gray-400 transition-transform"
+          :class="studentlarim ? 'rotate-180' : ''"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          viewBox="0 0 24 24"
+        >
+          <path d="M6 9l6 6 6-6" />
+        </svg>
+      </button>
 
       <div
         v-if="loadingStudents"
@@ -222,8 +241,9 @@ onMounted(async () => {
         Yuklanmoqda...
       </div>
 
+      <!-- v-if va v-for bitta elementda bo'lmasligi uchun template ichida -->
+      <template v-else-if="studentlarim">
       <div
-        v-else
         v-for="s in students"
         :key="s.id"
         class="flex flex-wrap gap-2 justify-between items-center p-3 rounded mb-2"
@@ -252,12 +272,14 @@ onMounted(async () => {
             </span>
           </div>
         </div>
-
       </div>
+      </template>
     </div>
 
     <!-- ══════════ REYTING ══════════ -->
-    <div class="rounded-2xl border border-gray-100 bg-white p-4 sm:p-6 mt-6 mb-8">
+    <div
+      class="rounded-2xl border border-gray-100 bg-white p-4 sm:p-6 mt-6 mb-8"
+    >
       <div
         class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4"
       >
