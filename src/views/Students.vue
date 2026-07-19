@@ -267,7 +267,7 @@ const stageStyle = (stage) => {
         </div>
       </div>
       <button @click="$router.push('/profile')"
-        class="shrink-0 border border-gray-200 px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm hover:bg-gray-50 transition">
+        class="shrink-0 border cursor-pointer border-gray-200 px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm hover:bg-gray-50 transition">
         <AppIcon name="settings" /> Profil
       </button>
     </div>
@@ -381,7 +381,7 @@ const stageStyle = (stage) => {
       <!-- Card list -->
       <div v-else class="space-y-2">
         <div v-for="(student, index) in filteredStudents" :key="student.id"
-          class="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
+          class=" border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
           <!-- Student row -->
           <div class="flex items-center gap-3 px-4 py-3.5">
             <!-- Avatar -->
@@ -420,7 +420,7 @@ const stageStyle = (stage) => {
           </div>
 
           <div v-if="user.is_admin && expandedStudentId === student.id"
-            class="border-t border-gray-100 bg-gray-50/60 px-4 py-4">
+            class="border-t  px-4 py-4">
             <p class="text-xs font-medium text-gray-500 mb-3">
               {{ student.name }} {{ student.surname }} uchun coin bering
             </p>
@@ -429,7 +429,7 @@ const stageStyle = (stage) => {
             <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
               <button v-for="action in QUICK_ACTIONS" :key="action.reason" @click="giveCoin(student.id, action.reason)"
                 :disabled="givingCoin[student.id]" :class="[
-                  'flex flex-col items-center justify-center gap-1 rounded-xl border px-2 py-3 text-xs font-medium transition disabled:opacity-40',
+                  'flex flex-col cursor-pointer items-center justify-center gap-1 rounded-xl border px-2 py-3 text-xs font-medium transition disabled:opacity-40',
                   action.amount > 0
                     ? 'bg-emerald-50 text-emerald-700 border-emerald-100 hover:bg-emerald-100'
                     : 'bg-rose-50 text-rose-600 border-rose-100 hover:bg-rose-100',
@@ -458,7 +458,7 @@ const stageStyle = (stage) => {
                   !manualAmount[student.id] ||
                   givingCoin[student.id]
                   " :class="[
-                    'px-3 py-1.5 rounded-lg text-xs font-medium border transition',
+                    'px-3 py-1.5 rounded-lg text-xs font-medium border transition cursor-pointer',
                     bonusUsed[student.id]
                       ? 'border-gray-200 text-gray-300 cursor-not-allowed'
                       : 'border-gray-800 text-gray-800 hover:bg-gray-800 hover:text-white',

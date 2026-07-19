@@ -169,7 +169,7 @@ const inputCls =
       <div class="flex items-center justify-between mb-6">
         <button
           @click="back"
-          class="flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-medium transition border bg-white border-slate-200 text-slate-500 hover:text-slate-800 hover:bg-slate-50"
+          class="flex items-center cursor-pointer gap-2 px-3.5 py-2 rounded-xl text-sm font-medium transition border bg-white border-slate-200 text-slate-500 hover:text-slate-800 hover:bg-slate-50"
         >
           <AppIcon name="arrow-left" class="w-4 h-4" />
           Orqaga
@@ -179,7 +179,7 @@ const inputCls =
         <button
           @click="toggleTheme"
           :title="isDark ? 'Kunduzgi rejim' : 'Tungi rejim'"
-          class="w-10 h-10 rounded-xl flex items-center justify-center transition border bg-white border-slate-200 hover:bg-slate-50"
+          class="w-10 h-10 rounded-xl flex items-center justify-center cursor-pointer transition border bg-white border-slate-200 hover:bg-slate-50"
         >
           <span>
             <SunBoldIcon v-if="isDark" height="1em" />
@@ -201,7 +201,7 @@ const inputCls =
           class="relative flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-5"
         >
           <div
-            class="w-20 h-20 rounded-2xl flex items-center justify-center text-2xl font-bold shrink-0 shadow-lg bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow-indigo-200"
+            class="w-20 h-20 rounded-2xl flex items-center justify-center text-2xl font-bold shrink-0 shadow-sm bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow-indigo-200"
           >
             {{ initials }}
           </div>
@@ -298,7 +298,7 @@ const inputCls =
         <button
           @click="saveProfile"
           :disabled="profile.saving"
-          class="mt-4 w-full sm:w-auto px-5 py-2.5 rounded-xl text-sm font-medium text-white transition disabled:opacity-50 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 shadow-sm shadow-indigo-200"
+          class="mt-4 w-full sm:w-auto cursor-pointer px-5 py-2.5 rounded-xl text-sm font-medium text-white transition disabled:opacity-50 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 shadow-sm shadow-indigo-200"
         >
           {{ profile.saving ? "Saqlanmoqda..." : "Saqlash" }}
         </button>
@@ -378,7 +378,7 @@ const inputCls =
           <button
             @click="savePassword"
             :disabled="pwd.saving"
-            class="w-full sm:w-auto px-5 py-2.5 rounded-xl text-sm font-medium text-white transition disabled:opacity-50 bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-600 hover:to-pink-700 shadow-sm shadow-rose-200"
+            class="cursor-pointer w-full sm:w-auto px-5 py-2.5 rounded-xl text-sm font-medium text-white transition disabled:opacity-50 bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-600 hover:to-pink-700 shadow-sm shadow-rose-200"
           >
             {{ pwd.saving ? "Saqlanmoqda..." : "Parolni yangilash" }}
           </button>
@@ -405,7 +405,7 @@ const inputCls =
           <button
             @click="theme = 'light'"
             :class="[
-              'relative overflow-hidden rounded-2xl border-2 p-4 text-left transition',
+              'cursor-pointer relative overflow-hidden rounded-2xl border-2 p-4 text-left transition',
               !isDark
                 ? 'border-indigo-500 ring-2 ring-indigo-100'
                 : 'border-slate-200 hover:border-slate-300:border-white/20',
@@ -426,7 +426,7 @@ const inputCls =
           <button
             @click="theme = 'dark'"
             :class="[
-              'relative overflow-hidden rounded-2xl border-2 p-4 text-left transition',
+              'cursor-pointer relative overflow-hidden rounded-2xl border-2 p-4 text-left transition',
               isDark
                 ? 'border-indigo-500 ring-2 ring-indigo-500/20'
                 : 'border-slate-200 hover:border-slate-300:border-white/20',
@@ -471,7 +471,7 @@ const inputCls =
         <template v-if="!confirmLogout">
           <button
             @click="confirmLogout = true"
-            class="w-full sm:w-auto px-5 py-2.5 rounded-xl text-sm font-medium transition border border-red-200 text-red-600 hover:bg-red-50"
+            class="cursor-pointer w-full sm:w-auto px-5 py-2.5 rounded-xl text-sm font-medium transition border border-red-200 text-red-600 hover:bg-red-500 hover:text-white"
           >
             Chiqish
           </button>
