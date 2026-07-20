@@ -1,0 +1,352 @@
+<template>
+  <div class="min-h-screen bg-slate-50 p-4 sm:p-6 font-sans pb-28">
+    <ManagerNav
+      title="O'quvchilar va ustozlar"
+      subtitle="Ustozni tanlab, unga tegishli o'quvchilarni ko'ring va boshqa ustozga o'tkazing"
+    />
+
+    <!-- ══════════ USTOZ TANLASH ══════════ -->
+    <div class="flex flex-wrap gap-2 mb-4">
+      <button
+        @click="selectTeacher('')"
+        :class="chip(activeTeacher === '')"
+      >
+        Barchasi
+        <span class="opacity-60 tabular-nums">{{ totalStudents }}</span>
+      </button>
+      <button
+        v-for="t in teachers"
+        :key="t.id"
+        @click="selectTeacher(String(t.id))"
+        :class="chip(activeTeacher === String(t.id))"
+      >
+        {{ t.name }}
+        <span class="opacity-60 tabular-nums">{{ t.students_count }}</span>
+      </button>
+      <button
+        v-if="unassignedCount > 0"
+        @click="selectTeacher('none')"
+        :class="chip(activeTeacher === 'none')"
+      >
+        Biriktirilmagan
+        <span class="opacity-60 tabular-nums">{{ unassignedCount }}</span>
+      </button>
+    </div>
+
+    <!-- ══════════ ASOSIY KARTA ══════════ -->
+    <div
+      class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden"
+    >
+      <div
+        class="p-4 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center gap-3"
+      >
+        <input
+          v-model="search"
+          type="text"
+          placeholder="Ism yoki telefon bo'yicha qidirish..."
+          class="flex-1 border border-slate-200 bg-slate-50 focus:bg-white rounded-lg px-3 py-2 text-sm outline-none focus:border-indigo-300 transition"
+        />
+        <label
+          class="flex items-center gap-2 text-xs text-slate-500 shrink-0 cursor-pointer select-none"
+        >
+          <input
+            type="checkbox"
+            v-model="includeGraduates"
+            class="accent-indigo-500"
+          />
+          Bitiruvchilar ham
+        </label>
+        <p class="text-xs text-slate-400 shrink-0 tabular-nums">
+          {{ students.length.toLocaleString() }} ta
+        </p>
+      </div>
+
+      <div v-if="loading" class="p-16 text-center">
+        <AppIcon name="spinner" class="w-7 h-7 text-indigo-400 animate-spin" />
+        <p class="text-sm text-slate-400 mt-3">Yuklanmoqda...</p>
+      </div>
+
+      <div v-else-if="!students.length" class="p-16 text-center">
+        <p class="text-sm text-slate-400">Hech narsa topilmadi</p>
+      </div>
+
+      <template v-else>
+        <!-- Desktop jadval -->
+        <div class="hidden sm:block overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead>
+              <tr
+                class="bg-slate-50 text-left text-[11px] uppercase tracking-wider text-slate-400 select-none"
+              >
+                <th class="px-3 py-2.5 w-10">
+                  <input
+                    type="checkbox"
+                    class="accent-indigo-500"
+                    :checked="allSelected"
+                    @change="toggleAll"
+                  />
+                </th>
+                <th class="px-3 py-2.5 font-medium w-10 text-right">#</th>
+                <th class="px-3 py-2.5 font-medium">Ism familiya</th>
+                <th class="px-3 py-2.5 font-medium">Telefon</th>
+                <th class="px-3 py-2.5 font-medium">Ustoz</th>
+                <th class="px-3 py-2.5 font-medium">Etap</th>
+                <th class="px-3 py-2.5 font-medium">Kunlar</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="(s, i) in students"
+                :key="s.id"
+                @click="toggleOne(s.id)"
+                :class="[
+                  'border-t border-slate-50 cursor-pointer transition-colors',
+                  selected.has(s.id) ? 'bg-indigo-50/70' : 'hover:bg-indigo-50/30',
+                ]"
+              >
+                <td class="px-3 py-2" @click.stop>
+                  <input
+                    type="checkbox"
+                    class="accent-indigo-500"
+                    :checked="selected.has(s.id)"
+                    @change="toggleOne(s.id)"
+                  />
+                </td>
+                <td class="px-3 py-2 text-right text-slate-300 tabular-nums text-xs">
+                  {{ i + 1 }}
+                </td>
+                <td class="px-3 py-2 text-slate-700 font-medium">
+                  {{ s.name }} {{ s.surname }}
+                  <span
+                    v-if="s.is_graduate"
+                    class="ml-1 text-[10px] px-1.5 py-0.5 rounded-full bg-amber-50 text-amber-600"
+                    >bitiruvchi</span
+                  >
+                </td>
+                <td class="px-3 py-2">
+                  <a
+                    v-if="s.phone"
+                    :href="'tel:' + tel(s.phone)"
+                    @click.stop
+                    class="text-indigo-500 hover:underline tabular-nums whitespace-nowrap"
+                    >{{ s.phone }}</a
+                  >
+                  <span v-else class="text-slate-200">·</span>
+                </td>
+                <td class="px-3 py-2 text-slate-500">
+                  <span v-if="s.teacher_name">{{ s.teacher_name }}</span>
+                  <span v-else class="text-rose-400 text-xs">biriktirilmagan</span>
+                </td>
+                <td class="px-3 py-2 text-slate-400 tabular-nums">{{ s.stage }}</td>
+                <td class="px-3 py-2 text-slate-400 text-xs">
+                  {{ s.schedule === "odd" ? "Du-Chor-Ju" : "Se-Pay-Sha" }}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Mobil kartalar -->
+        <div class="sm:hidden divide-y divide-slate-100">
+          <div
+            v-for="s in students"
+            :key="s.id"
+            @click="toggleOne(s.id)"
+            :class="[
+              'p-4 flex items-start gap-3',
+              selected.has(s.id) ? 'bg-indigo-50/70' : '',
+            ]"
+          >
+            <input
+              type="checkbox"
+              class="accent-indigo-500 mt-1 shrink-0"
+              :checked="selected.has(s.id)"
+              @click.stop
+              @change="toggleOne(s.id)"
+            />
+            <div class="min-w-0 flex-1 space-y-1">
+              <p class="font-semibold text-slate-800 text-sm leading-snug">
+                {{ s.name }} {{ s.surname }}
+              </p>
+              <p class="text-[13px] text-slate-500">
+                {{ s.teacher_name || "biriktirilmagan" }}
+              </p>
+              <a
+                v-if="s.phone"
+                :href="'tel:' + tel(s.phone)"
+                @click.stop
+                class="text-indigo-500 tabular-nums text-[13px]"
+                >{{ s.phone }}</a
+              >
+            </div>
+          </div>
+        </div>
+      </template>
+    </div>
+
+    <!-- ══════════ TANLANGANLARNI O'TKAZISH ══════════ -->
+    <div
+      v-if="selected.size"
+      class="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 shadow-2xl p-4 z-30"
+    >
+      <div
+        class="max-w-4xl mx-auto flex flex-col sm:flex-row sm:items-center gap-3"
+      >
+        <p class="text-sm text-slate-600 shrink-0">
+          <span class="font-semibold tabular-nums">{{ selected.size }}</span>
+          ta o'quvchi tanlandi
+        </p>
+        <select
+          v-model="transferTo"
+          class="flex-1 border border-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-indigo-300"
+        >
+          <option value="">Qaysi ustozga o'tkazilsin?</option>
+          <option v-for="t in teachers" :key="t.id" :value="t.id">
+            {{ t.name }} ({{ t.students_count }} ta)
+          </option>
+        </select>
+        <button
+          @click="doTransfer"
+          :disabled="!transferTo || transferring"
+          class="px-5 py-2 rounded-lg bg-slate-900 text-white text-sm disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-800 transition shrink-0"
+        >
+          {{ transferring ? "O'tkazilmoqda..." : "O'tkazish" }}
+        </button>
+        <button
+          @click="selected.clear()"
+          class="px-4 py-2 rounded-lg border border-slate-200 text-slate-500 text-sm hover:bg-slate-50 transition shrink-0"
+        >
+          Bekor
+        </button>
+      </div>
+    </div>
+
+    <p
+      v-if="toast"
+      class="fixed top-4 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-sm px-4 py-2 rounded-lg shadow-lg z-40"
+    >
+      {{ toast }}
+    </p>
+  </div>
+</template>
+
+<script setup>
+import { ref, computed, onMounted, watch } from "vue";
+import AppIcon from "@/components/AppIcon.vue";
+import ManagerNav from "@/components/ManagerNav.vue";
+import { apiGet, apiSend } from "@/utils/managerApi";
+
+const teachers = ref([]);
+const students = ref([]);
+const loading = ref(true);
+const activeTeacher = ref("");
+const search = ref("");
+const includeGraduates = ref(false);
+const selected = ref(new Set());
+const transferTo = ref("");
+const transferring = ref(false);
+const toast = ref("");
+const unassignedCount = ref(0);
+
+const totalStudents = computed(() =>
+  teachers.value.reduce((a, t) => a + t.students_count, 0)
+);
+
+const allSelected = computed(
+  () => students.value.length > 0 && students.value.every((s) => selected.value.has(s.id))
+);
+
+const chip = (active) =>
+  [
+    "px-3.5 py-1.5 rounded-full text-sm border transition whitespace-nowrap flex items-center gap-1.5",
+    active
+      ? "bg-indigo-500 text-white border-indigo-500"
+      : "bg-white border-slate-200 text-slate-500 hover:bg-slate-50",
+  ].join(" ");
+
+const tel = (v) => {
+  const d = String(v).replace(/\D/g, "");
+  return d.length === 9 ? `+998${d}` : `+${d}`;
+};
+
+function say(msg) {
+  toast.value = msg;
+  setTimeout(() => (toast.value = ""), 3000);
+}
+
+function selectTeacher(id) {
+  activeTeacher.value = id;
+  selected.value = new Set();
+}
+
+function toggleOne(id) {
+  const next = new Set(selected.value);
+  next.has(id) ? next.delete(id) : next.add(id);
+  selected.value = next;
+}
+
+function toggleAll() {
+  selected.value = allSelected.value
+    ? new Set()
+    : new Set(students.value.map((s) => s.id));
+}
+
+async function fetchTeachers() {
+  const { data } = await apiGet("/teachers/overview/");
+  teachers.value = Array.isArray(data) ? data : [];
+  const un = await apiGet("/students/overview/?teacher_id=none");
+  unassignedCount.value = un.data.count || 0;
+}
+
+async function fetchStudents() {
+  loading.value = true;
+  try {
+    const p = new URLSearchParams();
+    if (activeTeacher.value) p.set("teacher_id", activeTeacher.value);
+    if (search.value.trim()) p.set("search", search.value.trim());
+    if (includeGraduates.value) p.set("include_graduates", "1");
+    const { data } = await apiGet(`/students/overview/?${p}`);
+    students.value = data.students || [];
+  } catch (e) {
+    console.error("students/overview:", e);
+    say("Ma'lumot yuklanmadi");
+  } finally {
+    loading.value = false;
+  }
+}
+
+async function doTransfer() {
+  if (!transferTo.value || !selected.value.size) return;
+  transferring.value = true;
+  try {
+    const { ok, data } = await apiSend("/students/transfer/", "POST", {
+      student_ids: [...selected.value],
+      to_teacher_id: transferTo.value,
+    });
+    if (!ok) {
+      say(data.error || "O'tkazishda xato");
+      return;
+    }
+    say(data.message);
+    selected.value = new Set();
+    transferTo.value = "";
+    await Promise.all([fetchTeachers(), fetchStudents()]);
+  } catch (e) {
+    console.error("transfer:", e);
+    say("Tarmoq xatosi");
+  } finally {
+    transferring.value = false;
+  }
+}
+
+let timer = null;
+watch([search, activeTeacher, includeGraduates], () => {
+  clearTimeout(timer);
+  timer = setTimeout(fetchStudents, 300);
+});
+
+onMounted(async () => {
+  await fetchTeachers();
+  await fetchStudents();
+});
+</script>

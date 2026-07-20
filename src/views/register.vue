@@ -21,7 +21,8 @@ const form = reactive({
 });
 
 function redirectUser(user) {
-  if (user.is_excellence) router.push("/excellence");
+  if (user.role === "manager") router.push("/manager/students");
+  else if (user.is_excellence) router.push("/excellence");
   else if (user.is_admin) router.push("/admin");
   else router.push("/students");
 }
@@ -35,6 +36,7 @@ function buildUserPayload(result) {
     teacher_id: result.teacher_id ?? null,
     is_admin: result.is_admin ?? false,
     is_excellence: result.is_excellence ?? false,
+    role: result.role ?? "student",
   };
 }
 
@@ -74,8 +76,10 @@ function onPhoneInput() {
   errorFields.value.clear();
 
   const digits = form.phone.replace(/\D/g, "");
-  // 9 yoki 12 raqam yetarli (901234567 yoki 998901234567)
-  if (digits.length >= 9) {
+  // 9 yoki 12 raqam odatiy (901234567 / 998901234567), lekin jadvaldan
+  // chala kelgan 8 xonali raqamlar ham tekshirilishi kerak — aks holda
+  // parol maydoni ochilmay, egasi tizimga kira olmaydi
+  if (digits.length >= 7) {
     debounceTimer = setTimeout(checkPhone, 500);
   }
 }
@@ -97,6 +101,18 @@ async function checkPhone() {
       body: JSON.stringify({ phone: normalized, password: null }),
     });
     if (!ok) return;
+    if (!data.exists) {
+      // Menejerlar alohida jadvalda — u yerdan ham qidiramiz
+      const mgr = await apiFetch("/manager/login/", {
+        method: "POST",
+        body: JSON.stringify({ phone: normalized, password: null }),
+      });
+      if (mgr.ok && mgr.data.exists) {
+        notFound.value = false;
+        phoneChecked.value = true;
+        return;
+      }
+    }
     if (!data.exists) {
       notFound.value = true;
       phoneChecked.value = false;
@@ -127,10 +143,23 @@ async function submitLogin() {
 
   ui.start();
   try {
-    const { ok, data } = await apiFetch("/login/", {
+    let { ok, data } = await apiFetch("/login/", {
       method: "POST",
       body: JSON.stringify({ phone: normalized, password: form.password }),
     });
+
+    // Menejerlar alohida jadvalda — o'quvchi/ustoz sifatida topilmasa
+    // menejer sifatida ham urinib ko'ramiz
+    if (!(ok && data.exists)) {
+      const mgr = await apiFetch("/manager/login/", {
+        method: "POST",
+        body: JSON.stringify({ phone: normalized, password: form.password }),
+      });
+      if (mgr.ok && mgr.data.role === "manager") {
+        ok = true;
+        data = { ...mgr.data, exists: true };
+      }
+    }
 
     if (ok && data.exists) {
       localStorage.setItem("user", JSON.stringify(buildUserPayload(data)));

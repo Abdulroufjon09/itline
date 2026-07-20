@@ -97,6 +97,23 @@ const routes = [
     component: lazy("Profile"),
     meta: { requiresAuth: true },
   },
+
+  // ─── Menejer paneli ───
+  {
+    path: "/manager/students",
+    component: lazy("ManagerStudents"),
+    meta: { requiresAuth: true, requiresManager: true },
+  },
+  {
+    path: "/manager/teachers",
+    component: lazy("ManagerTeachers"),
+    meta: { requiresAuth: true, requiresManager: true },
+  },
+  {
+    path: "/manager/managers",
+    component: lazy("ManagerManagers"),
+    meta: { requiresAuth: true, requiresManager: true },
+  },
 ];
 
 const router = createRouter({
@@ -123,6 +140,12 @@ router.beforeEach((to) => {
   }
 
   if (to.meta.requiresAdmin && !user?.is_admin) {
+    return { path: "/" };
+  }
+
+  // Menejer paneli — menejerlar uchun. Ustozlar ham admin hisoblanadi,
+  // shuning uchun ular ham kira oladi
+  if (to.meta.requiresManager && user?.role !== "manager" && !user?.is_admin) {
     return { path: "/" };
   }
 });

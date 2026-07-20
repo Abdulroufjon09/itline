@@ -1,6 +1,6 @@
 // utils/phone.js
 export function normalizePhone(raw) {
-  let digits = raw.replace(/\D/g, "");
+  let digits = String(raw ?? "").replace(/\D/g, "");
 
   // 0901234567 -> 901234567
   if (digits.length === 10 && digits.startsWith("0")) {
@@ -17,9 +17,17 @@ export function normalizePhone(raw) {
     digits = digits.slice(3, 12);
   }
 
-  if (digits.length !== 9) {
-    throw new Error("Noto'g'ri telefon raqami");
+  if (digits.length === 9) {
+    return "+998" + digits;
   }
 
-  return "+998" + digits;
+  // Jadvaldan chala kelgan qisqa raqamlar (masalan 8 xonali '91858990').
+  // Ularni rad etsak, egasi tizimga umuman kira olmaydi — backend
+  // solishtirishda formatni o'zi normallashtiradi, shuning uchun
+  // raqamlarni o'z holicha uzatamiz.
+  if (digits.length >= 7) {
+    return digits;
+  }
+
+  throw new Error("Noto'g'ri telefon raqami");
 }
