@@ -15,7 +15,10 @@ const router = useRouter();
 const API = "https://itline-django-9s85.onrender.com/api";
 
 const user = JSON.parse(localStorage.getItem("user") || "null");
-if (!user || !user.is_excellence) router.push("/login");
+// Menejer ham shu panelga kiradi (u eng yuqori daraja)
+if (!user || !(user.is_excellence || user.role === "manager")) {
+  router.push("/login");
+}
 
 function logout() {
   localStorage.removeItem("user");

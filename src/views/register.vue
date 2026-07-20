@@ -21,21 +21,24 @@ const form = reactive({
 });
 
 function redirectUser(user) {
-  if (user.role === "manager") router.push("/manager/students");
-  else if (user.is_excellence) router.push("/excellence");
+  // Menejer ham asosiy panelga tushadi — payments, kurslar, guruhlar
+  // va qolgan hamma narsa o'sha yerda
+  if (user.is_excellence) router.push("/excellence");
   else if (user.is_admin) router.push("/admin");
   else router.push("/students");
 }
 
 function buildUserPayload(result) {
+  const isManager = result.role === "manager";
   return {
     id: result.id,
     name: result.name,
     surname: result.surname,
     phone: result.phone,
     teacher_id: result.teacher_id ?? null,
-    is_admin: result.is_admin ?? false,
-    is_excellence: result.is_excellence ?? false,
+    // Menejer — eng yuqori daraja, panelning barcha bo'limlari ochiq
+    is_admin: isManager ? true : result.is_admin ?? false,
+    is_excellence: isManager ? true : result.is_excellence ?? false,
     role: result.role ?? "student",
   };
 }
@@ -162,14 +165,18 @@ async function submitLogin() {
     }
 
     if (ok && data.exists) {
-      localStorage.setItem("user", JSON.stringify(buildUserPayload(data)));
+      // Yo'naltirish ham shu payload bo'yicha bo'lishi kerak: xom javobda
+      // menejerning is_admin/is_excellence maydonlari yo'q, shu sababli
+      // u o'quvchilar sahifasiga tushib qolardi
+      const payload = buildUserPayload(data);
+      localStorage.setItem("user", JSON.stringify(payload));
       // Standart parol bilan kirgan admin/ustozga panelda eslatma chiqadi
       if (form.password === "excel2024") {
         localStorage.setItem("used_default_password", "1");
       } else {
         localStorage.removeItem("used_default_password");
       }
-      redirectUser(data);
+      redirectUser(payload);
     } else {
       wrongPass.value = true;
       setTimeout(() => (wrongPass.value = false), 2000);

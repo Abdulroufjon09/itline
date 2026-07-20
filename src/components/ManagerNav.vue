@@ -14,8 +14,12 @@
         <p class="text-sm text-slate-400">{{ subtitle }}</p>
       </div>
 
-      <!-- Menejer to'g'ridan-to'g'ri shu panelga tushadi — boshqa
-           joydan chiqish tugmasi yo'q, shuning uchun shu yerda -->
+      <router-link
+        to="/excellence"
+        class="px-3 py-1.5 rounded-full text-xs border border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-indigo-500 transition shrink-0 flex items-center gap-1.5"
+      >
+        <AppIcon name="arrow-left" /> Asosiy panel
+      </router-link>
       <button
         @click="logout"
         class="px-3 py-1.5 rounded-full text-xs border border-slate-200 text-slate-500 hover:bg-rose-50 hover:text-rose-500 hover:border-rose-200 transition shrink-0 flex items-center gap-1.5"
