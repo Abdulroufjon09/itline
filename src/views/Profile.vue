@@ -153,8 +153,6 @@ async function savePassword() {
   }
 }
 
-// Umumiy input klassi
-// Ranglar global tema CSS orqali tungi rejimga moslashadi
 const inputCls =
   "w-full px-3.5 py-2.5 rounded-xl border text-sm outline-none transition " +
   "bg-white border-slate-200 text-slate-800 placeholder:text-slate-300 " +
