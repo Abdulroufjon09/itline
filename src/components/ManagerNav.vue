@@ -7,12 +7,21 @@
         class="w-10 rounded-full animate-spin"
         style="animation-duration: 5s"
       />
-      <div>
+      <div class="flex-1 min-w-0">
         <h1 class="text-xl sm:text-2xl text-slate-800 tracking-tight">
           {{ title }}
         </h1>
         <p class="text-sm text-slate-400">{{ subtitle }}</p>
       </div>
+
+      <!-- Menejer to'g'ridan-to'g'ri shu panelga tushadi — boshqa
+           joydan chiqish tugmasi yo'q, shuning uchun shu yerda -->
+      <button
+        @click="logout"
+        class="px-3 py-1.5 rounded-full text-xs border border-slate-200 text-slate-500 hover:bg-rose-50 hover:text-rose-500 hover:border-rose-200 transition shrink-0 flex items-center gap-1.5"
+      >
+        <AppIcon name="logout" /> Chiqish
+      </button>
     </div>
 
     <div class="flex flex-wrap gap-2">
@@ -34,7 +43,15 @@
 </template>
 
 <script setup>
+import { useRouter } from "vue-router";
 import AppIcon from "@/components/AppIcon.vue";
+
+const router = useRouter();
+
+function logout() {
+  localStorage.removeItem("user");
+  router.push("/login");
+}
 
 defineProps({
   title: { type: String, default: "Menejer paneli" },

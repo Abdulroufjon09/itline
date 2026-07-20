@@ -214,6 +214,12 @@ function open_students() {
       >
         <AppIcon name="groups" /> Guruhlar
       </div>
+      <div
+        @click="$router.push('/manager/students')"
+        class="p-5 border rounded-2xl cursor-pointer hover:bg-gray-50"
+      >
+        <AppIcon name="manager" /> Menejer paneli
+      </div>
     </div>
 
     <!-- STUDENTS -->
