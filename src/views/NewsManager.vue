@@ -26,19 +26,18 @@ const form = ref({
 const openMenuId = ref(null);
 
 const PRIORITY_OPTIONS = [
-  { value: "normal", label: "Oddiy", color: "bg-slate-200/70 text-slate-600" },
+  { value: "normal", label: "Oddiy", color: "bg-indigo-500 text-white" },
   {
     value: "important",
     label: "Muhim",
     color: "bg-amber-300/80 text-amber-950",
   },
-  { value: "urgent", label: "Shoshilinch", color: "bg-rose-400/80 text-white" },
+  { value: "urgent", label: "Shoshilinch", color: "bg-rose-500 text-white" },
 ];
 
 function authHeaders() {
   return {
     "Content-Type": "application/json",
-    // token saqlash usulingizga qarab moslang (Token/Bearer)
     Authorization: `Token ${user?.token || ""}`,
   };
 }
@@ -191,11 +190,11 @@ function formatDate(d) {
     <div class="relative mx-auto max-w-3xl">
       <!-- Glass card container -->
       <div
-        class="overflow-hidden rounded-[22px] border border-white/60 bg-white/40 shadow-[0_8px_32px_rgba(31,38,135,0.12)] backdrop-blur-2xl sm:rounded-[28px]"
+        class="overflow-hidden rounded-[22px] border shadow-[0_8px_32px_rgba(31,38,135,0.12)] backdrop-blur-2xl sm:rounded-[28px]"
       >
         <!-- Header -->
         <div
-          class="flex items-center justify-between gap-3 border-b border-white/50 bg-white/30 px-4 py-5 backdrop-blur-xl sm:px-8 sm:py-6"
+          class="flex items-center justify-between gap-3 border-b px-4 py-5 backdrop-blur-xl sm:px-8 sm:py-6"
         >
           <div class="min-w-0">
             <p
@@ -203,11 +202,13 @@ function formatDate(d) {
             >
               E'LONLAR BOSHQARUVI
             </p>
-            <h2 class="text-lg font-bold text-slate-800 sm:text-xl">Yangiliklar</h2>
+            <h2 class="text-lg font-bold text-slate-800 sm:text-xl">
+              Yangiliklar
+            </h2>
           </div>
           <button
             @click="openCreateForm"
-            class="shrink-0 rounded-2xl border border-white/60 bg-white/70 px-3.5 py-2.5 text-sm font-bold text-slate-700 shadow-[0_4px_16px_rgba(31,38,135,0.1)] backdrop-blur-md transition hover:bg-white/90 hover:shadow-[0_6px_20px_rgba(31,38,135,0.15)] active:scale-95 sm:px-4"
+            class="shrink-0 rounded-2xl border cursor-pointer px-3.5 py-2.5 text-sm font-bold text-white shadow-[0_4px_16px_rgba(31,38,135,0.1)] backdrop-blur-md transition hover:bg-indigo-500 hover:border-transparent hover:shadow-[0_6px_20px_rgba(31,38,135,0.15)] active:scale-95 sm:px-4"
           >
             + Qo'shish
           </button>
@@ -223,7 +224,7 @@ function formatDate(d) {
           </div>
           <div
             v-if="errorMsg && !showForm"
-            class="mb-4 rounded-2xl border border-rose-200/70 bg-rose-50/70 px-4 py-3 text-sm font-medium text-rose-600 backdrop-blur-md"
+            class="mb-4 rounded-2xl border border-rose-200/70 px-4 py-3 text-sm font-medium text-rose-600 backdrop-blur-md"
           >
             {{ errorMsg }}
           </div>
@@ -248,18 +249,20 @@ function formatDate(d) {
             <div
               v-for="item in newsList"
               :key="item.id"
-              class="relative rounded-2xl border border-white/60 bg-white/50 p-3.5 shadow-[0_4px_20px_rgba(31,38,135,0.06)] backdrop-blur-xl transition hover:bg-white/70 sm:p-4"
+              class="relative rounded-2xl border  p-3.5 shadow-[0_4px_20px_rgba(31,38,135,0.06)] backdrop-blur-xl transition sm:p-4"
               :class="!item.is_active && 'opacity-50'"
             >
               <div class="flex items-start gap-3">
                 <span
                   class="mt-1 shrink-0 rounded-full px-2.5 py-1 text-[10px] font-bold backdrop-blur-sm"
                   :class="
-                    PRIORITY_OPTIONS.find((p) => p.value === item.priority)?.color
+                    PRIORITY_OPTIONS.find((p) => p.value === item.priority)
+                      ?.color
                   "
                 >
                   {{
-                    PRIORITY_OPTIONS.find((p) => p.value === item.priority)?.label
+                    PRIORITY_OPTIONS.find((p) => p.value === item.priority)
+                      ?.label
                   }}
                 </span>
 
@@ -281,8 +284,10 @@ function formatDate(d) {
                 <!-- Amallar tugmasi (uch nuqta) -->
                 <button
                   @click="toggleMenu(item.id)"
-                  class="flex shrink-0 h-8 w-8 items-center justify-center rounded-xl border border-white/60 bg-white/60 text-slate-500 backdrop-blur-sm transition hover:bg-white/90"
-                  :class="openMenuId === item.id && 'bg-white/90 text-indigo-500'"
+                  class="flex cursor-pointer shrink-0 h-8 w-8 items-center justify-center rounded-xl border  backdrop-blur-sm transition "
+                  :class="
+                    openMenuId === item.id && ' text-indigo-500'
+                  "
                   aria-label="Amallar"
                 >
                   <svg
@@ -309,23 +314,23 @@ function formatDate(d) {
               >
                 <div
                   v-if="openMenuId === item.id"
-                  class="mt-3 flex flex-wrap gap-1.5 border-t border-white/60 pt-3"
+                  class="mt-3 flex flex-wrap gap-1.5 border-t pt-3"
                 >
                   <button
                     @click="toggleActive(item)"
-                    class="flex-1 min-w-[90px] rounded-xl border border-white/60 bg-white/60 px-2.5 py-2 text-[11px] font-medium text-slate-600 backdrop-blur-sm transition hover:bg-white/90"
+                    class="flex-1 min-w-[90px] rounded-xl border  py-2 text-[11px] font-medium text-slate-600 backdrop-blur-sm transition  cursor-pointer hover:bg-white/10"
                   >
                     {{ item.is_active ? "Yashirish" : "Faollashtirish" }}
                   </button>
                   <button
                     @click="openEditForm(item)"
-                    class="flex-1 min-w-[90px] rounded-xl border border-white/60 bg-white/60 px-2.5 py-2 text-[11px] font-medium text-slate-600 backdrop-blur-sm transition hover:bg-white/90"
+                    class="flex-1 min-w-[90px] rounded-xl border  py-2 text-[11px] font-medium text-slate-600 backdrop-blur-sm transition  cursor-pointer hover:bg-white/10"
                   >
                     Tahrirlash
                   </button>
                   <button
                     @click="deleteNews(item.id)"
-                    class="flex-1 min-w-[90px] rounded-xl border border-rose-200/70 bg-rose-50/60 px-2.5 py-2 text-[11px] font-medium text-rose-500 backdrop-blur-sm transition hover:bg-rose-100/80"
+                    class="flex-1 min-w-[90px] rounded-xl border  px-2.5 py-2 text-[11px] font-medium text-rose-500 backdrop-blur-sm transition cursor-pointer hover:bg-white/10"
                   >
                     O'chirish
                   </button>
@@ -341,11 +346,11 @@ function formatDate(d) {
     <Teleport to="body">
       <div
         v-if="showForm"
-        class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/20 px-4 backdrop-blur-sm"
+        class="fixed inset-0 z-50 flex items-center justify-center px-4 backdrop-blur-sm"
         @click.self="closeForm"
       >
         <div
-          class="w-full max-w-md rounded-[22px] border border-white/70 bg-white/60 p-5 shadow-[0_20px_60px_rgba(31,38,135,0.25)] backdrop-blur-2xl animate-[popIn_0.25s_ease] sm:rounded-[28px] sm:p-6"
+          class="w-full max-w-md rounded-[22px] border p-5 shadow-[0_20px_60px_rgba(31,38,135,0.25)] backdrop-blur-2xl animate-[popIn_0.25s_ease] sm:rounded-[28px] sm:p-6"
         >
           <h3 class="mb-4 text-base font-bold text-slate-800">
             {{ editingId ? "Yangilikni tahrirlash" : "Yangi yangilik" }}
@@ -357,14 +362,12 @@ function formatDate(d) {
 
           <div class="space-y-3.5">
             <div>
-              <label class="mb-1 block text-xs font-medium text-slate-500"
-                >Sarlavha</label
-              >
+              <label class="mb-1 block text-xs font-medium">Sarlavha</label>
               <input
                 v-model="form.title"
                 type="text"
                 placeholder="Masalan: Ertaga darslar bekor qilinadi"
-                class="w-full rounded-xl border border-white/70 bg-white/70 px-3.5 py-2.5 text-sm text-slate-800 placeholder-slate-400 outline-none backdrop-blur-md transition focus:border-indigo-300 focus:bg-white/90 focus:ring-2 focus:ring-indigo-200/60"
+                class="w-full rounded-xl border px-3.5 py-2.5 text-sm text-slate-800 placeholder-slate-400 outline-none backdrop-blur-md transition focus:border-indigo-300 focus:bg-white/90 focus:ring-2 focus:ring-indigo-200/60"
               />
             </div>
 
@@ -394,7 +397,7 @@ function formatDate(d) {
                   :class="
                     form.priority === opt.value
                       ? opt.color
-                      : 'bg-white/50 text-slate-400 border border-white/70'
+                      : ' border border-white/70'
                   "
                 >
                   {{ opt.label }}
@@ -403,12 +406,12 @@ function formatDate(d) {
             </div>
 
             <label
-              class="flex items-center gap-2 text-sm font-medium text-slate-600"
+              class="flex items-center gap-2 text-sm font-medium text-slate-50"
             >
               <input
-                v-model="form.is_active"
                 type="checkbox"
-                class="h-4 w-4 rounded border-slate-300 accent-indigo-400"
+                class="appearance-none w-5 h-5 border border-gray-300 rounded checked:bg-blue-500 checked:border-blue-500 cursor-pointer checked:after:content-['✓'] checked:after:text-white checked:after:flex checked:after:items-center checked:after:justify-center"
+                checked
               />
               Faol (Board sahifasida ko'rsatilsin)
             </label>
@@ -417,7 +420,7 @@ function formatDate(d) {
           <div class="mt-6 flex gap-2">
             <button
               @click="closeForm"
-              class="flex-1 rounded-xl border border-white/70 bg-white/50 py-2.5 text-sm font-medium text-slate-600 backdrop-blur-md transition hover:bg-white/80"
+              class="flex-1 rounded-xl border py-2.5 text-sm font-medium text-slate-600 backdrop-blur-md transition hover:bg-white/10"
             >
               Bekor qilish
             </button>

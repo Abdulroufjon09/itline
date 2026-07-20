@@ -1170,7 +1170,7 @@ const inputClass = (field) => [
                   :class="[
                     'px-2.5 py-1 rounded-full text-xs font-medium',
                     payment.is_checked
-                      ? 'bg-green-100 text-green-700'
+                      ? 'bg-green-800 text-green-700'
                       : 'bg-red-100 text-red-600',
                   ]"
                 >
@@ -1181,7 +1181,7 @@ const inputClass = (field) => [
                 <div class="flex items-center gap-1.5">
                   <button
                     @click="openMsgModal('single', payment)"
-                    class="relative px-2.5 py-1.5 rounded-lg border border-gray-200 hover:border-sky-300 hover:bg-sky-50 transition text-sm"
+                    class="relative px-2.5 py-1.5 rounded-lg border border-gray-200 hover:border-blue-600 hover:bg-blue-500 transition text-sm"
                     :title="
                       tgLinkedIds.has(payment.student_id)
                         ? 'Botga ulangan — xabar boradi'
@@ -1201,7 +1201,7 @@ const inputClass = (field) => [
                   <button
                     @click="deleteStudentRow(payment)"
                     title="Studentni butunlay o'chirish"
-                    class="px-2 py-1.5 rounded-lg border border-gray-200 text-gray-300 hover:text-red-500 hover:border-red-200 hover:bg-red-50 transition text-sm"
+                    class="px-2 py-1.5 rounded-lg border border-gray-200 hover:bg-red-500 transition text-sm"
                   >
                     <AppIcon name="trash" />
                   </button>

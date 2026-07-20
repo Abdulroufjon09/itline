@@ -526,8 +526,12 @@ const PRIORITY_DOT = {
               class="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-800 text-slate-400 transition hover:border-amber-400/60 hover:text-amber-400"
               :title="soundEnabled ? 'Ovozni o\'chirish' : 'Ovozni yoqish'"
             >
-              <AppIcon name="volume-on" class="w-4 h-4" />
-              <AppIcon name="volume-off" class="w-4 h-4" />
+              <AppIcon
+                name="volume-on"
+                class="w-4 h-4"
+                v-if="soundEnabled"
+              />
+              <AppIcon name="volume-off" class="w-4 h-4" v-else />
             </button>
 
             <div class="text-right">

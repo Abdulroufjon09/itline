@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-[#eef0f7] flex flex-col pb-28 font-nunito">
+  <div class="min-h-screen  flex flex-col pb-28 font-nunito">
     <!-- Header -->
     <div class="px-5 pt-12 pb-4">
       <h1 class="text-2xl font-black text-[#1e1040] tracking-tight">

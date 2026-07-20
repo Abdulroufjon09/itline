@@ -245,7 +245,7 @@ const inputCls =
       >
         <div class="flex items-center gap-2.5 mb-5">
           <div
-            class="w-9 h-9 rounded-xl flex items-center justify-center text-white shadow-sm bg-gradient-to-br from-sky-500 to-blue-600"
+            class="w-9 h-9 rounded-xl flex items-center justify-center text-white shadow-sm border "
           >
             <AppIcon name="user" />
           </div>
@@ -312,7 +312,7 @@ const inputCls =
           class="w-full flex items-center gap-2.5 text-left"
         >
           <div
-            class="w-9 h-9 rounded-xl flex items-center justify-center text-white shadow-sm bg-gradient-to-br from-rose-500 to-pink-600"
+            class="w-9 h-9 rounded-xl flex items-center justify-center text-white shadow-sm border "
           >
             <AppIcon name="key" />
           </div>
@@ -393,7 +393,7 @@ const inputCls =
       >
         <div class="flex items-center gap-2.5 mb-5">
           <div
-            class="w-9 h-9 rounded-xl flex items-center justify-center text-white shadow-sm bg-gradient-to-br from-amber-400 to-orange-500"
+            class="w-9 h-9 rounded-xl flex items-center justify-center text-white shadow-sm border "
           >
             <AppIcon name="palette" />
           </div>
@@ -462,7 +462,7 @@ const inputCls =
       >
         <div class="flex items-center gap-2.5 mb-4">
           <div
-            class="w-9 h-9 rounded-xl flex items-center justify-center text-white shadow-sm bg-gradient-to-br from-slate-500 to-slate-700"
+            class="w-9 h-9 rounded-xl flex items-center justify-center text-white shadow-sm border"
           >
             <AppIcon name="room" />
           </div>
