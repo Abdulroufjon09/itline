@@ -459,7 +459,7 @@ function rowStatus(group) {
 
 function statusText(group) {
   const status = rowStatus(group);
-  if (status === "past") return "TUGADI";
+  if (status === "past") return "Boshlangan";
 
   const secondsLeft = secondsUntilLesson(group.lesson_time);
 
@@ -567,12 +567,12 @@ const PRIORITY_DOT = {
     class="min-h-screen bg-[#0a0e14] bg-[radial-gradient(ellipse_at_top,#151c26_0%,#0a0e14_60%)] px-4 py-6 sm:py-10"
   >
     <div
-      class="mx-auto flex max-w-6xl flex-col items-start gap-5 lg:flex-row lg:gap-6"
+      class="mx-auto flex max-w-[1800px] flex-col items-start gap-5 lg:flex-row lg:gap-6"
     >
       <!-- ══════════ NEWS SIDEBAR ══════════ -->
       <aside
         v-if="news.length"
-        class="order-1 w-full shrink-0 lg:sticky lg:top-10 lg:order-2 lg:w-[26rem]"
+        class="order-1 w-full shrink-0 lg:sticky lg:top-10 lg:order-2 lg:w-80 xl:w-[26rem]"
       >
         <div
           class="overflow-hidden rounded-2xl border border-slate-800/80 bg-[#10151d] shadow-2xl shadow-black/50 animate-[fadeIn_0.4s_ease]"
@@ -697,7 +697,7 @@ const PRIORITY_DOT = {
         <!-- Column labels (desktop) -->
         <div
           v-if="!loading && todaysGroups.length"
-          class="hidden grid-cols-[84px_1.4fr_90px_1.3fr_1.1fr_84px_120px] gap-2 border-b border-slate-800/60 px-5 py-3 text-[10.5px] tracking-[0.1em] text-slate-500 sm:grid sm:px-7"
+          class="hidden grid-cols-[96px_1.5fr_104px_1.6fr_1.2fr_84px_150px] gap-3 border-b border-slate-800/60 px-5 py-4 text-xs tracking-[0.1em] text-slate-500 sm:grid sm:px-7"
         >
           <span>VAQT</span>
           <span>GURUH</span>
@@ -750,16 +750,16 @@ const PRIORITY_DOT = {
           <div
             v-for="(g, i) in todaysGroups"
             :key="g.id"
-            class="animate-[rowIn_0.3s_ease_backwards] px-5 py-4 transition-opacity sm:px-7"
+            class="animate-[rowIn_0.3s_ease_backwards] px-5 py-5 transition-opacity sm:px-7"
             :class="rowStatus(g) === 'past' ? 'opacity-40' : 'opacity-100'"
             :style="{ animationDelay: `${Math.min(i * 40, 400)}ms` }"
           >
             <!-- Desktop row -->
             <div
-              class="hidden grid-cols-[84px_1.4fr_90px_1.3fr_1.1fr_84px_120px] items-center gap-2 sm:grid"
+              class="hidden grid-cols-[96px_1.5fr_104px_1.6fr_1.2fr_84px_150px] items-center gap-3 sm:grid"
             >
               <span
-                class="font-['Space_Mono',monospace] text-base font-bold tabular-nums text-slate-100"
+                class="font-['Space_Mono',monospace] text-xl font-bold tabular-nums text-slate-100"
                 :class="
                   rowStatus(g) === 'next' &&
                   'text-amber-400 drop-shadow-[0_0_12px_rgba(251,191,36,0.4)]'
@@ -768,22 +768,22 @@ const PRIORITY_DOT = {
                 {{ formatTime(g.lesson_time) }}
               </span>
 
-              <span class="truncate text-sm font-semibold text-slate-100">
+              <span class="truncate text-base font-semibold text-slate-100">
                 {{ g.name }}
               </span>
 
               <span
-                class="font-['Space_Mono',monospace] text-sm text-slate-300"
+                class="font-['Space_Mono',monospace] text-base text-slate-300"
               >
                 {{ g.room || "—" }}
               </span>
 
               <span
-                class="flex min-w-0 items-center gap-2 text-sm text-slate-400"
+                class="flex min-w-0 items-center gap-2.5 text-base text-slate-300"
               >
                 <span
                   v-if="g.teacher"
-                  class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-800 text-[9.5px] font-bold text-amber-400"
+                  class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-800 text-[11px] font-bold text-amber-400"
                 >
                   {{ initials(g.teacher.name) }}
                 </span>
@@ -792,19 +792,19 @@ const PRIORITY_DOT = {
                 }}</span>
               </span>
 
-              <span class="text-[12.5px] text-slate-500">
+              <span class="text-sm text-slate-400">
                 {{ SCHEDULE_LABEL[g.schedule] }}
               </span>
 
               <span
-                class="font-['Space_Mono',monospace] text-sm text-slate-400"
+                class="font-['Space_Mono',monospace] text-base text-slate-300"
               >
                 {{ g.students?.length || 0 }}
               </span>
 
               <span>
                 <span
-                  class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10.5px] font-bold tracking-[0.06em]"
+                  class="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-bold tracking-[0.06em]"
                   :class="STATUS_CLASS[rowStatus(g)]"
                 >
                   <span
