@@ -99,11 +99,26 @@ const showAllTeachers = ref(!user?.teacher_id || !!user?.is_excellence);
 
 const myTeacherId = computed(() => user?.teacher_id ?? null);
 
+// Guruhni qidirish — nom, o'qituvchi yoki xona bo'yicha
+const groupSearch = ref("");
+
 const visibleGroups = computed(() => {
-  if (showAllTeachers.value || !myTeacherId.value) return groups.value;
-  return groups.value.filter(
-    (g) => (g.teacher?.id ?? g.teacher_id) === myTeacherId.value,
-  );
+  let list = groups.value;
+  if (!(showAllTeachers.value || !myTeacherId.value)) {
+    list = list.filter(
+      (g) => (g.teacher?.id ?? g.teacher_id) === myTeacherId.value,
+    );
+  }
+  const q = groupSearch.value.trim().toLowerCase();
+  if (q) {
+    list = list.filter(
+      (g) =>
+        (g.name || "").toLowerCase().includes(q) ||
+        (g.teacher?.name || "").toLowerCase().includes(q) ||
+        (g.room || "").toLowerCase().includes(q),
+    );
+  }
+  return list;
 });
 
 const myGroupsCount = computed(() => {
@@ -476,6 +491,23 @@ async function sendGroupMsg() {
             panel ? 'hidden lg:block' : 'block',
           ]">
             <div class="bg-white rounded-2xl shadow-sm overflow-hidden">
+              <!-- Guruhni qidirish -->
+              <div class="p-3 border-b border-gray-100">
+                <div class="relative">
+                  <span
+                    class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300"
+                  >
+                    <AppIcon name="search" />
+                  </span>
+                  <input
+                    v-model="groupSearch"
+                    type="text"
+                    placeholder="Guruh nomi, o'qituvchi yoki xona..."
+                    class="w-full border border-gray-200 rounded-xl pl-9 pr-3 py-2.5 text-sm outline-none focus:border-gray-400 transition"
+                  />
+                </div>
+              </div>
+
               <!-- Guruh filtri: o'zimniki / barcha ustozlar -->
               <div
                 v-if="myTeacherId"
@@ -513,6 +545,13 @@ async function sendGroupMsg() {
 
               <div v-else-if="visibleGroups.length === 0" class="text-center py-12 text-gray-400 text-sm">
                 <p class="text-3xl mb-3"><AppIcon name="groups" /></p>
+                <template v-if="groupSearch.trim()">
+                  <p>«{{ groupSearch }}» bo'yicha guruh topilmadi</p>
+                  <button @click="groupSearch = ''" class="mt-4 text-sm text-black underline">
+                    Qidiruvni tozalash
+                  </button>
+                </template>
+                <template v-else>
                 <p v-if="myTeacherId && !showAllTeachers">
                   Sizga biriktirilgan guruh yo'q
                 </p>
@@ -527,6 +566,7 @@ async function sendGroupMsg() {
                 <button v-else-if="canCreateGroup" @click="openCreate" class="mt-4 text-sm text-black underline">
                   Birinchi guruhni yarating
                 </button>
+                </template>
               </div>
 
               <div v-else>

@@ -572,40 +572,43 @@ const PRIORITY_DOT = {
       <!-- ══════════ NEWS SIDEBAR ══════════ -->
       <aside
         v-if="news.length"
-        class="order-1 w-full shrink-0 lg:sticky lg:top-10 lg:order-2 lg:w-72"
+        class="order-1 w-full shrink-0 lg:sticky lg:top-10 lg:order-2 lg:w-[26rem]"
       >
         <div
           class="overflow-hidden rounded-2xl border border-slate-800/80 bg-[#10151d] shadow-2xl shadow-black/50 animate-[fadeIn_0.4s_ease]"
         >
           <div
-            class="border-b border-slate-800/80 bg-gradient-to-b from-[#141b24] to-[#10151d] px-5 py-4"
+            class="flex items-center gap-2 border-b border-slate-800/80 bg-gradient-to-b from-[#141b24] to-[#10151d] px-6 py-5"
           >
-            <p class="text-[10.5px] font-bold tracking-[0.16em] text-amber-400">
+            <span class="text-amber-400 text-lg"><AppIcon name="megaphone" /></span>
+            <p class="text-sm font-bold tracking-[0.18em] text-amber-400">
               E'LONLAR
             </p>
           </div>
 
-          <div class="p-4">
+          <div class="p-5">
             <div
-              class="rounded-xl border px-4 py-3 transition-opacity duration-300"
+              class="rounded-2xl border px-5 py-5 transition-opacity duration-300"
               :class="PRIORITY_STYLE[news[currentNewsIndex].priority]"
             >
-              <div class="mb-1.5 flex items-center gap-2">
-                <span class="relative flex h-2 w-2 shrink-0">
+              <div class="mb-2.5 flex items-start gap-2.5">
+                <span class="relative mt-1.5 flex h-2.5 w-2.5 shrink-0">
                   <span
                     class="absolute inline-flex h-full w-full animate-ping rounded-full opacity-60"
                     :class="PRIORITY_DOT[news[currentNewsIndex].priority]"
                   ></span>
                   <span
-                    class="relative inline-flex h-2 w-2 rounded-full"
+                    class="relative inline-flex h-2.5 w-2.5 rounded-full"
                     :class="PRIORITY_DOT[news[currentNewsIndex].priority]"
                   ></span>
                 </span>
-                <p class="truncate text-sm font-bold">
+                <p class="text-xl font-bold leading-snug">
                   {{ news[currentNewsIndex].title }}
                 </p>
               </div>
-              <p class="text-xs leading-relaxed opacity-80">
+              <p
+                class="whitespace-pre-line text-base leading-relaxed opacity-90"
+              >
                 {{ news[currentNewsIndex].content }}
               </p>
             </div>

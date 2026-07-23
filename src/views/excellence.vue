@@ -242,6 +242,29 @@ const paySearch = ref("");
 const payPage = ref(1);
 const PAY_PAGE_SIZE = 50;
 
+// ── Guruhni tez topish uchun: student_id -> guruh (bir marta tuziladi) ──
+const groupByStudentId = computed(() => {
+  const m = new Map();
+  for (const g of groups.value) {
+    if (!Array.isArray(g.students)) continue;
+    for (const s of g.students) {
+      const sid = typeof s === "object" ? s?.id : s;
+      if (sid != null && !m.has(sid)) m.set(sid, g);
+    }
+  }
+  return m;
+});
+
+function paymentGroup(payment) {
+  if (!payment) return null;
+  return (
+    groupByStudentId.value.get(payment.student_id) || findPaymentGroup(payment)
+  );
+}
+function paymentGroupName(payment) {
+  return paymentGroup(payment)?.name || "";
+}
+
 const filteredPayments = computed(() => {
   const q = paySearch.value.trim().toLowerCase();
   if (!q) return payments.value;
@@ -249,6 +272,8 @@ const filteredPayments = computed(() => {
   return payments.value.filter((p) => {
     const name = String(p.student_name || "").toLowerCase();
     if (name.includes(q)) return true;
+    // ✅ Guruh nomi bo'yicha ham qidiriladi
+    if (paymentGroupName(p).toLowerCase().includes(q)) return true;
     if (qd.length >= 3) {
       return String(p.student_phone || "").replace(/\D/g, "").includes(qd);
     }
@@ -267,6 +292,48 @@ const pagedPayments = computed(() =>
 );
 watch([paySearch, selectedMonth, selectedTeacherId], () => {
   payPage.value = 1;
+});
+
+// ── To'lovlarni guruhlarga bo'lib ko'rsatish ──
+const groupByGroup = ref(true);
+
+const groupedPayments = computed(() => {
+  const map = new Map();
+  for (const p of filteredPayments.value) {
+    const g = paymentGroup(p);
+    const name = g?.name || "Guruhsiz";
+    if (!map.has(name)) {
+      map.set(name, {
+        key: name,
+        name,
+        teacher: g?.teacher?.name || p.teacher_name || "",
+        payments: [],
+        totalDue: 0,
+        totalPaid: 0,
+      });
+    }
+    const sec = map.get(name);
+    sec.payments.push(p);
+    sec.totalDue += Number(paymentAmountDue(p)) || 0;
+    sec.totalPaid += paymentPaidAmount(p);
+  }
+  const arr = [...map.values()].map((s) => ({
+    ...s,
+    remaining: s.totalDue - s.totalPaid,
+  }));
+  arr.sort((a, b) => {
+    if (a.name === "Guruhsiz") return 1;
+    if (b.name === "Guruhsiz") return -1;
+    return a.name.localeCompare(b.name);
+  });
+  return arr;
+});
+
+// Jadval uchun bo'limlar: guruh rejimida guruhlar, aks holda bitta bo'lim
+// (sahifalangan). Bitta v-for shabloni ikkala holatda ishlaydi.
+const displaySections = computed(() => {
+  if (groupByGroup.value) return groupedPayments.value;
+  return [{ key: "__all__", name: null, teacher: "", payments: pagedPayments.value }];
 });
 
 // ══════════ TELEGRAM XABAR YUBORISH ══════════
@@ -1076,9 +1143,25 @@ const inputClass = (field) => [
           <input
             v-model="paySearch"
             type="text"
-            placeholder="Ism yoki telefon..."
+            placeholder="Ism, telefon yoki guruh nomi..."
             class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-gray-400"
           />
+        </div>
+
+        <div class="flex items-end">
+          <button
+            @click="groupByGroup = !groupByGroup"
+            :class="[
+              'px-4 py-2 rounded-xl text-sm font-medium transition border flex items-center gap-1.5 whitespace-nowrap',
+              groupByGroup
+                ? 'bg-gray-900 text-white border-gray-900 hover:bg-gray-800'
+                : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50',
+            ]"
+            :title="groupByGroup ? 'Oddiy ro\'yxatga o\'tish' : 'Guruhlarga bo\'lib ko\'rsatish'"
+          >
+            <AppIcon name="groups" />
+            {{ groupByGroup ? "Guruhlar bo'yicha" : "Oddiy ro'yxat" }}
+          </button>
         </div>
       </div>
 
@@ -1144,12 +1227,57 @@ const inputClass = (field) => [
             </tr>
           </thead>
           <tbody>
-            <tr
-              v-for="payment in pagedPayments"
-              :key="payment.id"
-              class="border-b border-gray-50 hover:bg-gray-50 transition"
-            >
-              <td class="px-4 py-3 font-medium">{{ payment.student_name }}</td>
+            <template v-for="section in displaySections" :key="section.key">
+              <!-- Guruh sarlavhasi (guruhlar rejimida) -->
+              <tr v-if="section.name" class="bg-gray-100 border-y border-gray-200">
+                <td colspan="11" class="px-4 py-2.5">
+                  <div
+                    class="flex flex-wrap items-center justify-between gap-x-4 gap-y-1"
+                  >
+                    <div
+                      class="flex items-center gap-2 font-semibold text-gray-700"
+                    >
+                      <AppIcon name="groups" class="text-gray-400" />
+                      <span>{{ section.name }}</span>
+                      <span
+                        v-if="section.teacher"
+                        class="text-xs font-normal text-gray-400"
+                        >· {{ section.teacher }}</span
+                      >
+                      <span
+                        class="text-xs font-medium bg-gray-200 text-gray-500 px-2 py-0.5 rounded-full"
+                        >{{ section.payments.length }} ta</span
+                      >
+                    </div>
+                    <div class="flex items-center gap-3 text-xs tabular-nums">
+                      <span class="text-gray-500"
+                        >Jami:
+                        <b class="text-gray-700">{{
+                          money(section.totalDue)
+                        }}</b></span
+                      >
+                      <span class="text-green-600"
+                        >To'langan: <b>{{ money(section.totalPaid) }}</b></span
+                      >
+                      <span
+                        :class="
+                          section.remaining > 0
+                            ? 'text-red-500'
+                            : 'text-green-600'
+                        "
+                        >Qolgan: <b>{{ money(section.remaining) }}</b></span
+                      >
+                    </div>
+                  </div>
+                </td>
+              </tr>
+
+              <tr
+                v-for="payment in section.payments"
+                :key="payment.id"
+                class="border-b border-gray-50 hover:bg-gray-50 transition"
+              >
+                <td class="px-4 py-3 font-medium">{{ payment.student_name }}</td>
               <td class="px-4 py-3 text-gray-500">
                 {{ payment.student_phone }}
               </td>
@@ -1246,6 +1374,7 @@ const inputClass = (field) => [
                 </div>
               </td>
             </tr>
+            </template>
           </tbody>
         </table>
         <p
@@ -1254,9 +1383,9 @@ const inputClass = (field) => [
         >
           {{ paySearch ? "Hech narsa topilmadi." : "Bu oy uchun to'lovlar yo'q." }}
         </p>
-        <!-- Pagination -->
+        <!-- Pagination (faqat oddiy ro'yxat rejimida) -->
         <div
-          v-if="payTotalPages > 1"
+          v-if="!groupByGroup && payTotalPages > 1"
           class="flex items-center justify-between gap-3 p-4 border-t border-gray-100"
         >
           <button
