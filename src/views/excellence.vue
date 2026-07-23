@@ -1170,7 +1170,7 @@ const inputClass = (field) => [
         Yuklanmoqda...
       </div>
       <div v-else class=" border border-white/40 rounded-2xl overflow-x-auto">
-        <table class="w-full text-sm min-w-[600px]">
+        <table class="pay-nowrap w-full text-sm min-w-[1120px]">
           <thead>
             <tr class="bg-gray-50 border-b border-gray-100">
               <th class="text-left px-4 py-3 text-xs text-gray-400 font-medium">
@@ -1404,7 +1404,7 @@ const inputClass = (field) => [
           Yuklanmoqda...
         </div>
         <div v-else class="border border-gray-100 rounded-2xl overflow-x-auto">
-          <table class="w-full text-sm min-w-[500px]">
+          <table class="pay-nowrap w-full text-sm min-w-[900px]">
             <thead>
               <tr class="bg-gray-50 border-b border-gray-100">
                 <th class="text-left px-4 py-3 text-xs text-gray-400 font-medium">
@@ -1857,6 +1857,13 @@ const inputClass = (field) => [
 .coin-toast-leave-to {
   opacity: 0;
   transform: translate(-50%, 12px);
+}
+
+/* Jadval kataklari qisilmasin — har bir so'z bir qatorда, to'liq chiqsin.
+   Tor ekranда jadval gorizontal scroll bo'ladi (overflow-x-auto konteyner). */
+.pay-nowrap th,
+.pay-nowrap td {
+  white-space: nowrap;
 }
 
 /* Guruh akkordeon — studentlar animatsiya bilan ochiladi/yopiladi */
