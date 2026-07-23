@@ -677,6 +677,23 @@ function remainingAmount(payment) {
   const paid = Number(paymentPaidAmount(payment)) || 0;
   return due - paid;
 }
+
+// To'lov muddati (guruh ochilgan kunga qarab) — "DD.MM" ko'rinishida
+function formatDue(payment) {
+  if (!payment.due_date) return "—";
+  const parts = String(payment.due_date).slice(0, 10).split("-");
+  if (parts.length !== 3) return "—";
+  return `${parts[2]}.${parts[1]}`;
+}
+
+// Vaqtida to'lov coin mukofoti berilganda ko'rsatiladigan xabar
+const coinToast = ref("");
+let coinToastTimer = null;
+function showCoinToast(msg) {
+  coinToast.value = msg;
+  clearTimeout(coinToastTimer);
+  coinToastTimer = setTimeout(() => (coinToast.value = ""), 4000);
+}
 // ✅ YANGI: minus tugmasini bosishni to'sib qo'yadi (klaviaturadan "-" kiritilmasin)
 function blockNegativeKey(e) {
   if (e.key === "-" || e.key === "Subtract" || e.key === "NumpadSubtract") {
@@ -714,6 +731,13 @@ async function savePaymentRow(payment) {
 
     if (!res.ok) {
       throw new Error("Confirm endpoint failed");
+    }
+
+    // Vaqtida to'lov uchun coin berilgan bo'lsa — menejerga bildiramiz
+    if (Number(data.coin_awarded) > 0) {
+      showCoinToast(
+        `${payment.student_name} — vaqtida to'lov uchun +${data.coin_awarded} coin 🎉`,
+      );
     }
   } catch (e) {
     try {
@@ -1100,6 +1124,9 @@ const inputClass = (field) => [
                 Oylik to'lov
               </th>
               <th class="text-left px-4 py-3 text-xs text-gray-400 font-medium">
+                Muddat
+              </th>
+              <th class="text-left px-4 py-3 text-xs text-gray-400 font-medium">
                 To'langan
               </th>
               <th class="text-left px-4 py-3 text-xs text-gray-400 font-medium">
@@ -1133,6 +1160,9 @@ const inputClass = (field) => [
                 {{ courseLabel(payment) }}
               </td>
               <td class="px-4 py-3">{{ money(paymentAmountDue(payment)) }}</td>
+              <td class="px-4 py-3 text-gray-500 whitespace-nowrap">
+                {{ formatDue(payment) }}
+              </td>
               <td class="px-4 py-3">
                 <!-- ✅ TUZATILDI: manfiy son kiritib bo'lmaydi -->
                 <input
@@ -1903,5 +1933,32 @@ const inputClass = (field) => [
         </div>
       </div>
     </div>
+
+    <!-- Vaqtida to'lov coin mukofoti bildirishnomasi -->
+    <Teleport to="body">
+      <Transition name="coin-toast">
+        <div
+          v-if="coinToast"
+          class="fixed bottom-5 left-1/2 -translate-x-1/2 z-[9999] max-w-[92vw] rounded-2xl bg-emerald-600 text-white px-5 py-3 text-sm font-medium shadow-2xl shadow-emerald-900/30 flex items-center gap-2"
+        >
+          <AppIcon name="coin" class="w-4 h-4" />
+          <span>{{ coinToast }}</span>
+        </div>
+      </Transition>
+    </Teleport>
   </div>
 </template>
+
+<style scoped>
+.coin-toast-enter-active,
+.coin-toast-leave-active {
+  transition:
+    opacity 0.3s ease,
+    transform 0.3s ease;
+}
+.coin-toast-enter-from,
+.coin-toast-leave-to {
+  opacity: 0;
+  transform: translate(-50%, 12px);
+}
+</style>

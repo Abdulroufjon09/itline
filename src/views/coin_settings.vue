@@ -4,7 +4,13 @@ import AppIcon from "@/components/AppIcon.vue";
 
 const API = "https://itline-django-9s85.onrender.com/api";
 
-const coinSettings = ref({ present: 5, late: 2, absent: -5 });
+const coinSettings = ref({
+  present: 5,
+  late: 2,
+  absent: -5,
+  payment_ontime: 120,
+  payment_grace_days: 5,
+});
 const loading = ref(true);
 const saving = ref(false);
 const feedback = ref(""); // "success:..." yoki "error:..."
@@ -46,6 +52,8 @@ async function saveSettings() {
         present: coinSettings.value.present,
         late: coinSettings.value.late,
         absent: coinSettings.value.absent,
+        payment_ontime: coinSettings.value.payment_ontime,
+        payment_grace_days: coinSettings.value.payment_grace_days,
       }),
     });
     if (ok) {
@@ -53,6 +61,8 @@ async function saveSettings() {
         present: data.present,
         late: data.late,
         absent: data.absent,
+        payment_ontime: data.payment_ontime,
+        payment_grace_days: data.payment_grace_days,
       };
       feedback.value = "success:Saqlandi";
     } else {
@@ -123,6 +133,44 @@ onMounted(fetchSettings);
             v-model.number="coinSettings.absent"
             class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-gray-400 focus:ring-2 focus:ring-gray-100 transition"
           />
+        </div>
+      </div>
+
+      <!-- ── Oylik to'lov mukofoti ── -->
+      <div class="mt-5 pt-5 border-t border-gray-100">
+        <div class="flex items-center gap-2 mb-1">
+          <span class="text-lg"><AppIcon name="wallet" /></span>
+          <h3 class="text-sm font-semibold text-gray-800">
+            Vaqtida to'lov mukofoti
+          </h3>
+        </div>
+        <p class="text-xs text-gray-400 mb-3">
+          O'quvchi oylik to'lovni muddatida (guruh ochilgan kun) yoki
+          belgilangan kunlar ichida olib kelsa, unga avtomatik shu miqdorda
+          coin beriladi.
+        </p>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="text-xs text-gray-400 mb-1 flex items-center gap-1">
+              <AppIcon name="coin" /> Beriladigan coin
+            </label>
+            <input
+              type="number"
+              v-model.number="coinSettings.payment_ontime"
+              class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-gray-400 focus:ring-2 focus:ring-gray-100 transition"
+            />
+          </div>
+          <div>
+            <label class="text-xs text-gray-400 mb-1 flex items-center gap-1">
+              <AppIcon name="clock" /> Kechikishga ruxsat (kun)
+            </label>
+            <input
+              type="number"
+              min="0"
+              v-model.number="coinSettings.payment_grace_days"
+              class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-gray-400 focus:ring-2 focus:ring-gray-100 transition"
+            />
+          </div>
         </div>
       </div>
 

@@ -92,6 +92,9 @@
                 <th class="px-3 py-2.5 font-medium">Ustoz</th>
                 <th class="px-3 py-2.5 font-medium">Etap</th>
                 <th class="px-3 py-2.5 font-medium">Kunlar</th>
+                <th v-if="canManage" class="px-3 py-2.5 font-medium w-10 text-right">
+                  Amal
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -141,6 +144,22 @@
                 <td class="px-3 py-2 text-slate-400 text-xs">
                   {{ s.schedule === "odd" ? "Du-Chor-Ju" : "Se-Pay-Sha" }}
                 </td>
+                <td v-if="canManage" class="px-3 py-2 text-right" @click.stop>
+                  <button
+                    @click="deleteStudent(s)"
+                    :disabled="deletingId === s.id"
+                    title="O'quvchini o'chirish"
+                    class="text-slate-300 hover:text-rose-500 transition p-1.5 rounded-lg hover:bg-rose-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    <AppIcon
+                      :name="deletingId === s.id ? 'spinner' : 'trash'"
+                      :class="[
+                        'w-4 h-4',
+                        deletingId === s.id ? 'animate-spin' : '',
+                      ]"
+                    />
+                  </button>
+                </td>
               </tr>
             </tbody>
           </table>
@@ -179,6 +198,18 @@
                 >{{ s.phone }}</a
               >
             </div>
+            <button
+              v-if="canManage"
+              @click.stop="deleteStudent(s)"
+              :disabled="deletingId === s.id"
+              title="O'quvchini o'chirish"
+              class="shrink-0 text-slate-300 hover:text-rose-500 transition p-2 -m-1 rounded-lg hover:bg-rose-50 disabled:opacity-40"
+            >
+              <AppIcon
+                :name="deletingId === s.id ? 'spinner' : 'trash'"
+                :class="['w-4 h-4', deletingId === s.id ? 'animate-spin' : '']"
+              />
+            </button>
           </div>
         </div>
       </template>
@@ -213,6 +244,18 @@
           {{ transferring ? "O'tkazilmoqda..." : "O'tkazish" }}
         </button>
         <button
+          v-if="canManage"
+          @click="doBulkDelete"
+          :disabled="bulkDeleting"
+          class="px-4 py-2 rounded-lg bg-rose-600 text-white text-sm disabled:opacity-40 disabled:cursor-not-allowed hover:bg-rose-700 transition shrink-0 flex items-center gap-1.5"
+        >
+          <AppIcon
+            :name="bulkDeleting ? 'spinner' : 'trash'"
+            :class="['w-4 h-4', bulkDeleting ? 'animate-spin' : '']"
+          />
+          {{ bulkDeleting ? "O'chirilmoqda..." : `O'chirish (${selected.size})` }}
+        </button>
+        <button
           @click="selected.clear()"
           class="px-4 py-2 rounded-lg border border-slate-200 text-slate-500 text-sm hover:bg-slate-50 transition shrink-0"
         >
@@ -234,7 +277,14 @@
 import { ref, computed, onMounted, watch } from "vue";
 import AppIcon from "@/components/AppIcon.vue";
 import ManagerNav from "@/components/ManagerNav.vue";
-import { apiGet, apiSend } from "@/utils/managerApi";
+import { apiGet, apiSend, currentUser } from "@/utils/managerApi";
+
+// Faqat admin yoki menejer o'chira oladi (sahifa allaqachon menejerlarga
+// cheklangan, bu qo'shimcha himoya va tugmalarni yashirish uchun)
+const user = currentUser();
+const canManage = computed(
+  () => !!(user && (user.is_admin || user.role === "manager")),
+);
 
 const teachers = ref([]);
 const students = ref([]);
@@ -247,6 +297,8 @@ const transferTo = ref("");
 const transferring = ref(false);
 const toast = ref("");
 const unassignedCount = ref(0);
+const deletingId = ref(null);
+const bulkDeleting = ref(false);
 
 const totalStudents = computed(() =>
   teachers.value.reduce((a, t) => a + t.students_count, 0)
@@ -312,6 +364,72 @@ async function fetchStudents() {
     say("Ma'lumot yuklanmadi");
   } finally {
     loading.value = false;
+  }
+}
+
+async function deleteStudent(s) {
+  if (!canManage.value) return;
+  if (
+    !confirm(
+      `${s.name} ${s.surname || ""} butunlay o'chiriladi (to'lovlari va davomati bilan). Davom etasizmi?`,
+    )
+  )
+    return;
+  deletingId.value = s.id;
+  try {
+    const { ok, data } = await apiSend("/students/bulk-delete/", "POST", {
+      student_ids: [s.id],
+    });
+    if (!ok) {
+      say(data.error || "O'chirishda xato");
+      return;
+    }
+    students.value = students.value.filter((x) => x.id !== s.id);
+    // Set'ni qayta yaratamiz — pastdagi panel reaktiv yangilanishi uchun
+    if (selected.value.has(s.id)) {
+      const next = new Set(selected.value);
+      next.delete(s.id);
+      selected.value = next;
+    }
+    say("O'quvchi o'chirildi");
+    fetchTeachers(); // ustozlar sonini yangilaymiz
+  } catch (e) {
+    console.error("delete student:", e);
+    say("Tarmoq xatosi");
+  } finally {
+    deletingId.value = null;
+  }
+}
+
+async function doBulkDelete() {
+  if (!canManage.value) return;
+  const ids = [...selected.value];
+  if (!ids.length) return;
+  if (
+    !confirm(
+      `${ids.length} ta o'quvchi butunlay o'chiriladi (to'lovlari va davomati bilan). Bu amalni ortga qaytarib bo'lmaydi. Davom etasizmi?`,
+    )
+  )
+    return;
+  bulkDeleting.value = true;
+  try {
+    const { ok, data } = await apiSend("/students/bulk-delete/", "POST", {
+      student_ids: ids,
+    });
+    if (!ok) {
+      say(data.error || "O'chirishda xato");
+      return;
+    }
+    const removed = new Set(ids);
+    students.value = students.value.filter((s) => !removed.has(s.id));
+    selected.value = new Set();
+    say(`${data.deleted ?? ids.length} ta o'quvchi o'chirildi`);
+    fetchTeachers();
+  } catch (e) {
+    console.error("bulk delete:", e);
+    say("Tarmoq xatosi");
+  } finally {
+    bulkDeleting.value = false;
   }
 }
 

@@ -135,6 +135,79 @@ function toggleSound() {
   }
 }
 
+// ─────────────────────────────
+// POP-UP BILDIRISHNOMALAR (dars boshlandi / yangi e'lon)
+// ─────────────────────────────
+
+// Kamida 8 soniya ko'rinadi (talab: 5 soniya yoki undan uzoqroq)
+const POPUP_MS = 8000;
+const popupQueue = ref([]); // navbatdagi bildirishnomalar
+const activePopup = ref(null); // hozir ko'rsatilayotgani
+let popupTimer = null;
+
+function enqueuePopup(p) {
+  popupQueue.value.push(p);
+  if (!activePopup.value) showNextPopup();
+}
+
+function showNextPopup() {
+  clearTimeout(popupTimer);
+  const next = popupQueue.value.shift();
+  if (!next) {
+    activePopup.value = null;
+    return;
+  }
+  activePopup.value = next;
+  popupTimer = setTimeout(showNextPopup, POPUP_MS);
+}
+
+function closePopup() {
+  // Joriysini yopib, navbatdagisiga o'tadi (yoki hammasi tugasa yopadi)
+  showNextPopup();
+}
+
+function showLessonPopup(g) {
+  enqueuePopup({
+    kind: "lesson",
+    id: `lesson-${g.id}`,
+    title: g.name,
+    room: g.room || "",
+    time: formatTime(g.lesson_time),
+    day: todayLabel.value,
+    teacher: g.teacher?.name || "",
+    students: g.students?.length || 0,
+  });
+}
+
+function showNewsPopup(n) {
+  enqueuePopup({
+    kind: "news",
+    id: `news-${n.id}`,
+    title: n.title,
+    content: n.content,
+    priority: n.priority || "normal",
+  });
+}
+
+// ─────────────────────────────
+// DARS BOSHLANISHIDAN 5 DAQIQA OLDIN TELEGRAM ESLATMA
+// ─────────────────────────────
+
+const REMINDER_LEAD_SECONDS = 300; // 5 daqiqa
+const remindedLessonIds = new Set();
+
+async function sendLessonReminder(groupId) {
+  try {
+    await fetch(`${API}/lessons/send-reminders/`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ group_id: groupId }),
+    });
+  } catch (e) {
+    // Backend idempotent — xato bo'lsa jim o'tamiz
+  }
+}
+
 const alertedLessonIds = new Set();
 let lastCheckedDay = new Date().toDateString();
 
@@ -142,15 +215,29 @@ function checkLessonAlerts() {
   const today = new Date().toDateString();
   if (today !== lastCheckedDay) {
     alertedLessonIds.clear();
+    remindedLessonIds.clear();
     lastCheckedDay = today;
   }
 
   todaysGroups.value.forEach((g) => {
     if (!g.lesson_time) return;
     const secondsLeft = secondsUntilLesson(g.lesson_time);
+
+    // Darsga 5 daqiqa qolganda telegram eslatma yuboriladi
+    if (
+      secondsLeft > 0 &&
+      secondsLeft <= REMINDER_LEAD_SECONDS &&
+      !remindedLessonIds.has(g.id)
+    ) {
+      remindedLessonIds.add(g.id);
+      sendLessonReminder(g.id);
+    }
+
+    // Dars boshlanganda ovoz + pop-up
     if (secondsLeft <= 0 && secondsLeft > -2 && !alertedLessonIds.has(g.id)) {
       alertedLessonIds.add(g.id);
       playLessonAlert();
+      showLessonPopup(g);
     }
   });
 }
@@ -356,8 +443,11 @@ async function fetchNews() {
     const data = await res.json();
 
     if (!firstNewsLoad) {
-      const hasNew = data.some((n) => !seenNewsIds.has(n.id));
-      if (hasNew) playNewsAlert();
+      const newItems = data.filter((n) => !seenNewsIds.has(n.id));
+      if (newItems.length) {
+        playNewsAlert();
+        newItems.forEach(showNewsPopup);
+      }
     }
 
     data.forEach((n) => seenNewsIds.add(n.id));
@@ -403,6 +493,7 @@ onUnmounted(() => {
   clearInterval(newsRotateTimer);
   clearInterval(newsRefetchTimer);
   clearInterval(newsAudioTimer);
+  clearTimeout(popupTimer);
 });
 
 const PRIORITY_STYLE = {
@@ -705,6 +796,85 @@ const PRIORITY_DOT = {
         </div>
       </div>
     </div>
+
+    <!-- ══════════ POP-UP BILDIRISHNOMA (dars / e'lon) ══════════ -->
+    <Teleport to="body">
+      <Transition name="popup">
+        <div
+          v-if="activePopup"
+          class="popup-overlay"
+          @click.self="closePopup"
+        >
+          <div
+            class="popup-card"
+            :class="
+              activePopup.kind === 'lesson'
+                ? 'popup-lesson'
+                : `popup-news popup-${activePopup.priority}`
+            "
+          >
+            <button
+              type="button"
+              class="popup-close"
+              @click="closePopup"
+              aria-label="Yopish"
+            >
+              <AppIcon name="x" />
+            </button>
+
+            <!-- DARS BOSHLANDI -->
+            <template v-if="activePopup.kind === 'lesson'">
+              <div class="popup-badge">
+                <span class="popup-badge-icon"><AppIcon name="bell" /></span>
+                <span>DARS BOSHLANDI</span>
+              </div>
+              <h2 class="popup-title">{{ activePopup.title }}</h2>
+              <div class="popup-chips">
+                <div class="popup-chip">
+                  <AppIcon name="clock" />
+                  <span>{{ activePopup.time }}</span>
+                </div>
+                <div class="popup-chip">
+                  <AppIcon name="room" />
+                  <span>{{ activePopup.room || "Xona belgilanmagan" }}</span>
+                </div>
+                <div class="popup-chip">
+                  <AppIcon name="schedule" />
+                  <span>{{ activePopup.day }}</span>
+                </div>
+              </div>
+              <p v-if="activePopup.teacher" class="popup-sub">
+                <AppIcon name="teacher" /> {{ activePopup.teacher }}
+                <span v-if="activePopup.students"
+                  >· {{ activePopup.students }} o'quvchi</span
+                >
+              </p>
+            </template>
+
+            <!-- YANGI E'LON -->
+            <template v-else>
+              <div class="popup-badge">
+                <span class="popup-badge-icon"
+                  ><AppIcon name="megaphone"
+                /></span>
+                <span>YANGI E'LON</span>
+              </div>
+              <h2 class="popup-title">{{ activePopup.title }}</h2>
+              <p class="popup-content">{{ activePopup.content }}</p>
+            </template>
+
+            <!-- Avtomatik yopilish indikatori -->
+            <div class="popup-progress">
+              <span
+                :key="activePopup.id"
+                class="popup-progress-bar"
+                :style="{ animationDuration: POPUP_MS + 'ms' }"
+              ></span>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
   </div>
 </template>
 
@@ -741,6 +911,228 @@ const PRIORITY_DOT = {
   50% {
     box-shadow: 0 0 55px rgba(251, 191, 36, 0.55);
   }
+}
+
+/* ══════════ POP-UP BILDIRISHNOMA ══════════ */
+.popup-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(4, 7, 12, 0.72);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.popup-card {
+  position: relative;
+  width: 100%;
+  max-width: 30rem;
+  border-radius: 1.5rem;
+  padding: clamp(1.5rem, 4vw, 2.25rem);
+  background: linear-gradient(160deg, #161d28 0%, #0d121a 100%);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  box-shadow:
+    0 24px 70px -12px rgba(0, 0, 0, 0.75),
+    0 0 0 1px rgba(0, 0, 0, 0.3) inset;
+  color: #e2e8f0;
+  overflow: hidden;
+  animation: popupPop 0.42s cubic-bezier(0.22, 1.2, 0.36, 1);
+}
+
+.popup-lesson {
+  border-color: rgba(251, 191, 36, 0.45);
+  box-shadow:
+    0 24px 70px -12px rgba(0, 0, 0, 0.75),
+    0 0 60px -8px rgba(251, 191, 36, 0.35);
+}
+.popup-news.popup-normal {
+  border-color: rgba(148, 163, 184, 0.35);
+}
+.popup-news.popup-important {
+  border-color: rgba(251, 191, 36, 0.5);
+  box-shadow:
+    0 24px 70px -12px rgba(0, 0, 0, 0.75),
+    0 0 60px -8px rgba(251, 191, 36, 0.28);
+}
+.popup-news.popup-urgent {
+  border-color: rgba(248, 113, 113, 0.55);
+  box-shadow:
+    0 24px 70px -12px rgba(0, 0, 0, 0.75),
+    0 0 60px -8px rgba(248, 113, 113, 0.35);
+}
+
+.popup-close {
+  position: absolute;
+  top: 0.85rem;
+  right: 0.85rem;
+  width: 2rem;
+  height: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.6rem;
+  color: #64748b;
+  font-size: 1.05rem;
+  transition:
+    background 0.2s,
+    color 0.2s;
+}
+.popup-close:hover {
+  background: rgba(148, 163, 184, 0.12);
+  color: #e2e8f0;
+}
+
+.popup-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.8rem;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+}
+.popup-lesson .popup-badge,
+.popup-news.popup-important .popup-badge {
+  background: rgba(251, 191, 36, 0.15);
+  color: #fbbf24;
+}
+.popup-news.popup-normal .popup-badge {
+  background: rgba(148, 163, 184, 0.15);
+  color: #cbd5e1;
+}
+.popup-news.popup-urgent .popup-badge {
+  background: rgba(248, 113, 113, 0.16);
+  color: #fca5a5;
+}
+.popup-badge-icon {
+  display: inline-flex;
+  font-size: 0.95rem;
+  animation: popupRing 1s ease-in-out infinite;
+}
+
+.popup-title {
+  margin: 0.9rem 0 0;
+  font-size: clamp(1.35rem, 5vw, 1.85rem);
+  font-weight: 800;
+  line-height: 1.15;
+  color: #f8fafc;
+  word-break: break-word;
+}
+
+.popup-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-top: 1.15rem;
+}
+.popup-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.55rem 0.9rem;
+  border-radius: 0.85rem;
+  background: rgba(148, 163, 184, 0.1);
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #e2e8f0;
+}
+.popup-chip .app-icon {
+  color: #fbbf24;
+  font-size: 1.05rem;
+}
+
+.popup-sub {
+  margin: 1rem 0 0;
+  font-size: 0.9rem;
+  color: #94a3b8;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.popup-content {
+  margin: 0.9rem 0 0;
+  font-size: 1rem;
+  line-height: 1.6;
+  color: #cbd5e1;
+  white-space: pre-line;
+  word-break: break-word;
+}
+
+.popup-progress {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 4px;
+  background: rgba(148, 163, 184, 0.12);
+}
+.popup-progress-bar {
+  display: block;
+  height: 100%;
+  width: 100%;
+  transform-origin: left;
+  background: #fbbf24;
+  animation: popupCountdown linear forwards;
+}
+.popup-news.popup-urgent .popup-progress-bar {
+  background: #f87171;
+}
+.popup-news.popup-normal .popup-progress-bar {
+  background: #94a3b8;
+}
+
+@keyframes popupCountdown {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
+}
+@keyframes popupPop {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+@keyframes popupRing {
+  0%,
+  70%,
+  100% {
+    transform: rotate(0);
+  }
+  10%,
+  30%,
+  50% {
+    transform: rotate(-12deg);
+  }
+  20%,
+  40%,
+  60% {
+    transform: rotate(12deg);
+  }
+}
+
+/* Transition (kirish/chiqish) */
+.popup-enter-active,
+.popup-leave-active {
+  transition: opacity 0.3s ease;
+}
+.popup-enter-from,
+.popup-leave-to {
+  opacity: 0;
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -1,4 +1,4 @@
-import { createRouter, createWebHistory } from "vue-router";
+import { createRouter, createWebHistory, START_LOCATION } from "vue-router";
 import OfflineView from "@/views/OfflineView.vue";
 
 // Sayt ochilishi bilan serverni uyg'otamiz (Render free plan uxlab qoladi)
@@ -122,7 +122,11 @@ const router = createRouter({
   scrollBehavior: () => ({ top: 0 }),
 });
 
-router.beforeEach((to) => {
+// Kirish (entry) sahifalari — URL orqali to'g'ridan-to'g'ri ochsa bo'ladi.
+// Qolgan sahifalarga faqat ilova ichidagi RouterLink/tugmalar orqali kiriladi.
+const ENTRY_PATHS = ["/", "/login", "/offline", "/groups/board"];
+
+router.beforeEach((to, from) => {
   const user = getUser();
 
   if (to.meta.offline) return;
@@ -147,6 +151,29 @@ router.beforeEach((to) => {
   // shuning uchun ular ham kira oladi
   if (to.meta.requiresManager && user?.role !== "manager" && !user?.is_admin) {
     return { path: "/" };
+  }
+
+  // ─── URL'ni qo'lda o'zgartirishdan himoya ───
+  // To'liq sahifa yuklanishida (URL qo'lda yozilganda) `from` === START_LOCATION
+  // bo'ladi. Bunday holatda faqat kirish sahifalari yoki oxirgi ochilgan
+  // sahifa (F5 / refresh) ruxsat etiladi; boshqasiga o'tmaydi — o'sha
+  // oxirgi sahifaga qaytariladi. Ilova ichidagi RouterLink/tugma orqali
+  // navigatsiyada `from` haqiqiy sahifa bo'lgani uchun bu cheklov ishlamaydi.
+  if (from === START_LOCATION) {
+    const lastPath = sessionStorage.getItem("lastPath");
+    const isEntry = ENTRY_PATHS.includes(to.path);
+    const isRefresh = !!lastPath && lastPath === to.path;
+    if (!isEntry && !isRefresh) {
+      return { path: lastPath || "/" };
+    }
+  }
+});
+
+// Har bir muvaffaqiyatli navigatsiyadan keyin oxirgi sahifani eslab qolamiz —
+// refresh o'sha sahifada qolishi uchun.
+router.afterEach((to) => {
+  if (!to.meta.offline) {
+    sessionStorage.setItem("lastPath", to.path);
   }
 });
 

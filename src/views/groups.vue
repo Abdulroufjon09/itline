@@ -48,6 +48,7 @@ const form = ref({
   lesson_time: "09:00",
   room: "",
   schedule: "odd",
+  opened_date: "",
 });
 const studentSearch = ref("");
 
@@ -204,6 +205,7 @@ function openCreate() {
     lesson_time: "09:00",
     room: "",
     schedule: "odd",
+    opened_date: "",
   };
   studentSearch.value = "";
   activeGroup.value = null;
@@ -225,6 +227,7 @@ function openEdit(group) {
     lesson_time: group.lesson_time || "09:00",
     room: group.room || "",
     schedule: group.schedule || "odd",
+    opened_date: (group.opened_date || "").slice(0, 10),
   };
   studentSearch.value = "";
   activeGroup.value = group;
@@ -277,6 +280,7 @@ async function saveGroup() {
       lesson_time: form.value.lesson_time,
       room: form.value.room.trim(),
       schedule: form.value.schedule,
+      opened_date: form.value.opened_date || null,
     };
 
     if (form.value.course_id) {
@@ -438,7 +442,7 @@ async function sendGroupMsg() {
       <!-- Header -->
       <div class="flex items-center justify-between mb-4 sm:mb-6 gap-2">
         <div class="flex items-center gap-2 sm:gap-3 min-w-0">
-          <RouterLink to="/admin" class="text-gray-400 hover:text-gray-700 transition shrink-0">
+          <RouterLink to="/" class="text-gray-400 hover:text-gray-700 transition shrink-0">
             <AppIcon name="arrow-left" class="w-4 h-4" />
           </RouterLink>
           <div class="min-w-0">
@@ -625,6 +629,10 @@ async function sendGroupMsg() {
                         ">
                         <AppIcon name="room" /> {{ activeGroup.room || "Xona belgilanmagan" }}
                       </span>
+                      <span v-if="activeGroup.opened_date"
+                        class="text-xs bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-full">
+                        <AppIcon name="calendar" /> Ochilgan: {{ activeGroup.opened_date.slice(0, 10) }}
+                      </span>
                     </div>
                   </div>
                   <button @click="closePanel" class="text-gray-300 hover:text-gray-600 text-2xl leading-none shrink-0">
@@ -730,6 +738,19 @@ async function sendGroupMsg() {
                     <input v-model="form.room" placeholder="204-xona"
                       class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-gray-400 transition" />
                   </div>
+                </div>
+
+                <!-- Guruh ochilgan sana — oylik to'lov shu kundan hisoblanadi -->
+                <div class="mb-4">
+                  <label class="text-xs text-gray-400 uppercase tracking-wide block mb-1.5">
+                    Guruh ochilgan sana
+                  </label>
+                  <input v-model="form.opened_date" type="date"
+                    class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-gray-400 transition" />
+                  <p class="text-xs text-gray-400 mt-1.5">
+                    Oylik to'lov muddati shu kundan boshlab hisoblanadi
+                    (masalan 25-kuni ochilsa — har oy 25-kuni).
+                  </p>
                 </div>
 
                 <!-- Schedule field -->
