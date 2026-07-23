@@ -86,11 +86,10 @@
                     @change="toggleAll"
                   />
                 </th>
-                <th class="px-3 py-2.5 font-medium w-10 text-right">#</th>
+                <th class="px-3 py-2.5 font-medium w-10 text-right"></th>
                 <th class="px-3 py-2.5 font-medium">Ism familiya</th>
                 <th class="px-3 py-2.5 font-medium">Telefon</th>
                 <th class="px-3 py-2.5 font-medium">Ustoz</th>
-                <th class="px-3 py-2.5 font-medium">Etap</th>
                 <th class="px-3 py-2.5 font-medium">Kunlar</th>
                 <th v-if="canManage" class="px-3 py-2.5 font-medium w-10 text-right">
                   Amal
@@ -103,8 +102,8 @@
                 :key="s.id"
                 @click="toggleOne(s.id)"
                 :class="[
-                  'border-t border-slate-50 cursor-pointer transition-colors',
-                  selected.has(s.id) ? 'bg-indigo-50/70' : 'hover:bg-indigo-50/30',
+                  'border-t border-white/20 cursor-pointer transition-colors',
+                  selected.has(s.id) ? 'bg-white/10' : 'hover:bg-white/10',
                 ]"
               >
                 <td class="px-3 py-2" @click.stop>
@@ -140,7 +139,6 @@
                   <span v-if="s.teacher_name">{{ s.teacher_name }}</span>
                   <span v-else class="text-rose-400 text-xs">biriktirilmagan</span>
                 </td>
-                <td class="px-3 py-2 text-slate-400 tabular-nums">{{ s.stage }}</td>
                 <td class="px-3 py-2 text-slate-400 text-xs">
                   {{ s.schedule === "odd" ? "Du-Chor-Ju" : "Se-Pay-Sha" }}
                 </td>
@@ -149,12 +147,12 @@
                     @click="deleteStudent(s)"
                     :disabled="deletingId === s.id"
                     title="O'quvchini o'chirish"
-                    class="text-slate-300 hover:text-rose-500 transition p-1.5 rounded-lg hover:bg-rose-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                    class="text-slate-300 hover:bg-red-600 cursor-pointer px-2 transition p-1.5 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed"
                   >
                     <AppIcon
                       :name="deletingId === s.id ? 'spinner' : 'trash'"
                       :class="[
-                        'w-4 h-4',
+                        'w-4 h-4 ',
                         deletingId === s.id ? 'animate-spin' : '',
                       ]"
                     />

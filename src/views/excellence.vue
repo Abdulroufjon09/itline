@@ -1114,20 +1114,6 @@ const inputClass = (field) => [
           </select>
         </div>
 
-        <div class="flex items-end">
-          <button @click="generatePayments" :disabled="generating"
-            class="px-4 py-2 bg-gray-900 text-white rounded-xl text-sm hover:bg-gray-700 transition disabled:opacity-50">
-            {{ generating ? "Hisoblanmoqda..." : "To'lovlarni yaratish" }}
-          </button>
-        </div>
-
-        <div class="flex items-end">
-          <button @click="openMsgModal('all')"
-            class="px-4 py-2 bg-sky-500 text-white rounded-xl text-sm hover:bg-sky-600 transition">
-            <AppIcon name="send" /> Barchaga xabar
-          </button>
-        </div>
-
         <div class="flex-1 min-w-[180px]">
           <label class="block text-xs text-gray-400 mb-1">Qidiruv</label>
           <input v-model="paySearch" type="text" placeholder="Ism, telefon yoki guruh nomi..."
@@ -1145,7 +1131,24 @@ const inputClass = (field) => [
             {{ groupByGroup ? "Guruhlar bo'yicha" : "Oddiy ro'yxat" }}
           </button>
         </div>
+
+
+        <div class="flex items-end">
+          <button @click="openMsgModal('all')"
+            class="px-4 py-2 bg-gray-900 text-white rounded-xl text-sm hover:bg-sky-600 transition">
+            <AppIcon name="send" /> Barchaga xabar
+          </button>
+        </div>
+
+
+        <div class="flex items-end">
+          <button @click="generatePayments" :disabled="generating"
+            class="px-4 py-2 bg-gray-900 text-white rounded-xl text-sm hover:bg-gray-700 transition disabled:opacity-50">
+            {{ generating ? "Hisoblanmoqda..." : "To'lovlarni yaratish" }}
+          </button>
+        </div>
       </div>
+
 
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5">
         <div class="bg-gray-100 rounded-xl p-4">
@@ -1169,7 +1172,7 @@ const inputClass = (field) => [
       <div v-if="loading" class="text-center py-8 text-gray-400">
         Yuklanmoqda...
       </div>
-      <div v-else class=" border border-white/40 rounded-2xl overflow-x-auto">
+      <div v-else class=" border border-white/20 rounded-2xl overflow-x-auto">
         <table class="pay-nowrap w-full text-sm min-w-[1120px]">
           <thead>
             <tr class="bg-gray-50 border-b border-gray-100">
@@ -1212,17 +1215,16 @@ const inputClass = (field) => [
             <template v-for="section in displaySections" :key="section.key">
               <!-- Guruh sarlavhasi (bosilganда ochiladi/yopiladi) -->
               <tr v-if="section.name" :key="'h-' + section.key" @click="toggleGroup(section.key)"
-                class="bg-gray-100 border-y border-white/10 cursor-pointer hover:bg-gray-200 transition select-none">
+                class="bg-blue-900/20 border-y border-white/10 cursor-pointer hover:bg-blue-800/10 transition select-none">
                 <td colspan="11" class="px-4 py-2.5">
                   <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
                     <div class="flex items-center gap-2 font-semibold text-gray-700">
-                      <AppIcon name="chevron-down"
-                        class="text-gray-400 transition-transform duration-200"
+                      <AppIcon name="chevron-down" class="text-gray-400 transition-transform duration-200"
                         :class="isSectionOpen(section) ? '' : '-rotate-90'" />
                       <AppIcon name="groups" class="text-gray-400" />
                       <span>{{ section.name }}</span>
                       <span v-if="section.teacher" class="text-xs font-normal text-gray-400">· {{ section.teacher
-                        }}</span>
+                      }}</span>
                       <span class="text-xs font-medium bg-gray-200 text-gray-500 px-2 py-0.5 rounded-full">{{
                         section.payments.length }} ta</span>
                     </div>
@@ -1233,8 +1235,8 @@ const inputClass = (field) => [
                         }}</b></span>
                       <span class="text-green-600">To'langan: <b>{{ money(section.totalPaid) }}</b></span>
                       <span :class="section.remaining > 0
-                          ? 'text-red-500'
-                          : 'text-green-600'
+                        ? 'text-red-500'
+                        : 'text-green-600'
                         ">Qolgan: <b>{{ money(section.remaining) }}</b></span>
                     </div>
                   </div>
@@ -1242,78 +1244,78 @@ const inputClass = (field) => [
               </tr>
 
               <template v-if="isSectionOpen(section)">
-              <tr v-for="payment in section.payments" :key="'p-' + payment.id"
-                class="acc-row border-b border-white/10 hover:bg-gray-50 transition">
-                <td class="px-4 py-3 font-medium">{{ payment.student_name }}</td>
-                <td class="px-4 py-3 text-gray-500">
-                  {{ payment.student_phone }}
-                </td>
-                <td class="px-4 py-3 text-gray-500">
-                  {{ payment.teacher_name }}
-                </td>
-                <td class="px-4 py-3 text-gray-600">
-                  {{ courseLabel(payment) }}
-                </td>
-                <td class="px-4 py-3">{{ money(paymentAmountDue(payment)) }}</td>
-                <td class="px-4 py-3 text-gray-500 whitespace-nowrap">
-                  {{ formatDue(payment) }}
-                </td>
-                <td class="px-4 py-3">
-                  <!-- ✅ TUZATILDI: manfiy son kiritib bo'lmaydi -->
-                  <input type="number" min="0" step="1" v-model.number="payment.paid_amount"
-                    @keydown="blockNegativeKey($event)" @input="sanitizePaidAmount(payment)"
-                    @change="savePaymentRow(payment)" placeholder="0"
-                    class="border border-white/10 rounded-lg px-2 py-1 w-28 text-sm outline-none focus:border-white/10" />
-                </td>
-                <td class="px-4 py-3 font-medium" :class="remainingAmount(payment) > 0
+                <tr v-for="payment in section.payments" :key="'p-' + payment.id"
+                  class="acc-row border-b border-white/10 hover:bg-blue-500/10 transition">
+                  <td class="px-4 py-3 font-medium">{{ payment.student_name }}</td>
+                  <td class="px-4 py-3 text-gray-500">
+                    {{ payment.student_phone }}
+                  </td>
+                  <td class="px-4 py-3 text-gray-500">
+                    {{ payment.teacher_name }}
+                  </td>
+                  <td class="px-4 py-3 text-gray-600">
+                    {{ courseLabel(payment) }}
+                  </td>
+                  <td class="px-4 py-3">{{ money(paymentAmountDue(payment)) }}</td>
+                  <td class="px-4 py-3 text-gray-500 whitespace-nowrap">
+                    {{ formatDue(payment) }}
+                  </td>
+                  <td class="px-4 py-3">
+                    <!-- ✅ TUZATILDI: manfiy son kiritib bo'lmaydi -->
+                    <input type="number" min="0" step="1" v-model.number="payment.paid_amount"
+                      @keydown="blockNegativeKey($event)" @input="sanitizePaidAmount(payment)"
+                      @change="savePaymentRow(payment)" placeholder="0"
+                      class="border border-white/10 rounded-lg px-2 py-1 w-28 text-sm outline-none focus:border-white/10" />
+                  </td>
+                  <td class="px-4 py-3 font-medium" :class="remainingAmount(payment) > 0
                     ? 'text-red-600'
                     : 'text-green-600'
-                  ">
-                  {{ remainingAmount(payment) > 0 ? "-" : "+"
-                  }}{{ money(Math.abs(remainingAmount(payment))) }}
-                </td>
-                <td class="px-4 py-3">
-                  <label class="inline-flex items-center cursor-pointer">
-                    <!-- ✅ TUZATILDI: summa 0/bo'sh bo'lsa checkbox disabled -->
-                    <input type="checkbox" v-model="payment.is_checked" :disabled="!Number(payment.paid_amount) ||
-                      Number(payment.paid_amount) <= 0
-                      " @change="savePaymentRow(payment)"
-                      class="h-4 w-4 rounded border-white/10 text-gray-900 focus:ring-gray-900 disabled:opacity-40 disabled:cursor-not-allowed" />
-                  </label>
-                </td>
-                <td class="px-4 py-3">
-                  <span :class="[
-                    'px-2.5 py-1 rounded-full text-xs font-medium',
-                    payment.is_checked
-                      ? 'bg-green-800 text-green-700'
-                      : 'bg-red-100 text-red-600',
-                  ]">
-                    {{ payment.is_checked ? "To'langan" : "To'lanmagan" }}
-                  </span>
-                </td>
-                <td class="px-4 py-3">
-                  <div class="flex items-center gap-1.5">
-                    <button @click="openMsgModal('single', payment)"
-                      class="relative px-2.5 py-1.5 rounded-lg border border-gray-200 hover:border-blue-600 hover:bg-blue-500 transition text-sm"
-                      :title="tgLinkedIds.has(payment.student_id)
+                    ">
+                    {{ remainingAmount(payment) > 0 ? "-" : "+"
+                    }}{{ money(Math.abs(remainingAmount(payment))) }}
+                  </td>
+                  <td class="px-4 py-3">
+                    <label class="inline-flex items-center cursor-pointer">
+                      <!-- ✅ TUZATILDI: summa 0/bo'sh bo'lsa checkbox disabled -->
+                      <input type="checkbox" v-model="payment.is_checked" :disabled="!Number(payment.paid_amount) ||
+                        Number(payment.paid_amount) <= 0
+                        " @change="savePaymentRow(payment)"
+                        class="h-4 w-4 rounded border-white/10 text-gray-900 focus:ring-gray-900 disabled:opacity-40 disabled:cursor-not-allowed" />
+                    </label>
+                  </td>
+                  <td class="px-4 py-3">
+                    <span :class="[
+                      'px-2.5 py-1 rounded-full text-xs font-medium',
+                      payment.is_checked
+                        ? 'bg-green-800 text-green-700'
+                        : 'bg-red-100 text-red-600',
+                    ]">
+                      {{ payment.is_checked ? "To'langan" : "To'lanmagan" }}
+                    </span>
+                  </td>
+                  <td class="px-4 py-3">
+                    <div class="flex items-center gap-1.5">
+                      <button @click="openMsgModal('single', payment)"
+                        class="relative px-2.5 py-1.5 rounded-lg border border-gray-200 hover:border-blue-600 hover:bg-blue-500 transition text-sm"
+                        :title="tgLinkedIds.has(payment.student_id)
                           ? 'Botga ulangan — xabar boradi'
                           : 'Hali botga ulanmagan'
-                        ">
-                      <AppIcon name="mail" />
-                      <span :class="[
-                        'absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full border border-white',
-                        tgLinkedIds.has(payment.student_id)
-                          ? 'bg-green-400'
-                          : 'bg-gray-300',
-                      ]"></span>
-                    </button>
-                    <button @click="deleteStudentRow(payment)" title="Studentni butunlay o'chirish"
-                      class="px-2 py-1.5 rounded-lg border border-gray-200 hover:bg-red-500 transition text-sm">
-                      <AppIcon name="trash" />
-                    </button>
-                  </div>
-                </td>
-              </tr>
+                          ">
+                        <AppIcon name="mail" />
+                        <span :class="[
+                          'absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full border border-white',
+                          tgLinkedIds.has(payment.student_id)
+                            ? 'bg-green-400'
+                            : 'bg-gray-300',
+                        ]"></span>
+                      </button>
+                      <button @click="deleteStudentRow(payment)" title="Studentni butunlay o'chirish"
+                        class="px-2 py-1.5 rounded-lg border border-gray-200 hover:bg-red-500 transition text-sm">
+                        <AppIcon name="trash" />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
               </template>
             </template>
           </TransitionGroup>
@@ -1450,8 +1452,8 @@ const inputClass = (field) => [
                   {{ money(paymentPaidAmount(payment)) }}
                 </td>
                 <td class="px-4 py-3 font-medium" :class="remainingAmount(payment) > 0
-                    ? 'text-red-600'
-                    : 'text-green-600'
+                  ? 'text-red-600'
+                  : 'text-green-600'
                   ">
                   {{ remainingAmount(payment) > 0 ? "-" : "+"
                   }}{{ money(Math.abs(remainingAmount(payment))) }}
@@ -1504,8 +1506,8 @@ const inputClass = (field) => [
           ]">
             <p class="font-medium">{{ teacher.name }}</p>
             <p :class="selectedTeacherForAtt?.id === teacher.id
-                ? 'text-gray-300'
-                : 'text-gray-400'
+              ? 'text-gray-300'
+              : 'text-gray-400'
               " class="text-xs">
               {{ teacher.phone || "Telefon yo'q" }}
             </p>
@@ -1536,8 +1538,8 @@ const inputClass = (field) => [
                     {{ student.name }} {{ student.surname }}
                   </p>
                   <p :class="selectedStudent?.id === student.id
-                      ? 'text-gray-300'
-                      : 'text-gray-400'
+                    ? 'text-gray-300'
+                    : 'text-gray-400'
                     " class="text-xs">
                     {{ student.group_name || student.course_name || "" }}
                   </p>
@@ -1579,8 +1581,8 @@ const inputClass = (field) => [
                 : 'bg-red-50 border border-red-100',
             ]">
               <p class="text-xs font-medium" :class="getStudentPaymentForAtt(selectedStudent.id)?.is_paid
-                  ? 'text-green-700'
-                  : 'text-red-600'
+                ? 'text-green-700'
+                : 'text-red-600'
                 ">
                 {{
                   getStudentPaymentForAtt(selectedStudent.id)?.is_paid
@@ -1872,22 +1874,26 @@ const inputClass = (field) => [
     opacity 0.32s ease,
     transform 0.32s ease;
 }
+
 .acc-leave-active {
   transition:
     opacity 0.24s ease,
     transform 0.24s ease;
 }
+
 .acc-enter-from,
 .acc-leave-to {
   opacity: 0;
   transform: translateY(-8px);
 }
+
 /* Yopilayotgan qatorlar boshqalarini bosib qo'ymasligi uchun */
 .acc-leave-active {
   pointer-events: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
+
   .acc-enter-active,
   .acc-leave-active {
     transition-duration: 0.01ms;

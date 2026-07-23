@@ -45,7 +45,7 @@
                             <td class="px-4 py-3 text-gray-500">{{ c.groups_count ?? 0 }} ta</td>
                             <td class="px-4 py-3">
                                 <button @click="removeCourse(c)"
-                                    class="text-sm px-3 py-1.5 rounded-lg border border-red-200 hover:bg-red-50 text-red-500">
+                                    class="text-sm px-3 py-1.5 rounded-lg border border-red-300/30 hover:bg-red-500/50 text-red-500 cursor-pointer">
                                     O'chirish
                                 </button>
                             </td>
