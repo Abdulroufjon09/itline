@@ -336,6 +336,19 @@ const displaySections = computed(() => {
   return [{ key: "__all__", name: null, teacher: "", payments: pagedPayments.value }];
 });
 
+// ── Guruhlar akkordeon: dastlab yopiq, sarlavhaga bosilganда ochiladi ──
+const expandedGroups = ref(new Set());
+function toggleGroup(key) {
+  const next = new Set(expandedGroups.value);
+  next.has(key) ? next.delete(key) : next.add(key);
+  expandedGroups.value = next;
+}
+function isSectionOpen(section) {
+  if (!section.name) return true; // oddiy ro'yxat rejimi — doim ochiq
+  if (paySearch.value.trim()) return true; // qidiruvда natijalar ko'rinsin
+  return expandedGroups.value.has(section.key);
+}
+
 // ══════════ TELEGRAM XABAR YUBORISH ══════════
 const UZ_MONTHS = [
   "Yanvar", "Fevral", "Mart", "Aprel", "May", "Iyun",
@@ -694,9 +707,9 @@ function paymentPaidAmount(payment) {
   return (
     Number(
       payment.paid_amount ??
-        payment.amount_paid ??
-        payment.amount_received ??
-        0,
+      payment.amount_paid ??
+      payment.amount_received ??
+      0,
     ) || 0
   );
 }
@@ -1035,61 +1048,50 @@ const inputClass = (field) => [
 ];
 </script>
 <template>
-  <div class="max-w-6xl mx-auto p-4 sm:p-6">
+  <div class="max-w-6xl py-4 mx-auto">
     <!-- Header -->
     <div class="flex justify-between items-center mb-6">
       <div class="space-y-2">
         <h1 class="flex gap-3 text-xl sm:text-2xl font-sans">
-          <span
-            ><img
-              src="../icon/itline.jpg"
-              alt=""
-              class="w-10 rounded-full animate-spin"  style="animation-duration: 5s" /></span
-          >Itline Panel
+          <span><img src="../icon/itline.jpg" alt="" class="w-10 rounded-full animate-spin"
+              style="animation-duration: 5s" /></span>Itline Panel
         </h1>
         <p class="text-gray-400 text-sm mt-0.5">
           Xush kelibsiz, {{ user.name }}!
         </p>
       </div>
-      <button
-        @click="$router.push('/profile')"
-        class="px-4 py-2 rounded-full border border-gray-200 text-sm hover:bg-gray-50 transition"
-      >
+      <button @click="$router.push('/profile')"
+        class="px-4 py-2 rounded-full border border-gray-200 text-sm hover:bg-gray-50 transition">
         <AppIcon name="settings" /> Profil
       </button>
     </div>
 
     <!-- Tablar -->
     <div class="flex gap-2 mb-6 overflow-x-auto pb-1">
-      <button
-        v-for="tab in TABS"
-        :key="tab.key"
-        @click="activeTab = tab.key"
-        :class="[
-          'cursor-pointer px-4 py-2 rounded-full text-sm border transition whitespace-nowrap flex items-center gap-1.5',
-          activeTab === tab.key
-            ? 'bg-gray-900 text-white border-gray-900'
-            : 'border-gray-200 text-gray-500 hover:bg-gray-50',
-        ]"
-      >
+      <button v-for="tab in TABS" :key="tab.key" @click="activeTab = tab.key" :class="[
+        'cursor-pointer px-4 py-2 rounded-full text-sm border transition whitespace-nowrap flex items-center gap-1.5',
+        activeTab === tab.key
+          ? 'bg-gray-900 text-white border-gray-900'
+          : 'border-gray-200 text-gray-500 hover:bg-gray-50',
+      ]">
         <AppIcon :name="tab.icon" />
         {{ tab.label }}
       </button>
       <router-link
         class="px-4 py-2 rounded-full text-sm border transition whitespace-nowrap border-gray-200 text-gray-500 hover:bg-gray-50"
-        to="/finance"
-        ><AppIcon name="money" /> finance</router-link
-      >
+        to="/finance">
+        <AppIcon name="money" /> finance
+      </router-link>
       <router-link
         class="px-4 py-2 rounded-full text-sm border transition whitespace-nowrap border-gray-200 text-gray-500 hover:bg-gray-50"
-        to="/database"
-        ><AppIcon name="database" /> Baza</router-link
-      >
+        to="/database">
+        <AppIcon name="database" /> Baza
+      </router-link>
       <router-link
         class="px-4 py-2 rounded-full text-sm border transition whitespace-nowrap border-gray-200 text-gray-500 hover:bg-gray-50"
-        to="/manager/students"
-        ><AppIcon name="manager" /> Menejer paneli</router-link
-      >
+        to="/manager/students">
+        <AppIcon name="manager" /> Menejer paneli
+      </router-link>
     </div>
 
     <!-- ══════════ TO'LOVLAR ══════════ -->
@@ -1097,21 +1099,14 @@ const inputClass = (field) => [
       <div class="flex flex-wrap gap-3 mb-5">
         <div>
           <label class="block text-xs text-gray-400 mb-1">Oy</label>
-          <input
-            type="month"
-            v-model="selectedMonth"
-            @change="fetchPayments"
-            class="border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none"
-          />
+          <input type="month" v-model="selectedMonth" @change="fetchPayments"
+            class="border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none" />
         </div>
 
         <div>
           <label class="block text-xs text-gray-400 mb-1">O'qituvchi</label>
-          <select
-            v-model="selectedTeacherId"
-            @change="fetchPayments"
-            class="border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none"
-          >
+          <select v-model="selectedTeacherId" @change="fetchPayments"
+            class="border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none">
             <option value="">Barchasi</option>
             <option v-for="t in teachers" :key="t.id" :value="t.id">
               {{ t.name }}
@@ -1120,45 +1115,32 @@ const inputClass = (field) => [
         </div>
 
         <div class="flex items-end">
-          <button
-            @click="generatePayments"
-            :disabled="generating"
-            class="px-4 py-2 bg-gray-900 text-white rounded-xl text-sm hover:bg-gray-700 transition disabled:opacity-50"
-          >
+          <button @click="generatePayments" :disabled="generating"
+            class="px-4 py-2 bg-gray-900 text-white rounded-xl text-sm hover:bg-gray-700 transition disabled:opacity-50">
             {{ generating ? "Hisoblanmoqda..." : "To'lovlarni yaratish" }}
           </button>
         </div>
 
         <div class="flex items-end">
-          <button
-            @click="openMsgModal('all')"
-            class="px-4 py-2 bg-sky-500 text-white rounded-xl text-sm hover:bg-sky-600 transition"
-          >
+          <button @click="openMsgModal('all')"
+            class="px-4 py-2 bg-sky-500 text-white rounded-xl text-sm hover:bg-sky-600 transition">
             <AppIcon name="send" /> Barchaga xabar
           </button>
         </div>
 
         <div class="flex-1 min-w-[180px]">
           <label class="block text-xs text-gray-400 mb-1">Qidiruv</label>
-          <input
-            v-model="paySearch"
-            type="text"
-            placeholder="Ism, telefon yoki guruh nomi..."
-            class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-gray-400"
-          />
+          <input v-model="paySearch" type="text" placeholder="Ism, telefon yoki guruh nomi..."
+            class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-gray-400" />
         </div>
 
         <div class="flex items-end">
-          <button
-            @click="groupByGroup = !groupByGroup"
-            :class="[
-              'px-4 py-2 rounded-xl text-sm font-medium transition border flex items-center gap-1.5 whitespace-nowrap',
-              groupByGroup
-                ? 'bg-gray-900 text-white border-gray-900 hover:bg-gray-800'
-                : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50',
-            ]"
-            :title="groupByGroup ? 'Oddiy ro\'yxatga o\'tish' : 'Guruhlarga bo\'lib ko\'rsatish'"
-          >
+          <button @click="groupByGroup = !groupByGroup" :class="[
+            'px-4 py-2 rounded-xl text-sm font-medium transition border flex items-center gap-1.5 whitespace-nowrap',
+            groupByGroup
+              ? 'bg-gray-900 text-white border-gray-900 hover:bg-gray-800'
+              : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50',
+          ]" :title="groupByGroup ? 'Oddiy ro\'yxatga o\'tish' : 'Guruhlarga bo\'lib ko\'rsatish'">
             <AppIcon name="groups" />
             {{ groupByGroup ? "Guruhlar bo'yicha" : "Oddiy ro'yxat" }}
           </button>
@@ -1187,7 +1169,7 @@ const inputClass = (field) => [
       <div v-if="loading" class="text-center py-8 text-gray-400">
         Yuklanmoqda...
       </div>
-      <div v-else class="border border-gray-100 rounded-2xl overflow-x-auto">
+      <div v-else class=" border border-white/40 rounded-2xl overflow-x-auto">
         <table class="w-full text-sm min-w-[600px]">
           <thead>
             <tr class="bg-gray-50 border-b border-gray-100">
@@ -1226,185 +1208,134 @@ const inputClass = (field) => [
               </th>
             </tr>
           </thead>
-          <tbody>
+          <TransitionGroup tag="tbody" name="acc">
             <template v-for="section in displaySections" :key="section.key">
-              <!-- Guruh sarlavhasi (guruhlar rejimida) -->
-              <tr v-if="section.name" class="bg-gray-100 border-y border-gray-200">
+              <!-- Guruh sarlavhasi (bosilganда ochiladi/yopiladi) -->
+              <tr v-if="section.name" :key="'h-' + section.key" @click="toggleGroup(section.key)"
+                class="bg-gray-100 border-y border-white/10 cursor-pointer hover:bg-gray-200 transition select-none">
                 <td colspan="11" class="px-4 py-2.5">
-                  <div
-                    class="flex flex-wrap items-center justify-between gap-x-4 gap-y-1"
-                  >
-                    <div
-                      class="flex items-center gap-2 font-semibold text-gray-700"
-                    >
+                  <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
+                    <div class="flex items-center gap-2 font-semibold text-gray-700">
+                      <AppIcon name="chevron-down"
+                        class="text-gray-400 transition-transform duration-200"
+                        :class="isSectionOpen(section) ? '' : '-rotate-90'" />
                       <AppIcon name="groups" class="text-gray-400" />
                       <span>{{ section.name }}</span>
-                      <span
-                        v-if="section.teacher"
-                        class="text-xs font-normal text-gray-400"
-                        >· {{ section.teacher }}</span
-                      >
-                      <span
-                        class="text-xs font-medium bg-gray-200 text-gray-500 px-2 py-0.5 rounded-full"
-                        >{{ section.payments.length }} ta</span
-                      >
+                      <span v-if="section.teacher" class="text-xs font-normal text-gray-400">· {{ section.teacher
+                        }}</span>
+                      <span class="text-xs font-medium bg-gray-200 text-gray-500 px-2 py-0.5 rounded-full">{{
+                        section.payments.length }} ta</span>
                     </div>
                     <div class="flex items-center gap-3 text-xs tabular-nums">
-                      <span class="text-gray-500"
-                        >Jami:
+                      <span class="text-gray-500">Jami:
                         <b class="text-gray-700">{{
                           money(section.totalDue)
-                        }}</b></span
-                      >
-                      <span class="text-green-600"
-                        >To'langan: <b>{{ money(section.totalPaid) }}</b></span
-                      >
-                      <span
-                        :class="
-                          section.remaining > 0
-                            ? 'text-red-500'
-                            : 'text-green-600'
-                        "
-                        >Qolgan: <b>{{ money(section.remaining) }}</b></span
-                      >
+                        }}</b></span>
+                      <span class="text-green-600">To'langan: <b>{{ money(section.totalPaid) }}</b></span>
+                      <span :class="section.remaining > 0
+                          ? 'text-red-500'
+                          : 'text-green-600'
+                        ">Qolgan: <b>{{ money(section.remaining) }}</b></span>
                     </div>
                   </div>
                 </td>
               </tr>
 
-              <tr
-                v-for="payment in section.payments"
-                :key="payment.id"
-                class="border-b border-gray-50 hover:bg-gray-50 transition"
-              >
+              <template v-if="isSectionOpen(section)">
+              <tr v-for="payment in section.payments" :key="'p-' + payment.id"
+                class="acc-row border-b border-white/10 hover:bg-gray-50 transition">
                 <td class="px-4 py-3 font-medium">{{ payment.student_name }}</td>
-              <td class="px-4 py-3 text-gray-500">
-                {{ payment.student_phone }}
-              </td>
-              <td class="px-4 py-3 text-gray-500">
-                {{ payment.teacher_name }}
-              </td>
-              <td class="px-4 py-3 text-gray-600">
-                {{ courseLabel(payment) }}
-              </td>
-              <td class="px-4 py-3">{{ money(paymentAmountDue(payment)) }}</td>
-              <td class="px-4 py-3 text-gray-500 whitespace-nowrap">
-                {{ formatDue(payment) }}
-              </td>
-              <td class="px-4 py-3">
-                <!-- ✅ TUZATILDI: manfiy son kiritib bo'lmaydi -->
-                <input
-                  type="number"
-                  min="0"
-                  step="1"
-                  v-model.number="payment.paid_amount"
-                  @keydown="blockNegativeKey($event)"
-                  @input="sanitizePaidAmount(payment)"
-                  @change="savePaymentRow(payment)"
-                  placeholder="0"
-                  class="border border-gray-200 rounded-lg px-2 py-1 w-28 text-sm outline-none focus:border-gray-400"
-                />
-              </td>
-              <td
-                class="px-4 py-3 font-medium"
-                :class="
-                  remainingAmount(payment) > 0
+                <td class="px-4 py-3 text-gray-500">
+                  {{ payment.student_phone }}
+                </td>
+                <td class="px-4 py-3 text-gray-500">
+                  {{ payment.teacher_name }}
+                </td>
+                <td class="px-4 py-3 text-gray-600">
+                  {{ courseLabel(payment) }}
+                </td>
+                <td class="px-4 py-3">{{ money(paymentAmountDue(payment)) }}</td>
+                <td class="px-4 py-3 text-gray-500 whitespace-nowrap">
+                  {{ formatDue(payment) }}
+                </td>
+                <td class="px-4 py-3">
+                  <!-- ✅ TUZATILDI: manfiy son kiritib bo'lmaydi -->
+                  <input type="number" min="0" step="1" v-model.number="payment.paid_amount"
+                    @keydown="blockNegativeKey($event)" @input="sanitizePaidAmount(payment)"
+                    @change="savePaymentRow(payment)" placeholder="0"
+                    class="border border-white/10 rounded-lg px-2 py-1 w-28 text-sm outline-none focus:border-white/10" />
+                </td>
+                <td class="px-4 py-3 font-medium" :class="remainingAmount(payment) > 0
                     ? 'text-red-600'
                     : 'text-green-600'
-                "
-              >
-                {{ remainingAmount(payment) > 0 ? "-" : "+"
-                }}{{ money(Math.abs(remainingAmount(payment))) }}
-              </td>
-              <td class="px-4 py-3">
-                <label class="inline-flex items-center cursor-pointer">
-                  <!-- ✅ TUZATILDI: summa 0/bo'sh bo'lsa checkbox disabled -->
-                  <input
-                    type="checkbox"
-                    v-model="payment.is_checked"
-                    :disabled="
-                      !Number(payment.paid_amount) ||
+                  ">
+                  {{ remainingAmount(payment) > 0 ? "-" : "+"
+                  }}{{ money(Math.abs(remainingAmount(payment))) }}
+                </td>
+                <td class="px-4 py-3">
+                  <label class="inline-flex items-center cursor-pointer">
+                    <!-- ✅ TUZATILDI: summa 0/bo'sh bo'lsa checkbox disabled -->
+                    <input type="checkbox" v-model="payment.is_checked" :disabled="!Number(payment.paid_amount) ||
                       Number(payment.paid_amount) <= 0
-                    "
-                    @change="savePaymentRow(payment)"
-                    class="h-4 w-4 rounded border-gray-300 text-gray-900 focus:ring-gray-900 disabled:opacity-40 disabled:cursor-not-allowed"
-                  />
-                </label>
-              </td>
-              <td class="px-4 py-3">
-                <span
-                  :class="[
+                      " @change="savePaymentRow(payment)"
+                      class="h-4 w-4 rounded border-white/10 text-gray-900 focus:ring-gray-900 disabled:opacity-40 disabled:cursor-not-allowed" />
+                  </label>
+                </td>
+                <td class="px-4 py-3">
+                  <span :class="[
                     'px-2.5 py-1 rounded-full text-xs font-medium',
                     payment.is_checked
                       ? 'bg-green-800 text-green-700'
                       : 'bg-red-100 text-red-600',
-                  ]"
-                >
-                  {{ payment.is_checked ? "To'langan" : "To'lanmagan" }}
-                </span>
-              </td>
-              <td class="px-4 py-3">
-                <div class="flex items-center gap-1.5">
-                  <button
-                    @click="openMsgModal('single', payment)"
-                    class="relative px-2.5 py-1.5 rounded-lg border border-gray-200 hover:border-blue-600 hover:bg-blue-500 transition text-sm"
-                    :title="
-                      tgLinkedIds.has(payment.student_id)
-                        ? 'Botga ulangan — xabar boradi'
-                        : 'Hali botga ulanmagan'
-                    "
-                  >
-                    <AppIcon name="mail" />
-                    <span
-                      :class="[
+                  ]">
+                    {{ payment.is_checked ? "To'langan" : "To'lanmagan" }}
+                  </span>
+                </td>
+                <td class="px-4 py-3">
+                  <div class="flex items-center gap-1.5">
+                    <button @click="openMsgModal('single', payment)"
+                      class="relative px-2.5 py-1.5 rounded-lg border border-gray-200 hover:border-blue-600 hover:bg-blue-500 transition text-sm"
+                      :title="tgLinkedIds.has(payment.student_id)
+                          ? 'Botga ulangan — xabar boradi'
+                          : 'Hali botga ulanmagan'
+                        ">
+                      <AppIcon name="mail" />
+                      <span :class="[
                         'absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full border border-white',
                         tgLinkedIds.has(payment.student_id)
                           ? 'bg-green-400'
                           : 'bg-gray-300',
-                      ]"
-                    ></span>
-                  </button>
-                  <button
-                    @click="deleteStudentRow(payment)"
-                    title="Studentni butunlay o'chirish"
-                    class="px-2 py-1.5 rounded-lg border border-gray-200 hover:bg-red-500 transition text-sm"
-                  >
-                    <AppIcon name="trash" />
-                  </button>
-                </div>
-              </td>
-            </tr>
+                      ]"></span>
+                    </button>
+                    <button @click="deleteStudentRow(payment)" title="Studentni butunlay o'chirish"
+                      class="px-2 py-1.5 rounded-lg border border-gray-200 hover:bg-red-500 transition text-sm">
+                      <AppIcon name="trash" />
+                    </button>
+                  </div>
+                </td>
+              </tr>
+              </template>
             </template>
-          </tbody>
+          </TransitionGroup>
         </table>
-        <p
-          v-if="filteredPayments.length === 0"
-          class="text-center py-8 text-gray-400 text-sm"
-        >
+        <p v-if="filteredPayments.length === 0" class="text-center py-8 text-gray-400 text-sm">
           {{ paySearch ? "Hech narsa topilmadi." : "Bu oy uchun to'lovlar yo'q." }}
         </p>
         <!-- Pagination (faqat oddiy ro'yxat rejimida) -->
-        <div
-          v-if="!groupByGroup && payTotalPages > 1"
-          class="flex items-center justify-between gap-3 p-4 border-t border-gray-100"
-        >
-          <button
-            @click="payPage--"
-            :disabled="payPage <= 1"
-            class="px-3.5 py-1.5 rounded-lg border border-gray-200 text-sm text-gray-500 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
-          >
+        <div v-if="!groupByGroup && payTotalPages > 1"
+          class="flex items-center justify-between gap-3 p-4 border-t border-gray-100">
+          <button @click="payPage--" :disabled="payPage <= 1"
+            class="px-3.5 py-1.5 rounded-lg border border-gray-200 text-sm text-gray-500 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition">
             <AppIcon name="arrow-left" /> Oldingi
           </button>
           <p class="text-xs text-gray-400 tabular-nums">
             {{ payPage }} / {{ payTotalPages }} —
             {{ filteredPayments.length.toLocaleString() }} ta yozuv
           </p>
-          <button
-            @click="payPage++"
-            :disabled="payPage >= payTotalPages"
-            class="px-3.5 py-1.5 rounded-lg border border-gray-200 text-sm text-gray-500 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
-          >
-            Keyingi <AppIcon name="arrow-right" />
+          <button @click="payPage++" :disabled="payPage >= payTotalPages"
+            class="px-3.5 py-1.5 rounded-lg border border-gray-200 text-sm text-gray-500 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition">
+            Keyingi
+            <AppIcon name="arrow-right" />
           </button>
         </div>
       </div>
@@ -1415,10 +1346,8 @@ const inputClass = (field) => [
       <div class="flex flex-wrap gap-3 mb-5">
         <div>
           <label class="block text-xs text-gray-400 mb-1">O'qituvchi</label>
-          <select
-            v-model="historyTeacherId"
-            class="border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none min-w-[160px]"
-          >
+          <select v-model="historyTeacherId"
+            class="border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none min-w-[160px]">
             <option value="">— Tanlang —</option>
             <option v-for="t in teachers" :key="t.id" :value="t.id">
               {{ t.name }}
@@ -1427,18 +1356,12 @@ const inputClass = (field) => [
         </div>
         <div>
           <label class="block text-xs text-gray-400 mb-1">Oy</label>
-          <input
-            type="month"
-            v-model="historyMonth"
-            class="border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none"
-          />
+          <input type="month" v-model="historyMonth"
+            class="border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none" />
         </div>
         <div class="flex items-end">
-          <button
-            @click="fetchHistoryPayments"
-            :disabled="!historyTeacherId || loadingHistory"
-            class="px-4 py-2 bg-gray-900 text-white rounded-xl text-sm hover:bg-gray-700 transition disabled:opacity-40"
-          >
+          <button @click="fetchHistoryPayments" :disabled="!historyTeacherId || loadingHistory"
+            class="px-4 py-2 bg-gray-900 text-white rounded-xl text-sm hover:bg-gray-700 transition disabled:opacity-40">
             {{ loadingHistory ? "Yuklanmoqda..." : "Ko'rish" }}
           </button>
         </div>
@@ -1463,7 +1386,7 @@ const inputClass = (field) => [
               {{ money(historyPaidAmount) }}
             </p>
             <p class="text-xs text-green-500 mt-1">
-              {{ historyPayments.filter((p) => p.is_paid).length }} o'quvchi
+              {{historyPayments.filter((p) => p.is_paid).length}} o'quvchi
             </p>
           </div>
           <div class="bg-red-50 rounded-xl p-4">
@@ -1472,7 +1395,7 @@ const inputClass = (field) => [
               {{ money(historyUnpaidAmount) }}
             </p>
             <p class="text-xs text-red-400 mt-1">
-              {{ historyPayments.filter((p) => !p.is_paid).length }} o'quvchi
+              {{historyPayments.filter((p) => !p.is_paid).length}} o'quvchi
             </p>
           </div>
         </div>
@@ -1484,49 +1407,32 @@ const inputClass = (field) => [
           <table class="w-full text-sm min-w-[500px]">
             <thead>
               <tr class="bg-gray-50 border-b border-gray-100">
-                <th
-                  class="text-left px-4 py-3 text-xs text-gray-400 font-medium"
-                >
+                <th class="text-left px-4 py-3 text-xs text-gray-400 font-medium">
                   #
                 </th>
-                <th
-                  class="text-left px-4 py-3 text-xs text-gray-400 font-medium"
-                >
+                <th class="text-left px-4 py-3 text-xs text-gray-400 font-medium">
                   Student
                 </th>
-                <th
-                  class="text-left px-4 py-3 text-xs text-gray-400 font-medium"
-                >
+                <th class="text-left px-4 py-3 text-xs text-gray-400 font-medium">
                   Kurs
                 </th>
-                <th
-                  class="text-left px-4 py-3 text-xs text-gray-400 font-medium"
-                >
+                <th class="text-left px-4 py-3 text-xs text-gray-400 font-medium">
                   Oylik to'lov
                 </th>
-                <th
-                  class="text-left px-4 py-3 text-xs text-gray-400 font-medium"
-                >
+                <th class="text-left px-4 py-3 text-xs text-gray-400 font-medium">
                   To'langan
                 </th>
-                <th
-                  class="text-left px-4 py-3 text-xs text-gray-400 font-medium"
-                >
+                <th class="text-left px-4 py-3 text-xs text-gray-400 font-medium">
                   Qolgan
                 </th>
-                <th
-                  class="text-left px-4 py-3 text-xs text-gray-400 font-medium"
-                >
+                <th class="text-left px-4 py-3 text-xs text-gray-400 font-medium">
                   Holat
                 </th>
               </tr>
             </thead>
             <tbody>
-              <tr
-                v-for="(payment, idx) in historyPayments"
-                :key="payment.id"
-                class="border-b border-gray-50 hover:bg-gray-50 transition"
-              >
+              <tr v-for="(payment, idx) in historyPayments" :key="payment.id"
+                class="border-b border-gray-50 hover:bg-gray-50 transition">
                 <td class="px-4 py-3 text-gray-400 text-xs">{{ idx + 1 }}</td>
                 <td class="px-4 py-3">
                   <p class="font-medium">{{ payment.student_name }}</p>
@@ -1543,37 +1449,28 @@ const inputClass = (field) => [
                 <td class="px-4 py-3 text-gray-700">
                   {{ money(paymentPaidAmount(payment)) }}
                 </td>
-                <td
-                  class="px-4 py-3 font-medium"
-                  :class="
-                    remainingAmount(payment) > 0
-                      ? 'text-red-600'
-                      : 'text-green-600'
-                  "
-                >
+                <td class="px-4 py-3 font-medium" :class="remainingAmount(payment) > 0
+                    ? 'text-red-600'
+                    : 'text-green-600'
+                  ">
                   {{ remainingAmount(payment) > 0 ? "-" : "+"
                   }}{{ money(Math.abs(remainingAmount(payment))) }}
                 </td>
                 <td class="px-4 py-3">
-                  <span
-                    :class="[
-                      'px-2.5 py-1 rounded-full text-xs font-medium',
-                      payment.is_paid
-                        ? 'bg-green-100 text-green-700'
-                        : 'bg-red-100 text-red-600',
-                    ]"
-                  >
+                  <span :class="[
+                    'px-2.5 py-1 rounded-full text-xs font-medium',
+                    payment.is_paid
+                      ? 'bg-green-100 text-green-700'
+                      : 'bg-red-100 text-red-600',
+                  ]">
                     <AppIcon :name="payment.is_paid ? 'check' : 'x'" />
-                  {{ payment.is_paid ? "To'langan" : "To'lanmagan" }}
+                    {{ payment.is_paid ? "To'langan" : "To'lanmagan" }}
                   </span>
                 </td>
               </tr>
             </tbody>
           </table>
-          <p
-            v-if="historyPayments.length === 0"
-            class="text-center py-8 text-gray-400 text-sm"
-          >
+          <p v-if="historyPayments.length === 0" class="text-center py-8 text-gray-400 text-sm">
             Bu oy uchun to'lovlar yo'q.
           </p>
         </div>
@@ -1585,45 +1482,31 @@ const inputClass = (field) => [
       <div class="flex gap-4 mb-4">
         <div>
           <label class="block text-xs text-gray-400 mb-1">Oy</label>
-          <input
-            type="month"
-            v-model="selectedAttMonth"
-            class="border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none"
-          />
+          <input type="month" v-model="selectedAttMonth"
+            class="border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none" />
         </div>
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
         <!-- O'qituvchilar -->
         <div class="space-y-2">
-          <h3
-            class="text-xs font-medium text-gray-400 uppercase tracking-wide mb-2"
-          >
+          <h3 class="text-xs font-medium text-gray-400 uppercase tracking-wide mb-2">
             O'qituvchilar
           </h3>
           <p v-if="teachers.length === 0" class="text-sm text-gray-400 py-4">
             Yuklanmoqda...
           </p>
-          <div
-            v-for="teacher in teachers"
-            :key="teacher.id"
-            @click="selectTeacherForAtt(teacher)"
-            :class="[
-              'px-4 py-3 rounded-xl cursor-pointer transition text-sm border',
-              selectedTeacherForAtt?.id === teacher.id
-                ? 'bg-gray-900 text-white border-gray-900'
-                : 'border-gray-100 hover:bg-gray-50',
-            ]"
-          >
+          <div v-for="teacher in teachers" :key="teacher.id" @click="selectTeacherForAtt(teacher)" :class="[
+            'px-4 py-3 rounded-xl cursor-pointer transition text-sm border',
+            selectedTeacherForAtt?.id === teacher.id
+              ? 'bg-gray-900 text-white border-gray-900'
+              : 'border-gray-100 hover:bg-gray-50',
+          ]">
             <p class="font-medium">{{ teacher.name }}</p>
-            <p
-              :class="
-                selectedTeacherForAtt?.id === teacher.id
-                  ? 'text-gray-300'
-                  : 'text-gray-400'
-              "
-              class="text-xs"
-            >
+            <p :class="selectedTeacherForAtt?.id === teacher.id
+                ? 'text-gray-300'
+                : 'text-gray-400'
+              " class="text-xs">
               {{ teacher.phone || "Telefon yo'q" }}
             </p>
           </div>
@@ -1631,9 +1514,7 @@ const inputClass = (field) => [
 
         <!-- Studentlar -->
         <div class="space-y-2">
-          <h3
-            class="text-xs font-medium text-gray-400 uppercase tracking-wide mb-2"
-          >
+          <h3 class="text-xs font-medium text-gray-400 uppercase tracking-wide mb-2">
             O'quvchilar
           </h3>
           <p v-if="!selectedTeacherForAtt" class="text-sm text-gray-400 py-4">
@@ -1643,50 +1524,35 @@ const inputClass = (field) => [
             Yuklanmoqda...
           </p>
           <template v-else>
-            <div
-              v-for="student in attStudents"
-              :key="student.id"
-              @click="selectStudentForAtt(student)"
-              :class="[
-                'px-4 py-3 rounded-xl cursor-pointer transition text-sm border',
-                selectedStudent?.id === student.id
-                  ? 'bg-gray-900 text-white border-gray-900'
-                  : 'border-gray-100 hover:bg-gray-50',
-              ]"
-            >
+            <div v-for="student in attStudents" :key="student.id" @click="selectStudentForAtt(student)" :class="[
+              'px-4 py-3 rounded-xl cursor-pointer transition text-sm border',
+              selectedStudent?.id === student.id
+                ? 'bg-gray-900 text-white border-gray-900'
+                : 'border-gray-100 hover:bg-gray-50',
+            ]">
               <div class="flex justify-between items-center">
                 <div>
                   <p class="font-medium">
                     {{ student.name }} {{ student.surname }}
                   </p>
-                  <p
-                    :class="
-                      selectedStudent?.id === student.id
-                        ? 'text-gray-300'
-                        : 'text-gray-400'
-                    "
-                    class="text-xs"
-                  >
+                  <p :class="selectedStudent?.id === student.id
+                      ? 'text-gray-300'
+                      : 'text-gray-400'
+                    " class="text-xs">
                     {{ student.group_name || student.course_name || "" }}
                   </p>
                 </div>
-                <span
-                  v-if="getStudentPaymentForAtt(student.id)"
-                  :class="[
-                    'text-xs px-2 py-0.5 rounded-full',
-                    getStudentPaymentForAtt(student.id)?.is_paid
-                      ? 'bg-green-100 text-green-700'
-                      : 'bg-red-100 text-red-500',
-                  ]"
-                >
+                <span v-if="getStudentPaymentForAtt(student.id)" :class="[
+                  'text-xs px-2 py-0.5 rounded-full',
+                  getStudentPaymentForAtt(student.id)?.is_paid
+                    ? 'bg-green-100 text-green-700'
+                    : 'bg-red-100 text-red-500',
+                ]">
                   <AppIcon :name="getStudentPaymentForAtt(student.id)?.is_paid ? 'check' : 'x'" />
                 </span>
               </div>
             </div>
-            <p
-              v-if="attStudents.length === 0"
-              class="text-sm text-gray-400 py-4"
-            >
+            <p v-if="attStudents.length === 0" class="text-sm text-gray-400 py-4">
               O'quvchi yo'q
             </p>
           </template>
@@ -1694,9 +1560,7 @@ const inputClass = (field) => [
 
         <!-- Davomat -->
         <div>
-          <h3
-            class="text-xs font-medium text-gray-400 uppercase tracking-wide mb-2"
-          >
+          <h3 class="text-xs font-medium text-gray-400 uppercase tracking-wide mb-2">
             {{
               selectedStudent ? selectedStudent.name + " davomati" : "Davomat"
             }}
@@ -1708,23 +1572,16 @@ const inputClass = (field) => [
             Yuklanmoqda...
           </p>
           <div v-else class="space-y-1.5">
-            <div
-              v-if="getStudentPaymentForAtt(selectedStudent.id)"
-              :class="[
-                'rounded-xl p-3 mb-3',
-                getStudentPaymentForAtt(selectedStudent.id)?.is_paid
-                  ? 'bg-green-50 border border-green-100'
-                  : 'bg-red-50 border border-red-100',
-              ]"
-            >
-              <p
-                class="text-xs font-medium"
-                :class="
-                  getStudentPaymentForAtt(selectedStudent.id)?.is_paid
-                    ? 'text-green-700'
-                    : 'text-red-600'
-                "
-              >
+            <div v-if="getStudentPaymentForAtt(selectedStudent.id)" :class="[
+              'rounded-xl p-3 mb-3',
+              getStudentPaymentForAtt(selectedStudent.id)?.is_paid
+                ? 'bg-green-50 border border-green-100'
+                : 'bg-red-50 border border-red-100',
+            ]">
+              <p class="text-xs font-medium" :class="getStudentPaymentForAtt(selectedStudent.id)?.is_paid
+                  ? 'text-green-700'
+                  : 'text-red-600'
+                ">
                 {{
                   getStudentPaymentForAtt(selectedStudent.id)?.is_paid
                     ? "To'lov qilingan"
@@ -1741,28 +1598,20 @@ const inputClass = (field) => [
                 }}
               </p>
             </div>
-            <div
-              v-for="att in studentMonthAttendance"
-              :key="att.id"
-              class="flex items-center justify-between border border-gray-100 rounded-xl px-3 py-2"
-            >
+            <div v-for="att in studentMonthAttendance" :key="att.id"
+              class="flex items-center justify-between border border-gray-100 rounded-xl px-3 py-2">
               <div>
                 <p class="text-sm font-medium">{{ att.lesson_title }}</p>
                 <p class="text-xs text-gray-400">{{ att.lesson_date }}</p>
               </div>
-              <span
-                :class="[
-                  'px-2 py-0.5 rounded-full text-xs font-medium',
-                  statusStyle[att.status],
-                ]"
-              >
+              <span :class="[
+                'px-2 py-0.5 rounded-full text-xs font-medium',
+                statusStyle[att.status],
+              ]">
                 {{ statusLabel[att.status] }}
               </span>
             </div>
-            <p
-              v-if="studentMonthAttendance.length === 0"
-              class="text-sm text-gray-400 py-4 text-center"
-            >
+            <p v-if="studentMonthAttendance.length === 0" class="text-sm text-gray-400 py-4 text-center">
               Bu oy uchun dars yo'q
             </p>
           </div>
@@ -1772,127 +1621,83 @@ const inputClass = (field) => [
 
     <!-- ══════════ QO'SHISH ══════════ -->
     <div v-if="activeTab === 'add'" class="max-w-[420px]">
-      <div
-        v-if="addNetworkError"
-        class="mb-4 px-3 py-2.5 rounded-xl bg-red-50 border border-red-200 flex items-center gap-2"
-      >
-        <span class="text-red-400"><AppIcon name="warning" /></span>
+      <div v-if="addNetworkError"
+        class="mb-4 px-3 py-2.5 rounded-xl bg-red-50 border border-red-200 flex items-center gap-2">
+        <span class="text-red-400">
+          <AppIcon name="warning" />
+        </span>
         <div>
           <p class="text-xs font-medium text-red-600">Internet aloqasi yo'q</p>
           <p class="text-xs text-red-400">
             Tarmoqni tekshirib qayta urinib ko'ring
           </p>
         </div>
-        <button
-          @click="addNetworkError = false"
-          class="ml-auto text-red-300 hover:text-red-500 text-lg leading-none cursor-pointer"
-        >
+        <button @click="addNetworkError = false"
+          class="ml-auto text-red-300 hover:text-red-500 text-lg leading-none cursor-pointer">
           ×
         </button>
       </div>
 
-      <div
-        v-if="addSuccessMsg"
-        class="mb-4 px-3 py-2.5 rounded-xl bg-green-50 border border-green-200 flex items-center gap-2"
-      >
-        <span class="text-green-500"><AppIcon name="check" /></span>
+      <div v-if="addSuccessMsg"
+        class="mb-4 px-3 py-2.5 rounded-xl bg-green-50 border border-green-200 flex items-center gap-2">
+        <span class="text-green-500">
+          <AppIcon name="check" />
+        </span>
         <p class="text-xs font-medium text-green-700">{{ addSuccessMsg }}</p>
       </div>
 
-      <div class="flex flex-col gap-4">
+      <div class="flex flex-col gap-4 border border-white/10 p-4 rounded-2xl">
         <div>
           <label class="block text-xs text-gray-400 mb-1.5">Ism</label>
-          <input
-            type="text"
-            v-model="addForm.name"
-            placeholder="Ism"
-            :class="inputClass('name')"
-          />
+          <input type="text" v-model="addForm.name" placeholder="Ism" :class="inputClass('name')" />
         </div>
         <div v-if="detectedRole === 'student' || !detectedRole">
           <label class="block text-xs text-gray-400 mb-1.5">Familiya</label>
-          <input
-            type="text"
-            v-model="addForm.surname"
-            placeholder="Familiyangiz"
-            :class="inputClass('surname')"
-          />
+          <input type="text" v-model="addForm.surname" placeholder="Familiyangiz" :class="inputClass('surname')" />
         </div>
         <div>
           <label class="block text-xs text-gray-400 mb-1.5">Telefon</label>
           <div class="flex gap-2">
-            <input
-              type="tel"
-              v-model="addForm.phone"
-              placeholder="+998 90 000 00 00"
-              :class="[inputClass('phone'), 'flex-1']"
-            />
-            <button
-              v-if="detectedRole === 'student' && !phoneVerified"
-              @click="sendVerifyCode"
+            <input type="tel" v-model="addForm.phone" placeholder="+998 90 000 00 00"
+              :class="[inputClass('phone'), 'flex-1']" />
+            <button v-if="detectedRole === 'student' && !phoneVerified" @click="sendVerifyCode"
               :disabled="verify.sending || !addForm.phone"
-              class="px-3 rounded-xl bg-sky-500 text-white text-xs font-medium hover:bg-sky-600 transition disabled:opacity-50 whitespace-nowrap shrink-0"
-            >
+              class="px-3 rounded-xl bg-sky-500 text-white text-xs font-medium hover:bg-sky-600 transition disabled:opacity-50 whitespace-nowrap shrink-0">
               {{ verify.sending ? "..." : verify.codeSent ? "Qayta" : "Kod yuborish" }}
             </button>
-            <span
-              v-else-if="phoneVerified"
-              class="px-3 flex items-center rounded-xl bg-green-50 text-green-600 text-xs font-medium border border-green-200 whitespace-nowrap shrink-0"
-            >
+            <span v-else-if="phoneVerified"
+              class="px-3 flex items-center rounded-xl bg-green-50 text-green-600 text-xs font-medium border border-green-200 whitespace-nowrap shrink-0">
               <AppIcon name="check" /> Tasdiqlandi
             </span>
           </div>
 
           <!-- Kod kiritish -->
-          <div
-            v-if="detectedRole === 'student' && verify.codeSent && !phoneVerified"
-            class="mt-2 flex gap-2"
-          >
-            <input
-              type="text"
-              inputmode="numeric"
-              maxlength="6"
-              v-model="verify.code"
-              @keyup.enter="checkVerifyCode"
+          <div v-if="detectedRole === 'student' && verify.codeSent && !phoneVerified" class="mt-2 flex gap-2">
+            <input type="text" inputmode="numeric" maxlength="6" v-model="verify.code" @keyup.enter="checkVerifyCode"
               placeholder="Botdan kelgan 6 xonali kod"
-              class="flex-1 px-3 py-2.5 rounded-xl border border-sky-200 bg-sky-50/40 outline-none focus:border-sky-400 transition text-sm tabular-nums tracking-widest"
-            />
-            <button
-              @click="checkVerifyCode"
-              :disabled="verify.checking || verify.code.trim().length < 4"
-              class="px-4 rounded-xl bg-gray-900 text-white text-xs font-medium hover:bg-gray-700 transition disabled:opacity-50 whitespace-nowrap shrink-0"
-            >
+              class="flex-1 px-3 py-2.5 rounded-xl border border-sky-200 bg-sky-50/40 outline-none focus:border-sky-400 transition text-sm tabular-nums tracking-widest" />
+            <button @click="checkVerifyCode" :disabled="verify.checking || verify.code.trim().length < 4"
+              class="px-4 rounded-xl bg-gray-900 text-white text-xs font-medium hover:bg-gray-700 transition disabled:opacity-50 whitespace-nowrap shrink-0">
               {{ verify.checking ? "..." : "Tasdiqlash" }}
             </button>
           </div>
 
           <!-- Yordam / xato -->
-          <p
-            v-if="detectedRole === 'student' && verify.codeSent && !phoneVerified && !verify.error"
-            class="text-xs text-sky-600 mt-1.5"
-          >
+          <p v-if="detectedRole === 'student' && verify.codeSent && !phoneVerified && !verify.error"
+            class="text-xs text-sky-600 mt-1.5">
             <AppIcon name="phone" /> Kod o'quvchining Telegramiga yuborildi — kodni so'rab, shu yerga
             kiriting.
           </p>
-          <div
-            v-if="verify.error"
-            class="mt-2 px-3 py-2 rounded-xl bg-amber-50 border border-amber-200"
-          >
+          <div v-if="verify.error" class="mt-2 px-3 py-2 rounded-xl bg-amber-50 border border-amber-200">
             <p class="text-xs text-amber-700">{{ verify.error }}</p>
-            <a
-              v-if="verify.notLinked"
-              :href="`https://t.me/${BOT_USERNAME}`"
-              target="_blank"
-              rel="noopener"
-              class="text-xs text-sky-600 hover:underline font-medium mt-1 inline-block"
-            >
-              @{{ BOT_USERNAME }} ni ochish <AppIcon name="arrow-right" />
+            <a v-if="verify.notLinked" :href="`https://t.me/${BOT_USERNAME}`" target="_blank" rel="noopener"
+              class="text-xs text-sky-600 hover:underline font-medium mt-1 inline-block">
+              @{{ BOT_USERNAME }} ni ochish
+              <AppIcon name="arrow-right" />
             </a>
           </div>
-          <p
-            v-else-if="detectedRole === 'student' && !verify.codeSent && !phoneVerified"
-            class="text-xs text-gray-400 mt-1.5"
-          >
+          <p v-else-if="detectedRole === 'student' && !verify.codeSent && !phoneVerified"
+            class="text-xs text-gray-400 mt-1.5">
             O'quvchi avval botga /start bosib raqamini yuborishi kerak, keyin
             "Kod yuborish"ni bosing.
           </p>
@@ -1900,13 +1705,8 @@ const inputClass = (field) => [
 
         <div>
           <label class="block text-xs text-gray-400 mb-1.5">Parol</label>
-          <input
-            type="password"
-            v-model="addForm.password"
-            @keyup.enter="submitAdd"
-            placeholder="••••••••"
-            :class="inputClass('password')"
-          />
+          <input type="password" v-model="addForm.password" @keyup.enter="submitAdd" placeholder="••••••••"
+            :class="inputClass('password')" />
           <p v-if="roleLabel" class="text-xs text-gray-400 mt-1.5">
             Aniqlangan rol:
             <span class="font-medium text-gray-600">{{ roleLabel }}</span>
@@ -1917,10 +1717,7 @@ const inputClass = (field) => [
         <template v-if="detectedRole === 'student'">
           <div>
             <label class="block text-xs text-gray-400 mb-1.5">O'qituvchi</label>
-            <select
-              v-model="addForm.teacher_id"
-              :class="inputClass('teacher_id')"
-            >
+            <select v-model="addForm.teacher_id" :class="inputClass('teacher_id')">
               <option value="">Tanlang</option>
               <option v-for="t in teachers" :key="t.id" :value="t.id">
                 {{ t.name }}
@@ -1930,39 +1727,28 @@ const inputClass = (field) => [
           <div>
             <label class="block text-xs text-gray-400 mb-1.5">Dars kuni</label>
             <div class="flex gap-2">
-              <button
-                type="button"
-                @click="addForm.schedule = 'odd'"
-                :class="[
-                  'flex-1 py-2 rounded-xl text-sm border transition cursor-pointer',
-                  addForm.schedule === 'odd'
-                    ? 'bg-gray-900 text-white border-gray-900'
-                    : 'border-gray-200 text-gray-600 hover:bg-gray-50',
-                ]"
-              >
+              <button type="button" @click="addForm.schedule = 'odd'" :class="[
+                'flex-1 py-2 rounded-xl text-sm border transition cursor-pointer',
+                addForm.schedule === 'odd'
+                  ? 'bg-gray-900 text-white border-gray-900'
+                  : 'border-gray-200 text-gray-600 hover:bg-gray-50',
+              ]">
                 Du / Chor / Juma
               </button>
-              <button
-                type="button"
-                @click="addForm.schedule = 'even'"
-                :class="[
-                  'flex-1 py-2 rounded-xl text-sm border transition cursor-pointer',
-                  addForm.schedule === 'even'
-                    ? 'bg-gray-900 text-white border-gray-900'
-                    : 'border-gray-200 text-gray-600 hover:bg-gray-50',
-                ]"
-              >
+              <button type="button" @click="addForm.schedule = 'even'" :class="[
+                'flex-1 py-2 rounded-xl text-sm border transition cursor-pointer',
+                addForm.schedule === 'even'
+                  ? 'bg-gray-900 text-white border-gray-900'
+                  : 'border-gray-200 text-gray-600 hover:bg-gray-50',
+              ]">
                 Se / Pay / Shan
               </button>
             </div>
           </div>
         </template>
 
-        <button
-          @click="submitAdd"
-          :disabled="addLoading"
-          class="w-full py-2.5 rounded-xl bg-gray-900 text-white text-sm hover:bg-gray-700 transition cursor-pointer disabled:opacity-50"
-        >
+        <button @click="submitAdd" :disabled="addLoading"
+          class="w-full py-2.5 rounded-xl bg-gray-900 text-white text-sm hover:bg-gray-700 transition cursor-pointer disabled:opacity-50">
           {{ addLoading ? "Saqlanmoqda..." : "Qo'shish" }}
         </button>
       </div>
@@ -1988,11 +1774,8 @@ const inputClass = (field) => [
     </div>
 
     <!-- ══════════ XABAR YUBORISH MODAL ══════════ -->
-    <div
-      v-if="msgModal.open"
-      class="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4"
-      @click.self="msgModal.open = false"
-    >
+    <div v-if="msgModal.open" class="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4"
+      @click.self="msgModal.open = false">
       <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-5">
         <div class="flex items-center justify-between mb-3">
           <h3 class="font-semibold text-gray-800">
@@ -2002,10 +1785,7 @@ const inputClass = (field) => [
                 : "Barcha o'quvchilarga xabar"
             }}
           </h3>
-          <button
-            @click="msgModal.open = false"
-            class="text-gray-400 hover:text-gray-600 text-xl leading-none"
-          >
+          <button @click="msgModal.open = false" class="text-gray-400 hover:text-gray-600 text-xl leading-none">
             ×
           </button>
         </div>
@@ -2016,47 +1796,36 @@ const inputClass = (field) => [
           o'quvchilarga boradi.
         </p>
 
-        <textarea
-          v-model="msgModal.text"
-          rows="5"
-          class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-gray-400 resize-none"
-        ></textarea>
+        <textarea v-model="msgModal.text" rows="5"
+          class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-gray-400 resize-none"></textarea>
 
-        <div
-          v-if="msgResult"
-          :class="[
-            'mt-3 text-sm rounded-xl px-3 py-2',
-            msgResult.error
-              ? 'bg-red-50 text-red-600'
-              : 'bg-green-50 text-green-700',
-          ]"
-        >
-          <template v-if="msgResult.error"><AppIcon name="x-circle" /> {{ msgResult.error }}</template>
+        <div v-if="msgResult" :class="[
+          'mt-3 text-sm rounded-xl px-3 py-2',
+          msgResult.error
+            ? 'bg-red-50 text-red-600'
+            : 'bg-green-50 text-green-700',
+        ]">
+          <template v-if="msgResult.error">
+            <AppIcon name="x-circle" /> {{ msgResult.error }}
+          </template>
           <template v-else-if="msgResult.async">
             <AppIcon name="check-circle" /> {{ msgResult.queued }} ta o'quvchiga yuborilmoqda (fonda).
             {{ msgResult.no_chat }} tasi hali botga ulanmagan.
           </template>
           <template v-else>
             <AppIcon name="check-circle" /> Yuborildi: {{ msgResult.sent }}
-            <span v-if="msgResult.no_chat"
-              >· Botga ulanmagan: {{ msgResult.no_chat }}</span
-            >
+            <span v-if="msgResult.no_chat">· Botga ulanmagan: {{ msgResult.no_chat }}</span>
             <span v-if="msgResult.failed">· Xato: {{ msgResult.failed }}</span>
           </template>
         </div>
 
         <div class="flex gap-2 mt-4">
-          <button
-            @click="msgModal.open = false"
-            class="flex-1 px-4 py-2 rounded-xl border border-gray-200 text-sm text-gray-500 hover:bg-gray-50 transition"
-          >
+          <button @click="msgModal.open = false"
+            class="flex-1 px-4 py-2 rounded-xl border border-gray-200 text-sm text-gray-500 hover:bg-gray-50 transition">
             Yopish
           </button>
-          <button
-            @click="sendMsg"
-            :disabled="msgModal.sending || !msgModal.text.trim()"
-            class="flex-1 px-4 py-2 rounded-xl bg-sky-500 text-white text-sm hover:bg-sky-600 transition disabled:opacity-50"
-          >
+          <button @click="sendMsg" :disabled="msgModal.sending || !msgModal.text.trim()"
+            class="flex-1 px-4 py-2 rounded-xl bg-sky-500 text-white text-sm hover:bg-sky-600 transition disabled:opacity-50">
             {{ msgModal.sending ? "Yuborilmoqda..." : "Yuborish" }}
           </button>
         </div>
@@ -2066,10 +1835,8 @@ const inputClass = (field) => [
     <!-- Vaqtida to'lov coin mukofoti bildirishnomasi -->
     <Teleport to="body">
       <Transition name="coin-toast">
-        <div
-          v-if="coinToast"
-          class="fixed bottom-5 left-1/2 -translate-x-1/2 z-[9999] max-w-[92vw] rounded-2xl bg-emerald-600 text-white px-5 py-3 text-sm font-medium shadow-2xl shadow-emerald-900/30 flex items-center gap-2"
-        >
+        <div v-if="coinToast"
+          class="fixed bottom-5 left-1/2 -translate-x-1/2 z-[9999] max-w-[92vw] rounded-2xl bg-emerald-600 text-white px-5 py-3 text-sm font-medium shadow-2xl shadow-emerald-900/30 flex items-center gap-2">
           <AppIcon name="coin" class="w-4 h-4" />
           <span>{{ coinToast }}</span>
         </div>
@@ -2085,9 +1852,38 @@ const inputClass = (field) => [
     opacity 0.3s ease,
     transform 0.3s ease;
 }
+
 .coin-toast-enter-from,
 .coin-toast-leave-to {
   opacity: 0;
   transform: translate(-50%, 12px);
+}
+
+/* Guruh akkordeon — studentlar animatsiya bilan ochiladi/yopiladi */
+.acc-enter-active {
+  transition:
+    opacity 0.32s ease,
+    transform 0.32s ease;
+}
+.acc-leave-active {
+  transition:
+    opacity 0.24s ease,
+    transform 0.24s ease;
+}
+.acc-enter-from,
+.acc-leave-to {
+  opacity: 0;
+  transform: translateY(-8px);
+}
+/* Yopilayotgan qatorlar boshqalarini bosib qo'ymasligi uchun */
+.acc-leave-active {
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .acc-enter-active,
+  .acc-leave-active {
+    transition-duration: 0.01ms;
+  }
 }
 </style>
