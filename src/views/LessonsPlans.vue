@@ -63,6 +63,42 @@ function getAudioCtx() {
 
 const lessonAudio = new Audio(lessonSoundFile);
 const newsAudio = new Audio(newsSoundFile);
+lessonAudio.preload = "auto";
+newsAudio.preload = "auto";
+
+// ─────────────────────────────
+// OVOZNI OCHISH (brauzer autoplay siyosati)
+// Brauzerlar foydalanuvchi biror joyni bosmaguncha ovoz chiqarishga
+// ruxsat bermaydi. Birinchi bosishda (yoki tugma bosilganda) ovozni
+// "ochamiz" — shundan keyin dars/e'lon ovozlari o'zi chiqadi.
+// ─────────────────────────────
+let audioUnlocked = false;
+function unlockAudio() {
+  if (audioUnlocked) return;
+  audioUnlocked = true;
+  try {
+    getAudioCtx();
+  } catch (e) {
+    /* jim */
+  }
+  [lessonAudio, newsAudio].forEach((a) => {
+    const wasMuted = a.muted;
+    a.muted = true;
+    const p = a.play();
+    if (p && typeof p.then === "function") {
+      p.then(() => {
+        a.pause();
+        a.currentTime = 0;
+        a.muted = wasMuted;
+      }).catch(() => {
+        a.muted = wasMuted;
+      });
+    } else {
+      a.muted = wasMuted;
+    }
+  });
+}
+
 function playLessonAlert() {
   if (!soundEnabled.value) return;
 
@@ -130,6 +166,7 @@ function triggerVisualPulse() {
 function toggleSound() {
   soundEnabled.value = !soundEnabled.value;
   if (soundEnabled.value) {
+    unlockAudio();
     getAudioCtx();
     beep(1200, 0, 0.1, 0.15);
   }
@@ -139,8 +176,8 @@ function toggleSound() {
 // POP-UP BILDIRISHNOMALAR (dars boshlandi / yangi e'lon)
 // ─────────────────────────────
 
-// Kamida 8 soniya ko'rinadi (talab: 5 soniya yoki undan uzoqroq)
-const POPUP_MS = 8000;
+// Har bir popup 18 soniya ko'rinadi (talab: 15–20 soniya)
+const POPUP_MS = 18000;
 const popupQueue = ref([]); // navbatdagi bildirishnomalar
 const activePopup = ref(null); // hozir ko'rsatilayotgani
 let popupTimer = null;
@@ -158,6 +195,13 @@ function showNextPopup() {
     return;
   }
   activePopup.value = next;
+
+  // ✅ Ovoz popup bilan BIR VAQTDA — har bir popup ko'rsatilganda o'z ovozi
+  // chiqadi. Bir nechta dars bir vaqtda boshlansa ham popuplar navbat bilan
+  // chiqib, har biri o'z ovozini oladi (ovozlar ustma-ust tushmaydi).
+  if (next.kind === "lesson") playLessonAlert();
+  else if (next.kind === "news") playNewsAlert();
+
   popupTimer = setTimeout(showNextPopup, POPUP_MS);
 }
 
@@ -233,10 +277,10 @@ function checkLessonAlerts() {
       sendLessonReminder(g.id);
     }
 
-    // Dars boshlanganda ovoz + pop-up
+    // Dars boshlanganda pop-up navbatga qo'yiladi — ovoz popup
+    // ko'rsatilganda (showNextPopup) chiqadi, shunda ular sinxron bo'ladi
     if (secondsLeft <= 0 && secondsLeft > -2 && !alertedLessonIds.has(g.id)) {
       alertedLessonIds.add(g.id);
-      playLessonAlert();
       showLessonPopup(g);
     }
   });
@@ -259,8 +303,18 @@ async function fetchGroups() {
   }
 }
 
+// Birinchi foydalanuvchi harakatida ovozni ochamiz (autoplay siyosati)
+const UNLOCK_EVENTS = ["pointerdown", "click", "keydown", "touchstart"];
+function onFirstGesture() {
+  unlockAudio();
+  UNLOCK_EVENTS.forEach((ev) => window.removeEventListener(ev, onFirstGesture));
+}
+
 onMounted(() => {
   fetchGroups();
+  UNLOCK_EVENTS.forEach((ev) =>
+    window.addEventListener(ev, onFirstGesture, { passive: true }),
+  );
   clockTimer = setInterval(() => (clockNow.value = new Date()), 1000);
   statusTimer = setInterval(() => {
     statusNow.value = new Date();
@@ -273,6 +327,7 @@ onUnmounted(() => {
   clearInterval(clockTimer);
   clearInterval(statusTimer);
   clearInterval(refetchTimer);
+  UNLOCK_EVENTS.forEach((ev) => window.removeEventListener(ev, onFirstGesture));
 });
 
 // ─────────────────────────────
@@ -443,11 +498,9 @@ async function fetchNews() {
     const data = await res.json();
 
     if (!firstNewsLoad) {
+      // Yangi e'lonlar navbatga qo'yiladi — ovoz popup ko'rsatilganda chiqadi
       const newItems = data.filter((n) => !seenNewsIds.has(n.id));
-      if (newItems.length) {
-        playNewsAlert();
-        newItems.forEach(showNewsPopup);
-      }
+      newItems.forEach(showNewsPopup);
     }
 
     data.forEach((n) => seenNewsIds.add(n.id));
