@@ -102,15 +102,27 @@ function unlockAudio() {
 function playLessonAlert() {
   if (!soundEnabled.value) return;
 
-  // 1️⃣ Birinchi chiqarish
   lessonAudio.currentTime = 0;
   lessonAudio.play().catch((e) => console.warn(e));
 
-  // 2️⃣ Ikkinchi chiqarish — 600ms keiyin
   setTimeout(() => {
     lessonAudio.currentTime = 0;
     lessonAudio.play().catch((e) => console.warn(e));
   }, 4200);
+
+  setTimeout(() => {
+    lessonAudio.currentTime = 0;
+    lessonAudio.play().catch((e) => console.warn(e));
+  }, 8200);
+
+  setTimeout(() => {
+    lessonAudio.currentTime = 0;
+    lessonAudio.play().catch((e) => console.warn(e));
+  }, 12200);
+  setTimeout(() => {
+    lessonAudio.currentTime = 0;
+    lessonAudio.play().catch((e) => console.warn(e));
+  }, 16200);
 
   triggerVisualPulse();
 }
@@ -320,7 +332,7 @@ onMounted(() => {
     statusNow.value = new Date();
     checkLessonAlerts();
   }, 1000);
-  refetchTimer = setInterval(fetchGroups, 120000);
+  refetchTimer = setInterval(fetchGroups, 12000);
 });
 
 onUnmounted(() => {
@@ -564,7 +576,7 @@ const PRIORITY_DOT = {
 
 <template>
   <div
-    class="min-h-screen bg-[#0a0e14] bg-[radial-gradient(ellipse_at_top,#151c26_0%,#0a0e14_60%)] px-4 py-6 sm:py-10"
+    class="min-h-screen bg-gradient-to-r from-[#000000] to-[#130F40] px-4 py-6 sm:py-10"
   >
     <div
       class="mx-auto flex max-w-[1800px] flex-col items-start gap-5 lg:flex-row lg:gap-6"
@@ -575,10 +587,10 @@ const PRIORITY_DOT = {
         class="order-1 w-full shrink-0 lg:sticky lg:top-10 lg:order-2 lg:w-72 2xl:w-80"
       >
         <div
-          class="overflow-hidden rounded-2xl border border-slate-800/80 bg-[#10151d] shadow-2xl shadow-black/50 animate-[fadeIn_0.4s_ease]"
+          class="overflow-hidden rounded-2xl border border-slate-800 shadow-2xl shadow-black/50 animate-[fadeIn_0.4s_ease]"
         >
           <div
-            class="flex items-center gap-2 border-b border-slate-800/80 bg-gradient-to-b from-[#141b24] to-[#10151d] px-6 py-5"
+            class="flex items-center gap-2 border-b border-slate-800/80 px-6 py-5"
           >
             <span class="text-amber-400 text-lg"><AppIcon name="megaphone" /></span>
             <p class="text-sm font-bold tracking-[0.18em] text-amber-400">
@@ -635,7 +647,7 @@ const PRIORITY_DOT = {
 
       <!-- ══════════ SCHEDULE BOARD ══════════ -->
       <div
-        class="order-2 w-full min-w-0 overflow-hidden rounded-2xl border bg-[#10151d] shadow-2xl shadow-black/50 transition-all duration-500 animate-[fadeIn_0.4s_ease] lg:order-1 lg:flex-1"
+        class="order-2 w-full  min-w-0 border overflow-hidden rounded-2xl  shadow-2xl shadow-black/50 transition-all duration-500 animate-[fadeIn_0.4s_ease] lg:order-1 lg:flex-1"
         :class="
           visualAlert
             ? 'border-amber-400 shadow-[0_0_40px_rgba(251,191,36,0.35)] animate-[boardFlash_0.6s_ease-in-out_3]'
@@ -644,12 +656,12 @@ const PRIORITY_DOT = {
       >
         <!-- Header -->
         <div
-          class="flex items-center justify-between gap-3 border-b border-slate-800/80 bg-gradient-to-b from-[#141b24] to-[#10151d] px-5 py-5 sm:px-7"
+          class="flex items-center justify-between gap-3 border-b bg-white/10 px-5 py-5 sm:px-7"
         >
           <div class="flex min-w-0 items-center gap-3">
             <RouterLink
               to="/groups"
-              class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-slate-800 text-slate-400 transition hover:border-amber-400/60 hover:text-amber-400"
+              class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-slate-800 text-white transition hover:border-amber-400/60 hover:text-amber-400"
             >
               <AppIcon name="chevron-left" class="w-4 h-4" />
             </RouterLink>
@@ -659,7 +671,7 @@ const PRIORITY_DOT = {
               >
                 DARSLAR TAXTASI
               </p>
-              <h1 class="truncate text-xl font-bold text-slate-100">
+              <h1 class="truncate text-xl font-bold text-white">
                 Bugungi jadval
               </h1>
             </div>
@@ -697,7 +709,7 @@ const PRIORITY_DOT = {
         <!-- Column labels (desktop) -->
         <div
           v-if="!loading && todaysGroups.length"
-          class="hidden grid-cols-[84px_1.2fr_84px_2.3fr_1.1fr_60px_124px] gap-2.5 border-b border-slate-800/60 px-5 py-4 text-xs tracking-[0.1em] text-slate-500 sm:grid sm:px-7"
+          class="hidden grid-cols-[84px_1.2fr_84px_2.3fr_1.1fr_60px_124px] gap-2.5 border-b border-slate-800/60  px-5 py-4 text-xs tracking-[0.1em] text-slate-50 sm:grid sm:px-7"
         >
           <span>VAQT</span>
           <span>GURUH</span>
@@ -880,7 +892,7 @@ const PRIORITY_DOT = {
 
             <!-- DARS BOSHLANDI -->
             <template v-if="activePopup.kind === 'lesson'">
-              <div class="popup-badge">
+              <div class="popup-badge ">
                 <span class="popup-badge-icon"><AppIcon name="bell" /></span>
                 <span>DARS BOSHLANDI</span>
               </div>
