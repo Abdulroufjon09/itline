@@ -572,7 +572,7 @@ const PRIORITY_DOT = {
       <!-- ══════════ NEWS SIDEBAR ══════════ -->
       <aside
         v-if="news.length"
-        class="order-1 w-full shrink-0 lg:sticky lg:top-10 lg:order-2 lg:w-80 xl:w-[26rem]"
+        class="order-1 w-full shrink-0 lg:sticky lg:top-10 lg:order-2 lg:w-72 2xl:w-80"
       >
         <div
           class="overflow-hidden rounded-2xl border border-slate-800/80 bg-[#10151d] shadow-2xl shadow-black/50 animate-[fadeIn_0.4s_ease]"
@@ -697,7 +697,7 @@ const PRIORITY_DOT = {
         <!-- Column labels (desktop) -->
         <div
           v-if="!loading && todaysGroups.length"
-          class="hidden grid-cols-[96px_1.5fr_104px_1.6fr_1.2fr_84px_150px] gap-3 border-b border-slate-800/60 px-5 py-4 text-xs tracking-[0.1em] text-slate-500 sm:grid sm:px-7"
+          class="hidden grid-cols-[84px_1.2fr_84px_2.3fr_1.1fr_60px_124px] gap-2.5 border-b border-slate-800/60 px-5 py-4 text-xs tracking-[0.1em] text-slate-500 sm:grid sm:px-7"
         >
           <span>VAQT</span>
           <span>GURUH</span>
@@ -756,7 +756,7 @@ const PRIORITY_DOT = {
           >
             <!-- Desktop row -->
             <div
-              class="hidden grid-cols-[96px_1.5fr_104px_1.6fr_1.2fr_84px_150px] items-center gap-3 sm:grid"
+              class="hidden grid-cols-[84px_1.2fr_84px_2.3fr_1.1fr_60px_124px] items-center gap-2.5 sm:grid"
             >
               <span
                 class="font-['Space_Mono',monospace] text-xl font-bold tabular-nums text-slate-100"
@@ -779,11 +779,11 @@ const PRIORITY_DOT = {
               </span>
 
               <span
-                class="flex min-w-0 items-center gap-2.5 text-base text-slate-300"
+                class="flex min-w-0 items-center gap-2 text-base text-slate-300"
               >
                 <span
                   v-if="g.teacher"
-                  class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-800 text-[11px] font-bold text-amber-400"
+                  class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-800 text-[11px] font-bold text-amber-400"
                 >
                   {{ initials(g.teacher.name) }}
                 </span>
